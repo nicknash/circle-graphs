@@ -29,6 +29,7 @@
 *.app
 *.pdb
 *.exp
+circle-graphs
 
 # Dependency management
 /conanbuildinfo.cmake
