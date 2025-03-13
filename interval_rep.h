@@ -25,14 +25,28 @@ public:
     :  End(2 * intervals.size()), 
        Size(intervals.size()) 
     {
-        // TODO: Check the intervals are valid and dense
         std::vector<bool> alreadySeen(End, false);        
         for(auto& i : intervals)
         {
             if(i.Left < 0)
             {
-                throw std::invalid_argument("");
+                throw std::invalid_argument(std::format("Invalid left end-point {} for {}", i.Left, i));
             }
+            if(i.Right >= End)
+            {
+                throw std::invalid_argument(std::format("Invalid right end-point {} for {}", i.Right, i));
+            }
+            if(alreadySeen[i.Left])
+            {
+                throw std::invalid_argument(std::format("Left end-point of interval {} is used by more than one interval, end-points must be unique", i));
+            }
+            if(alreadySeen[i.Right])
+            {
+                throw std::invalid_argument(std::format("Right end-point of interval {} is used by more than one interval, end-points must be unique", i));
+            }
+            alreadySeen[i.Left] = true;
+            alreadySeen[i.Right] = true;
+            // TODO: Fill in the actual little data structure. But implement the naive quadratic and Valiente's algorithm first.
         }
     }
 
@@ -42,6 +56,14 @@ public:
     }
 
     
+};
+
+template <>
+struct std::formatter<Interval> : std::formatter<std::string> {
+    // Handles custom format specifiers like "{:x}" or "{:y}"
+    auto format(const Interval& i, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "Interval[{}]({}, {})", i.Index, i.Left, i.Right);
+    }
 };
 
 // An implementation of the output sensitive algorithm from 
