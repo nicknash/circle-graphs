@@ -2,6 +2,8 @@
 #include <stack>
 #include <optional>
 #include <span>
+#include <format>
+#include <stdexcept>
 
 class Interval
 {
@@ -24,9 +26,13 @@ public:
        Size(intervals.size()) 
     {
         // TODO: Check the intervals are valid and dense
+        std::vector<bool> alreadySeen(End, false);        
         for(auto& i : intervals)
         {
-
+            if(i.Left < 0)
+            {
+                throw std::invalid_argument("");
+            }
         }
     }
 
@@ -49,7 +55,7 @@ private:
         pendingUpdates.push(indexToUpdate);        
     }
     
-    static void update(const SimpleIntervalRep& intervals, std::stack<int>& pendingUpdates, const Interval& interval, std::vector<int>& MIS, std::vector<int>& CMIS)
+    static bool tryUpdate(const SimpleIntervalRep& intervals, std::stack<int>& pendingUpdates, const Interval& interval, std::vector<int>& MIS, std::vector<int>& CMIS, int maxAllowedMIS)
     {
         updateAt(pendingUpdates, MIS, interval.Left, 1 + CMIS[interval.Index]);
         while(!pendingUpdates.empty())
@@ -66,16 +72,21 @@ private:
             {
                 auto interval = maybeInterval.value();
                 auto candidate = 1 + CMIS[interval.Index] + MIS[nextToUpdate];
+                if(candidate > maxAllowedMIS)
+                {
+                    return false;
+                }
                 if(candidate > MIS[interval.Left])
                 {
                     updateAt(pendingUpdates, MIS, interval.Left, candidate);
                 }
             }
         }
+        return true;
     }
 
 public:
-    static void computeMIS(const SimpleIntervalRep& intervals)
+    static bool tryComputeMIS(const SimpleIntervalRep& intervals, int maxAllowedMIS)
     {
         std::vector<int> MIS(intervals.End, 0);
         std::vector<int> CMIS(intervals.Size, 0);
@@ -87,8 +98,13 @@ public:
             {
                 auto interval = maybeInterval.value();
                 CMIS[interval.Index] = MIS[interval.Left + 1];
-                update(intervals, pendingUpdates, interval, MIS, CMIS);
+                if(!tryUpdate(intervals, pendingUpdates, interval, MIS, CMIS, maxAllowedMIS))
+                {
+                    return false;
+                }
+                
             }
         }
+        return true;
     }
 };
