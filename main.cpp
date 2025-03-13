@@ -1,4 +1,5 @@
 #include <iostream>
+#include "IntervalRep.h"
 
 int main()
 {
