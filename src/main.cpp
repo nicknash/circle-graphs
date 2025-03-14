@@ -1,5 +1,7 @@
 #include <iostream>
-#include "IntervalRep.h"
+#include "data_structures/interval.h"
+
+#include "mis/switching.h"
 
 int main()
 {
