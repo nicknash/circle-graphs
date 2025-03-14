@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "data_structures/interval.h"
+#include "data_structures/simple_interval_rep.h"
 
 #include "utils/interval_rep_utils.h"
  
@@ -34,4 +35,10 @@
             alreadySeen[i.Right] = true;
         }
     }
+
+    int compute_density(const cg::data_structures::SimpleIntervalRep& intervals)
+    {
+        throw std::exception();
+    }
+
  }
