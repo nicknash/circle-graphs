@@ -50,12 +50,17 @@ public:
         }
     }
 
-    [[nodiscard]] std::optional<Interval> tryGetIntervalFromRightEndpoint(int maybeRightEndpoint) const
+    [[nodiscard]] std::optional<Interval> tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
     {
        
     }
 
     
+    [[nodiscard]] std::optional<Interval> tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const
+    {
+       
+    }
+
 };
 
 template <>
@@ -89,7 +94,7 @@ private:
             {
                 updateAt(pendingUpdates, MIS, leftNeighbour, MIS[nextToUpdate]);
             }
-            auto maybeInterval = intervals.tryGetIntervalFromRightEndpoint(leftNeighbour);
+            auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(leftNeighbour);
             if(maybeInterval)
             {
                 auto interval = maybeInterval.value();
@@ -115,7 +120,7 @@ public:
         std::stack<int> pendingUpdates;
         for(auto i = 0; i < intervals.End; ++i)
         {
-            auto maybeInterval = intervals.tryGetIntervalFromRightEndpoint(i);
+            auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(i);
             if(maybeInterval)
             {
                 auto interval = maybeInterval.value();
@@ -129,4 +134,55 @@ public:
         }
         return true;
     }
+};
+
+class Valiente
+{
+public:
+    static void computeMIS(const SimpleIntervalRep& intervals)
+    {
+        std::vector<int> MIS(intervals.End, 0);
+        std::vector<int> CMIS(intervals.Size, 0);
+        for(auto i = 0; i < intervals.End; ++i)
+        {
+            auto maybeOuterInterval = intervals.tryGetIntervalByRightEndpoint(i);
+            if(maybeOuterInterval)
+            {
+                auto outerInterval = maybeOuterInterval.value();
+                for(auto j = outerInterval.Right - 1; j > outerInterval.Left; --j)
+                {
+                    auto maybeInnerInterval = intervals.tryGetIntervalByLeftEndpoint(j);
+                    if(maybeInnerInterval)
+                    {
+                        auto innerInterval = maybeInnerInterval.value();
+                        auto candidate = MIS[innerInterval.Right + 1] + CMIS[innerInterval.Index];
+                        if(candidate > MIS[innerInterval.Left + 1])
+                        {
+                            MIS[j] = candidate;
+                        }
+                    }
+                    else
+                    {
+                        MIS[j] = MIS[j + 1];
+                    }
+ 
+                }
+                CMIS[outerInterval.Index] = 1 + MIS[outerInterval.Left + 1];
+            }
+        }
+    }
+};
+
+class Switching
+{
+public:
+    static void computeMIS(const SimpleIntervalRep& intervals)
+    {
+        // TODO: Compute density
+    }
+};
+
+class NaiveLinearSpaceQuadraticTime
+{
+
 };
