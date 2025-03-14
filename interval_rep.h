@@ -179,6 +179,11 @@ public:
     static void computeMIS(const SimpleIntervalRep& intervals)
     {
         // TODO: Compute density
+        int density = 12345;
+        if(!PureOutputSensitive::tryComputeMIS(intervals, density))
+        {
+            Valiente::computeMIS(intervals);
+        }
     }
 };
 
