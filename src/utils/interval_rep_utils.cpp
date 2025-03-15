@@ -1,6 +1,9 @@
 #include <format>
 #include <stdexcept>
 #include <vector>
+#include <numeric>
+#include <algorithm>
+#include <random>
 
 #include "data_structures/interval.h"
 #include "data_structures/simple_interval_rep.h"
@@ -41,4 +44,11 @@
         throw std::exception();
     }
 
+    std::vector<cg::data_structures::Interval> generate_random_intervals(int numIntervals)
+    {
+        std::vector<cg::data_structures::Interval> result(2 * numIntervals);
+        std::iota(result.begin(), result.end(), 1);
+        std::mt19937 rng(2010);
+        std::shuffle(result.begin(), result.end(), rng);
+    }
  }
