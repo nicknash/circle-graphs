@@ -10,14 +10,22 @@ namespace cg::data_structures
           Size(intervals.size())
     {
         cg::utils::verify_dense(intervals);
-        // TODO: Fill in the actual little data structure. But implement the naive quadratic and Valiente's algorithm first.
+        _leftEndpointToInterval = std::vector<std::optional<Interval>>(End);
+        _rightEndpointToInterval = std::vector<std::optional<Interval>>(End);
+        for(const auto& interval : intervals)
+        {
+            _leftEndpointToInterval[interval.Left].emplace(interval.Left, interval.Right, interval.Index);
+            _rightEndpointToInterval[interval.Right].emplace(interval.Left, interval.Right, interval.Index);
+        }
     }
 
     [[nodiscard]] std::optional<Interval> SimpleIntervalRep::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
     {
+        return _rightEndpointToInterval[maybeRightEndpoint];
     }
 
     [[nodiscard]] std::optional<Interval> SimpleIntervalRep::tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const
     {
+        return _leftEndpointToInterval[maybeLeftEndpoint];
     }
 }

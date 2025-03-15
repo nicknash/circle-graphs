@@ -9,7 +9,8 @@ namespace cg::data_structures
     class Interval;
     class SimpleIntervalRep
     {
-        std::vector<Interval> intervals;
+        std::vector<std::optional<Interval>> _leftEndpointToInterval; 
+        std::vector<std::optional<Interval>> _rightEndpointToInterval; 
     public:
         const int End;
         const int Size;

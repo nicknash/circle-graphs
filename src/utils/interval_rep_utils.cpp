@@ -41,14 +41,52 @@
 
     int compute_density(const cg::data_structures::SimpleIntervalRep& intervals)
     {
-        throw std::exception();
+        auto numOpen = 0;
+        auto maxOpen = 0;
+        for(auto i = 0; i < intervals.End; ++i)
+        {
+            if(intervals.tryGetIntervalByLeftEndpoint(i))
+            {
+                ++numOpen;
+            }
+            else
+            {
+                --numOpen;
+            }
+            if(numOpen > maxOpen)
+            {
+                maxOpen = numOpen;
+            }
+        }        
+        return maxOpen;
     }
 
+    // Note that these correspond to the interval graphs studied in:
+    // SCHEINERMAN, E. R. 1988. Random interval graphs. Combinatorica 8, 4, 357–371.  
     std::vector<cg::data_structures::Interval> generate_random_intervals(int numIntervals)
     {
-        std::vector<cg::data_structures::Interval> result(2 * numIntervals);
-        std::iota(result.begin(), result.end(), 1);
+        std::vector<int> endPoints(2 * numIntervals);
+        std::iota(endPoints.begin(), endPoints.end(), 1);
         std::mt19937 rng(2010);
-        std::shuffle(result.begin(), result.end(), rng);
+        std::shuffle(endPoints.begin(), endPoints.end(), rng);
+
+        std::vector<cg::data_structures::Interval> result;
+        result.reserve(numIntervals);
+        for(int i = 0; i < numIntervals; ++i)
+        {
+            auto leftIndex = 2 * i;
+            auto leftEndpoint = endPoints[leftIndex];
+            auto rightEndpoint = endPoints[leftIndex + 1];
+            result.emplace_back(leftEndpoint, rightEndpoint, i);
+        }
+        return result;
+    }
+
+    // Note that these correspond to the interval graphs studied in:
+    // S CHEINERMAN, E. R. 1990. An evolution of interval graphs. Discrete Math. 82, 3, 287–302.
+    std::vector<cg::data_structures::Interval> generate_random_intervals_with_radius(int numIntervals)
+    {
+        throw std::exception();
+        // Generate random centre point in [0, 1] and random radius in [0, R]
     }
  }
