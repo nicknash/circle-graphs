@@ -39,5 +39,19 @@ namespace cg::mis
                 CMIS[outerInterval.Index] = 1 + MIS[outerInterval.Left + 1];
             }
         }
+        for(auto i = intervals.End - 1; i >= 0; --i)
+        {
+            auto maybeInterval = intervals.tryGetIntervalByLeftEndpoint(i);
+            
+            if(maybeInterval)
+            {
+                auto interval = maybeInterval.value();
+                MIS[i] = std::max(MIS[i + 1], 1 + MIS[interval.Right + 1] + CMIS[interval.Index]);
+            }
+            else
+            {
+                MIS[i] = MIS[i + 1];
+            }
+        }
     }
 }

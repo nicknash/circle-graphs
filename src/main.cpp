@@ -5,7 +5,9 @@
 #include "utils/interval_rep_utils.h"
 
 #include "mis/naive.h"
+#include "mis/valiente.h"
 #include "mis/switching.h"
+#include "mis/pure_output_sensitive.h"
 
 int main()
 {
@@ -14,5 +16,7 @@ int main()
     auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 
     cg::mis::Naive::computeMIS(intervalRep);
+    cg::mis::Valiente::computeMIS(intervalRep);
+    cg::mis::PureOutputSensitive::tryComputeMIS(intervalRep, 1 + intervals.size());
     return 0;
 }
