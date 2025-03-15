@@ -17,23 +17,20 @@ namespace cg::mis
             if(maybeOuterInterval)
             {
                 auto outerInterval = maybeOuterInterval.value();
-                for(auto j = outerInterval.Right - 1; j > outerInterval.Left; --j)
+                for(auto j = outerInterval.Right; j > outerInterval.Left; --j)
                 {
                     auto maybeInnerInterval = intervals.tryGetIntervalByLeftEndpoint(j);
+                    MIS[j] = MIS[j + 1];
                     if(maybeInnerInterval)
                     {
                         auto innerInterval = maybeInnerInterval.value();
                         auto candidate = MIS[innerInterval.Right + 1] + CMIS[innerInterval.Index];
                         if(innerInterval.Right < outerInterval.Right && // Strictly speaking, this bounds check could be removed because CMIS and MIS on the previous line
                                                                         // will both be zero when it is false, but it's a bit confusing to write the code that way. 
-                           candidate > MIS[innerInterval.Left + 1])
+                           candidate > MIS[j + 1])
                         {
                             MIS[j] = candidate;
                         }
-                    }
-                    else
-                    {
-                        MIS[j] = MIS[j + 1];
                     }
                 }
                 CMIS[outerInterval.Index] = 1 + MIS[outerInterval.Left + 1];
@@ -46,7 +43,7 @@ namespace cg::mis
             if(maybeInterval)
             {
                 auto interval = maybeInterval.value();
-                MIS[i] = std::max(MIS[i + 1], 1 + MIS[interval.Right + 1] + CMIS[interval.Index]);
+                MIS[i] = std::max(MIS[i + 1], MIS[interval.Right + 1] + CMIS[interval.Index]);
             }
             else
             {
