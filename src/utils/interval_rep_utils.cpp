@@ -14,9 +14,9 @@
  {
     void verify_dense(std::span<const cg::data_structures::Interval> intervals)
     {
-        auto end = 2 * intervals.size() + 1;
+        auto end = 2 * intervals.size();
         std::vector<bool> alreadySeen(end, false);        
-        for(auto& i : intervals)
+        for(const auto& i : intervals)
         {
             if(i.Left < 0)
             {
@@ -66,17 +66,27 @@
     std::vector<cg::data_structures::Interval> generate_random_intervals(int numIntervals)
     {
         std::vector<int> endPoints(2 * numIntervals);
-        std::iota(endPoints.begin(), endPoints.end(), 1);
-        std::mt19937 rng(2010);
+        std::iota(endPoints.begin(), endPoints.end(), 0);
+        std::mt19937 rng(2011);
         std::shuffle(endPoints.begin(), endPoints.end(), rng);
 
         std::vector<cg::data_structures::Interval> result;
         result.reserve(numIntervals);
         for(int i = 0; i < numIntervals; ++i)
         {
-            auto leftIndex = 2 * i;
-            auto leftEndpoint = endPoints[leftIndex];
-            auto rightEndpoint = endPoints[leftIndex + 1];
+            auto firstIndex = 2 * i;
+            int leftEndpoint;
+            int rightEndpoint;
+            if(endPoints[firstIndex] < endPoints[firstIndex + 1])
+            {
+                leftEndpoint = endPoints[firstIndex];
+                rightEndpoint = endPoints[firstIndex + 1];
+            }
+            else
+            {
+                leftEndpoint = endPoints[firstIndex + 1];
+                rightEndpoint = endPoints[firstIndex];
+            }
             result.emplace_back(leftEndpoint, rightEndpoint, i);
         }
         return result;
