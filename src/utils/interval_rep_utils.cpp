@@ -66,7 +66,7 @@
             bool isOpening;                                // true = opening, false = closing
             const cg::data_structures::Interval *interval; // Pointer to the original interval
         };
-        std::vector<Event> events;
+        std::vector<Event> events(2 * intervals.size());
 
         // Create events for each interval
         for (const auto &interval : intervals)

@@ -47,10 +47,6 @@ namespace cg::mis
                     updateAt(pendingUpdates, MIS, interval.Left, candidate);
                     nextRightEndpoint[interval.Left] = interval.Right;
                 }
-                else
-                {
-                    //nextRightEndpoint[interval.Left] = nextRightEndpoint[interval.Left + 1];
-                }
             }
         }
         return true;

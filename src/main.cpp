@@ -11,7 +11,7 @@
 
 int main()
 {
-    auto intervals = cg::utils::generateRandomIntervals(1000);
+    auto intervals = cg::utils::generateRandomIntervals(10000);
 
     auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 
@@ -19,7 +19,7 @@ int main()
     std::cout << std::format("Naive {}", mis.size()) << std::endl;
     for(auto i : mis)
     {
-        std::cout << std::format("{}", i) << std::endl;
+        //std::cout << std::format("{}", i) << std::endl;
     }
     cg::utils::verifyNoOverlaps(mis);
 
@@ -27,7 +27,7 @@ int main()
     std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
     for(auto i : mis2)
     {
-        std::cout << std::format("{}", i) << std::endl;
+        //std::cout << std::format("{}", i) << std::endl;
     }
     cg::utils::verifyNoOverlaps(mis2);
 
@@ -36,7 +36,7 @@ int main()
     std::cout << std::format("Switching {}", mis3.size()) << std::endl;
     for(auto i : mis3)
     {
-        std::cout << std::format("{}", i) << std::endl;
+        //std::cout << std::format("{}", i) << std::endl;
     }
     cg::utils::verifyNoOverlaps(mis3);
 
