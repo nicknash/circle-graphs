@@ -11,7 +11,7 @@
 
 int main()
 {
-    auto intervals = cg::utils::generateRandomIntervals(20);
+    auto intervals = cg::utils::generateRandomIntervals(250);
 
     auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 

@@ -9,12 +9,14 @@
 
 namespace cg::mis
 {
-    void Switching::computeMIS(const cg::data_structures::SimpleIntervalRep &intervals)
+    std::vector<cg::data_structures::Interval> Switching::computeMIS(const cg::data_structures::SimpleIntervalRep &intervals)
     {
         int density = cg::utils::computeDensity(intervals);
-        if (!PureOutputSensitive::tryComputeMIS(intervals, density))
+        const auto& maybeMis = PureOutputSensitive::tryComputeMIS(intervals, density); 
+        if (maybeMis)
         {
-            Valiente::computeMIS(intervals);
+            return maybeMis.value();
         }
+        return Valiente::computeMIS(intervals);
     }
 }

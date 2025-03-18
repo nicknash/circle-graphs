@@ -45,11 +45,13 @@ namespace cg::mis
         return true;
     }
 
-    bool PureOutputSensitive::tryComputeMIS(const cg::data_structures::SimpleIntervalRep &intervals, int maxAllowedMIS)
+    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::SimpleIntervalRep &intervals, int maxAllowedMIS)
     {
         std::vector<int> MIS(intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
         std::stack<int> pendingUpdates;
+
+
         for (auto i = 0; i < intervals.end; ++i)
         {
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(i);
@@ -57,12 +59,14 @@ namespace cg::mis
             {
                 auto interval = maybeInterval.value();
                 CMIS[interval.Index] = MIS[interval.Left + 1];
+                // TODO build directly contained set here.
                 if (!tryUpdate(intervals, pendingUpdates, interval, MIS, CMIS, maxAllowedMIS))
                 {
-                    return false;
+                    return std::nullopt;
                 }
             }
         }
+        // TODO: build final mis here.
         return true;
     }
 }
