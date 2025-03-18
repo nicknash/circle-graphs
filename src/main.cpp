@@ -11,12 +11,17 @@
 
 int main()
 {
-    auto intervals = cg::utils::generate_random_intervals(1000);
+    auto intervals = cg::utils::generateRandomIntervals(10);
 
     auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 
-    cg::mis::Naive::computeMIS(intervalRep);
-    cg::mis::Valiente::computeMIS(intervalRep);
-    cg::mis::PureOutputSensitive::tryComputeMIS(intervalRep, 1 + intervals.size());
+    auto mis = cg::mis::Naive::computeMIS(intervalRep);
+    
+    for(auto i : mis)
+    {
+        std::cout << std::format("{}", i) << std::endl;
+    }
+    //cg::mis::Valiente::computeMIS(intervalRep);
+    //cg::mis::PureOutputSensitive::tryComputeMIS(intervalRep, 1 + intervals.size());
     return 0;
 }

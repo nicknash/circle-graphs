@@ -9,9 +9,9 @@ namespace cg::mis
 {
     void Valiente::computeMIS(const cg::data_structures::SimpleIntervalRep& intervals)
     {
-        std::vector<int> MIS(intervals.End + 1, 0);
-        std::vector<int> CMIS(intervals.Size, 0);
-        for(auto i = 0; i < intervals.End; ++i)
+        std::vector<int> MIS(intervals.end + 1, 0);
+        std::vector<int> CMIS(intervals.size, 0);
+        for(auto i = 0; i < intervals.end; ++i)
         {
             auto maybeOuterInterval = intervals.tryGetIntervalByRightEndpoint(i);
             if(maybeOuterInterval)
@@ -36,7 +36,7 @@ namespace cg::mis
                 CMIS[outerInterval.Index] = 1 + MIS[outerInterval.Left + 1];
             }
         }
-        for(auto i = intervals.End - 1; i >= 0; --i)
+        for(auto i = intervals.end - 1; i >= 0; --i)
         {
             auto maybeInterval = intervals.tryGetIntervalByLeftEndpoint(i);
             

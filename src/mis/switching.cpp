@@ -10,7 +10,7 @@ namespace cg::mis
 {
     void Switching::computeMIS(const cg::data_structures::SimpleIntervalRep &intervals)
     {
-        int density = cg::utils::compute_density(intervals);
+        int density = cg::utils::computeDensity(intervals);
         if (!PureOutputSensitive::tryComputeMIS(intervals, density))
         {
             Valiente::computeMIS(intervals);

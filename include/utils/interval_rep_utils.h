@@ -11,7 +11,8 @@ namespace cg::data_structures
 
 namespace cg::utils
 {
-    void verify_dense(std::span<const cg::data_structures::Interval> intervals);
-    int compute_density(const cg::data_structures::SimpleIntervalRep& intervals);
-    std::vector<cg::data_structures::Interval> generate_random_intervals(int numIntervals);
+    void verifyEndpointsDense(std::span<const cg::data_structures::Interval> intervals);
+    void verifyIndicesDense(std::span<const cg::data_structures::Interval> intervals);
+    int computeDensity(const cg::data_structures::SimpleIntervalRep& intervals);
+    std::vector<cg::data_structures::Interval> generateRandomIntervals(int numIntervals);
 }

@@ -47,10 +47,10 @@ namespace cg::mis
 
     bool PureOutputSensitive::tryComputeMIS(const cg::data_structures::SimpleIntervalRep &intervals, int maxAllowedMIS)
     {
-        std::vector<int> MIS(intervals.End, 0);
-        std::vector<int> CMIS(intervals.Size, 0);
+        std::vector<int> MIS(intervals.end, 0);
+        std::vector<int> CMIS(intervals.size, 0);
         std::stack<int> pendingUpdates;
-        for (auto i = 0; i < intervals.End; ++i)
+        for (auto i = 0; i < intervals.end; ++i)
         {
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(i);
             if (maybeInterval)

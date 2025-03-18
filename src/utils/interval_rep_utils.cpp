@@ -12,7 +12,7 @@
  
  namespace cg::utils
  {
-    void verify_dense(std::span<const cg::data_structures::Interval> intervals)
+    void verifyEndpointsDense(std::span<const cg::data_structures::Interval> intervals)
     {
         auto end = 2 * intervals.size();
         std::vector<bool> alreadySeen(end, false);        
@@ -39,11 +39,28 @@
         }
     }
 
-    int compute_density(const cg::data_structures::SimpleIntervalRep& intervals)
+    void verifyIndicesDense(std::span<const cg::data_structures::Interval> intervals)
+    {
+        std::vector<bool> alreadySeen(intervals.size(), false);        
+        for(const auto& i : intervals)
+        {
+            if(i.Index < 0 || i.Index >= intervals.size())
+            {
+                throw std::invalid_argument(std::format("Invalid index {} for interval {}", i.Index, i));
+            }
+            if(alreadySeen[i.Index])
+            {
+                throw std::invalid_argument(std::format("Interval index {} is used by more than one interval, interval indices must be unique.", i.Index));
+            }
+            alreadySeen[i.Index] = true;
+        }
+    }
+
+    int computeDensity(const cg::data_structures::SimpleIntervalRep& intervals)
     {
         auto numOpen = 0;
         auto maxOpen = 0;
-        for(auto i = 0; i < intervals.End; ++i)
+        for(auto i = 0; i < intervals.end; ++i)
         {
             if(intervals.tryGetIntervalByLeftEndpoint(i))
             {
@@ -63,7 +80,7 @@
 
     // Note that these correspond to the interval graphs studied in:
     // SCHEINERMAN, E. R. 1988. Random interval graphs. Combinatorica 8, 4, 357–371.  
-    std::vector<cg::data_structures::Interval> generate_random_intervals(int numIntervals)
+    std::vector<cg::data_structures::Interval> generateRandomIntervals(int numIntervals)
     {
         std::vector<int> endPoints(2 * numIntervals);
         std::iota(endPoints.begin(), endPoints.end(), 0);
