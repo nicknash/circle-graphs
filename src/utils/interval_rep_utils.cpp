@@ -66,8 +66,8 @@
             bool isOpening;                                // true = opening, false = closing
             const cg::data_structures::Interval *interval; // Pointer to the original interval
         };
-        std::vector<Event> events(2 * intervals.size());
-
+        std::vector<Event> events;
+        events.reserve(2 * intervals.size());
         // Create events for each interval
         for (const auto &interval : intervals)
         {
@@ -137,11 +137,11 @@
 
     // Note that these correspond to the interval graphs studied in:
     // SCHEINERMAN, E. R. 1988. Random interval graphs. Combinatorica 8, 4, 357–371.  
-    std::vector<cg::data_structures::Interval> generateRandomIntervals(int numIntervals)
+    std::vector<cg::data_structures::Interval> generateRandomIntervals(int numIntervals, int seed)
     {
         std::vector<int> endPoints(2 * numIntervals);
         std::iota(endPoints.begin(), endPoints.end(), 0);
-        std::mt19937 rng(2011);
+        std::mt19937 rng(seed);
         std::shuffle(endPoints.begin(), endPoints.end(), rng);
 
         std::vector<cg::data_structures::Interval> result;

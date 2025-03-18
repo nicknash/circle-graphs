@@ -11,34 +11,41 @@
 
 int main()
 {
-    auto intervals = cg::utils::generateRandomIntervals(10000);
 
-    auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
-
-    auto mis = cg::mis::Naive::computeMIS(intervalRep);
-    std::cout << std::format("Naive {}", mis.size()) << std::endl;
-    for(auto i : mis)
+    for (int i = 0; i < 100; ++i)
     {
-        //std::cout << std::format("{}", i) << std::endl;
+        auto intervals = cg::utils::generateRandomIntervals(2000, i);
+
+        auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
+
+        auto mis = cg::mis::Naive::computeMIS(intervalRep);
+        std::cout << std::format("Naive {}", mis.size()) << std::endl;
+        for (auto i : mis)
+        {
+            //std::cout << std::format("{}", i) << std::endl;
+        }
+        cg::utils::verifyNoOverlaps(mis);
+
+        auto mis2 = cg::mis::Valiente::computeMIS(intervalRep);
+        std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
+        for (auto i : mis2)
+        {
+            // std::cout << std::format("{}", i) << std::endl;
+        }
+        cg::utils::verifyNoOverlaps(mis2);
+
+        auto mis3 = cg::mis::Switching::computeMIS(intervalRep);
+        std::cout << std::format("Switching {}", mis3.size()) << std::endl;
+        for (auto i : mis3)
+        {
+            // std::cout << std::format("{}", i) << std::endl;
+        }
+        cg::utils::verifyNoOverlaps(mis3);
+    
+        if(mis.size() != mis2.size() || mis2.size() != mis3.size())
+        {
+            throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}", mis.size(), mis2.size(), mis3.size()));
+        }
     }
-    cg::utils::verifyNoOverlaps(mis);
-
-    auto mis2 = cg::mis::Valiente::computeMIS(intervalRep);
-    std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
-    for(auto i : mis2)
-    {
-        //std::cout << std::format("{}", i) << std::endl;
-    }
-    cg::utils::verifyNoOverlaps(mis2);
-
-
-    auto mis3 = cg::mis::Switching::computeMIS(intervalRep);
-    std::cout << std::format("Switching {}", mis3.size()) << std::endl;
-    for(auto i : mis3)
-    {
-        //std::cout << std::format("{}", i) << std::endl;
-    }
-    cg::utils::verifyNoOverlaps(mis3);
-
     return 0;
 }
