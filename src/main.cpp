@@ -11,17 +11,25 @@
 
 int main()
 {
-    auto intervals = cg::utils::generateRandomIntervals(10);
+    auto intervals = cg::utils::generateRandomIntervals(20);
 
     auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 
     auto mis = cg::mis::Naive::computeMIS(intervalRep);
-    
+    std::cout << std::format("Naive {}", mis.size()) << std::endl;
     for(auto i : mis)
     {
         std::cout << std::format("{}", i) << std::endl;
     }
-    //cg::mis::Valiente::computeMIS(intervalRep);
+    cg::utils::verifyNoOverlaps(mis);
+
+    auto mis2 = cg::mis::Valiente::computeMIS(intervalRep);
+    std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
+    for(auto i : mis2)
+    {
+        std::cout << std::format("{}", i) << std::endl;
+    }
+    cg::utils::verifyNoOverlaps(mis2);
     //cg::mis::PureOutputSensitive::tryComputeMIS(intervalRep, 1 + intervals.size());
     return 0;
 }

@@ -3,6 +3,8 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <set>
+#include <ranges>
 #include <random>
 
 #include "data_structures/interval.h"
@@ -53,6 +55,61 @@
                 throw std::invalid_argument(std::format("Interval index {} is used by more than one interval, interval indices must be unique.", i.Index));
             }
             alreadySeen[i.Index] = true;
+        }
+    }
+
+    void verifyNoOverlaps(std::span<const cg::data_structures::Interval> intervals)
+    {
+        struct Event
+        {
+            int point;                                     // Endpoint (either Left or Right)
+            bool isOpening;                                // true = opening, false = closing
+            const cg::data_structures::Interval *interval; // Pointer to the original interval
+        };
+        std::vector<Event> events;
+
+        // Create events for each interval
+        for (const auto &interval : intervals)
+        {
+            events.push_back({interval.Left, true, &interval});   // Opening event
+            events.push_back({interval.Right, false, &interval}); // Closing event
+        }
+
+        // Sort events:
+        //  - Primary sort by point
+        //  - Secondary: closing events before opening events if points are equal
+        std::ranges::sort(events, [](const Event &a, const Event &b)
+                          {
+            if (a.point == b.point) 
+            {
+                throw std::runtime_error(std::format("Equal end-points encountered {} and {}", a.point, b.point));
+            }
+            return a.point < b.point; });
+
+        // Sweep line logic using std::set for active start points
+        std::set<int> activeStartPoints; // Tracks only starting points
+
+        for (const auto &event : events)
+        {
+            if (event.isOpening)
+            {
+                activeStartPoints.insert(event.interval->Left); // Track opening point
+            }
+            else
+            {
+                // On closing event: ensure no "later" opening point is still active
+                const auto &closingInterval = *event.interval;
+
+                // Remove the interval's starting point since it's now closed
+                activeStartPoints.erase(closingInterval.Left);
+
+                // Check if any interval that started later is still active
+                auto it = activeStartPoints.upper_bound(closingInterval.Left); // First "later" starting point
+                if (it != activeStartPoints.end())
+                {
+                    throw std::runtime_error(std::format("Overlap detected between interval opening at {} and interval {}", (*it), closingInterval));
+                }
+            }
         }
     }
 

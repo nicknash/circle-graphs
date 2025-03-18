@@ -2,6 +2,7 @@
 #include "mis/valiente.h"
 #include "mis/pure_output_sensitive.h"
 #include "utils/interval_rep_utils.h"
+#include "data_structures/interval.h"
 
 
 #include "mis/switching.h"
