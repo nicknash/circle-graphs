@@ -11,7 +11,7 @@
 
 int main()
 {
-    auto intervals = cg::utils::generateRandomIntervals(250);
+    auto intervals = cg::utils::generateRandomIntervals(1000);
 
     auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 
@@ -30,6 +30,15 @@ int main()
         std::cout << std::format("{}", i) << std::endl;
     }
     cg::utils::verifyNoOverlaps(mis2);
-    //cg::mis::PureOutputSensitive::tryComputeMIS(intervalRep, 1 + intervals.size());
+
+
+    auto mis3 = cg::mis::Switching::computeMIS(intervalRep);
+    std::cout << std::format("Switching {}", mis3.size()) << std::endl;
+    for(auto i : mis3)
+    {
+        std::cout << std::format("{}", i) << std::endl;
+    }
+    cg::utils::verifyNoOverlaps(mis3);
+
     return 0;
 }

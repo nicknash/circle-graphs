@@ -14,7 +14,7 @@ namespace cg::mis
     {
     private:
         static void updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newValue);
-        static bool tryUpdate(const cg::data_structures::SimpleIntervalRep &intervals, std::stack<int> &pendingUpdates, const cg::data_structures::Interval &interval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS);
+        static bool tryUpdate(const cg::data_structures::SimpleIntervalRep &intervals, std::stack<int> &pendingUpdates, std::vector<int>& nextRightEndpoint, const cg::data_structures::Interval &interval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS);
     public:
         static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::SimpleIntervalRep &intervals, int maxAllowedMIS);
     };

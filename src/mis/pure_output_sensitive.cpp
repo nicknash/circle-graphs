@@ -1,5 +1,6 @@
 #include <vector>
 #include <stack>
+#include <list>
 
 #include "data_structures/simple_interval_rep.h"
 #include "data_structures/interval.h"
@@ -15,23 +16,28 @@ namespace cg::mis
         pendingUpdates.push(indexToUpdate);
     }
 
-    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SimpleIntervalRep &intervals, std::stack<int> &pendingUpdates, const cg::data_structures::Interval &interval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
+    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SimpleIntervalRep &intervals, std::stack<int> &pendingUpdates, std::vector<int>& nextRightEndpoint, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
     {
-        updateAt(pendingUpdates, MIS, interval.Left, 1 + CMIS[interval.Index]);
+        updateAt(pendingUpdates, MIS, newInterval.Left, 1 + CMIS[newInterval.Index]);
+        nextRightEndpoint[newInterval.Left] = newInterval.Right;
         while (!pendingUpdates.empty())
         {
-            auto nextToUpdate = pendingUpdates.top();
+            auto updatedIndex = pendingUpdates.top();
             pendingUpdates.pop();
-            auto leftNeighbour = nextToUpdate - 1;
-            if (nextToUpdate > 0 && MIS[nextToUpdate] > MIS[leftNeighbour])
+            auto leftNeighbour = updatedIndex - 1;
+            if (updatedIndex > 0)
             {
-                updateAt(pendingUpdates, MIS, leftNeighbour, MIS[nextToUpdate]);
+                if(MIS[updatedIndex] > MIS[leftNeighbour])
+                {
+                    nextRightEndpoint[leftNeighbour] = nextRightEndpoint[updatedIndex];
+                    updateAt(pendingUpdates, MIS, leftNeighbour, MIS[updatedIndex]);
+                }
             }
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(leftNeighbour);
             if (maybeInterval)
             {
                 auto interval = maybeInterval.value();
-                auto candidate = 1 + CMIS[interval.Index] + MIS[nextToUpdate];
+                auto candidate = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
                 if (candidate > maxAllowedMIS)
                 {
                     return false;
@@ -39,6 +45,11 @@ namespace cg::mis
                 if (candidate > MIS[interval.Left])
                 {
                     updateAt(pendingUpdates, MIS, interval.Left, candidate);
+                    nextRightEndpoint[interval.Left] = interval.Right;
+                }
+                else
+                {
+                    //nextRightEndpoint[interval.Left] = nextRightEndpoint[interval.Left + 1];
                 }
             }
         }
@@ -51,6 +62,8 @@ namespace cg::mis
         std::vector<int> CMIS(intervals.size, 0);
         std::stack<int> pendingUpdates;
 
+        std::vector<int> nextRightEndpoint(intervals.end + 1, 0);
+        std::vector<std::list<int>> intervalIndexToDirectlyContained(intervals.end); 
 
         for (auto i = 0; i < intervals.end; ++i)
         {
@@ -59,14 +72,45 @@ namespace cg::mis
             {
                 auto interval = maybeInterval.value();
                 CMIS[interval.Index] = MIS[interval.Left + 1];
-                // TODO build directly contained set here.
-                if (!tryUpdate(intervals, pendingUpdates, interval, MIS, CMIS, maxAllowedMIS))
+                auto next = nextRightEndpoint[interval.Left + 1];
+                auto& containedSet = intervalIndexToDirectlyContained[interval.Index];
+                while(next != 0)
+                {
+                    const auto& containedInterval = intervals.getIntervalByRightEndpoint(next);
+                    containedSet.push_front(containedInterval.Index);
+                    next = nextRightEndpoint[next];
+                }
+                if (!tryUpdate(intervals, pendingUpdates, nextRightEndpoint, interval, MIS, CMIS, maxAllowedMIS))
                 {
                     return std::nullopt;
                 }
             }
         }
-        // TODO: build final mis here.
-        return true;
+        std::vector<cg::data_structures::Interval> intervalsInMis; 
+        intervalsInMis.reserve(intervals.size);
+
+        std::vector<cg::data_structures::Interval> pendingIntervals;
+        pendingIntervals.reserve(intervals.size);
+        auto next = nextRightEndpoint[0];
+        while(next != 0)
+        {
+            const auto& interval = intervals.getIntervalByRightEndpoint(next);
+            pendingIntervals.push_back(interval);
+            while(!pendingIntervals.empty())
+            {
+                const auto& newInterval = pendingIntervals.back();
+                pendingIntervals.pop_back();
+                intervalsInMis.push_back(newInterval);
+                const auto& allContained = intervalIndexToDirectlyContained[newInterval.Index];
+                for(auto idx : allContained)
+                {   
+                    const auto& c = intervals.getIntervalByIndex(idx);
+                    pendingIntervals.push_back(c);
+                }
+            }
+            next = nextRightEndpoint[next];
+        }
+
+        return intervalsInMis;
     }
 }
