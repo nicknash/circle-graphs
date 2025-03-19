@@ -146,7 +146,7 @@
 
         std::vector<cg::data_structures::Interval> result;
         result.reserve(numIntervals);
-        for(int i = 0; i < numIntervals; ++i)
+        for(auto i = 0; i < numIntervals; ++i)
         {
             auto firstIndex = 2 * i;
             int leftEndpoint;

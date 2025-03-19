@@ -12,9 +12,9 @@
 int main()
 {
 
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 50; ++i)
     {
-        auto intervals = cg::utils::generateRandomIntervals(2000, i);
+        auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
 
         auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
 

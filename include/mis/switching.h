@@ -1,10 +1,5 @@
 #pragma once
 
-namespace cg::data_structures
-{
-    class SimpleIntervalRep;
-}
-
 namespace cg::mis
 {
     class Switching
