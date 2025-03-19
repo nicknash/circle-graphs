@@ -17,8 +17,6 @@ namespace cg::mis
         {
             return maybeMis.value();
         }
-
-        abort(); // just to make sure I'm not executing this path for now. 
-        //return Valiente::computeMIS(intervals);
+        return Valiente::computeMIS(intervals);
     }
 }
