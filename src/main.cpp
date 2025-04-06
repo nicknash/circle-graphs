@@ -9,6 +9,8 @@
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
 
+#include "mis/shared/naive.h"
+
 int main()
 {
 
@@ -46,6 +48,9 @@ int main()
         {
             throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}", mis.size(), mis2.size(), mis3.size()));
         }
+
+        
+        //cg::mis::shared::Naive::computeMIS
     }
     return 0;
 }

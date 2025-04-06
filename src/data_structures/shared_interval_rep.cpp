@@ -9,4 +9,16 @@ namespace cg::data_structures
     {
         
     }
+
+
+    [[nodiscard]] std::vector<Interval> SharedIntervalRep::getAllIntervalsWithLeftEndpoint(int leftEndpoint) const
+    {
+
+    }
+    
+    [[nodiscard]] Interval SharedIntervalRep::getIntervalByIndex(int intervalIndex) const
+    {
+
+    }
+
 }
