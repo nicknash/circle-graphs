@@ -3,7 +3,7 @@
 #include <vector>
 #include <list>
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     class IndependentSet
     {

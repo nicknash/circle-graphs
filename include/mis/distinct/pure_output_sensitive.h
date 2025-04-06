@@ -3,7 +3,7 @@
 #include <stack>
 #include <vector>
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     class IndependentSet;
 
@@ -13,7 +13,7 @@ namespace cg::mis
     {
     private:
         static void updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newMisValue);
-        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, cg::mis::IndependentSet& independentSet, const cg::data_structures::Interval &interval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS);
+        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, cg::mis::distinct::IndependentSet& independentSet, const cg::data_structures::Interval &interval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS);
     public:
         static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS);
     };

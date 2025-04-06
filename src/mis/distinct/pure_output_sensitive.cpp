@@ -8,7 +8,7 @@
 
 #include "mis/distinct/pure_output_sensitive.h"
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     void PureOutputSensitive::updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newMisValue)
     {

@@ -2,7 +2,7 @@
 
 class SimpleIntervalRep;
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     class Valiente
     {

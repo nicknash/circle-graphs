@@ -7,7 +7,7 @@
 
 #include "mis/distinct/valiente.h"
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     std::vector<cg::data_structures::Interval> Valiente::computeMIS(const cg::data_structures::DistinctIntervalRep& intervals)
     {

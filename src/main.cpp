@@ -18,7 +18,7 @@ int main()
 
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
-        auto mis = cg::mis::Naive::computeMIS(intervalRep);
+        auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
         std::cout << std::format("Naive {}", mis.size()) << std::endl;
         for (auto i : mis)
         {
@@ -26,7 +26,7 @@ int main()
         }
         cg::utils::verifyNoOverlaps(mis);
 
-        auto mis2 = cg::mis::Valiente::computeMIS(intervalRep);
+        auto mis2 = cg::mis::distinct::Valiente::computeMIS(intervalRep);
         std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
         for (auto i : mis2)
         {
@@ -34,7 +34,7 @@ int main()
         }
         cg::utils::verifyNoOverlaps(mis2);
 
-        auto mis3 = cg::mis::Switching::computeMIS(intervalRep);
+        auto mis3 = cg::mis::distinct::Switching::computeMIS(intervalRep);
         std::cout << std::format("Switching {}", mis3.size()) << std::endl;
         for (auto i : mis3)
         {

@@ -3,7 +3,7 @@
 
 #include "mis/distinct/independent_set.h"
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     IndependentSet::IndependentSet(const cg::data_structures::DistinctIntervalRep& intervals) : 
         _intervals(intervals),

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     class Switching
     {

@@ -7,7 +7,7 @@
 
 #include "mis/distinct/switching.h"
 
-namespace cg::mis
+namespace cg::mis::distinct
 {
     std::vector<cg::data_structures::Interval> Switching::computeMIS(const cg::data_structures::DistinctIntervalRep &intervals)
     {
