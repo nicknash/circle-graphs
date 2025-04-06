@@ -16,7 +16,7 @@ int main()
     {
         auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
 
-        auto intervalRep = cg::data_structures::SimpleIntervalRep(intervals);
+        auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         auto mis = cg::mis::Naive::computeMIS(intervalRep);
         std::cout << std::format("Naive {}", mis.size()) << std::endl;

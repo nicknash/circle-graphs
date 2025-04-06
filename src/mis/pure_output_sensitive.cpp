@@ -16,7 +16,7 @@ namespace cg::mis
         pendingUpdates.push(indexToUpdate);
     }
 
-    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SimpleIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
+    bool PureOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
     {
         updateAt(pendingUpdates, MIS, newInterval.Left, 1 + CMIS[newInterval.Index]);
         independentSet.setNewNextRightEndpoint(newInterval.Left, newInterval.Right);
@@ -49,7 +49,7 @@ namespace cg::mis
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::SimpleIntervalRep &intervals, int maxAllowedMIS)
+    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS)
     {
         std::vector<int> MIS(intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);

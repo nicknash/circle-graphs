@@ -113,7 +113,7 @@
         }
     }
 
-    int computeDensity(const cg::data_structures::SimpleIntervalRep& intervals)
+    int computeDensity(const cg::data_structures::DistinctIntervalRep& intervals)
     {
         auto numOpen = 0;
         auto maxOpen = 0;

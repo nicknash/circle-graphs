@@ -6,7 +6,7 @@
 
 namespace cg::data_structures
 {
-    class SimpleIntervalRep;
+    class DistinctIntervalRep;
     class Interval;
 }
 
@@ -22,7 +22,7 @@ namespace cg::mif
             
             auto levelNumber = 0;
 
-            cg::data_structures::SimpleIntervalRep intervalRep(intervals);
+            cg::data_structures::DistinctIntervalRep intervalRep(intervals);
             while(levelEndIndex < intervals.size())
             {
                 for(auto x = 0; x < intervalRep.end; x++)

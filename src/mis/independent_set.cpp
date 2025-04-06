@@ -5,7 +5,7 @@
 
 namespace cg::mis
 {
-    IndependentSet::IndependentSet(const cg::data_structures::SimpleIntervalRep& intervals) : 
+    IndependentSet::IndependentSet(const cg::data_structures::DistinctIntervalRep& intervals) : 
         _intervals(intervals),
         _intervalIndexToNextRightEndpoint(intervals.end + 1), 
         _intervalIndexToDirectlyContained(intervals.end)

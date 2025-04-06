@@ -9,7 +9,7 @@
 
 namespace cg::mis
 {
-    void Naive::update(int i, cg::mis::IndependentSet &independentSet, const cg::data_structures::SimpleIntervalRep &intervals, std::vector<int> &MIS, std::vector<int> &CMIS)
+    void Naive::update(int i, cg::mis::IndependentSet &independentSet, const cg::data_structures::DistinctIntervalRep &intervals, std::vector<int> &MIS, std::vector<int> &CMIS)
     {
         for (auto j = i - 1; j >= 0; --j)
         {
@@ -32,7 +32,7 @@ namespace cg::mis
         }
     }
 
-    std::vector<cg::data_structures::Interval> Naive::computeMIS(const cg::data_structures::SimpleIntervalRep& intervals)
+    std::vector<cg::data_structures::Interval> Naive::computeMIS(const cg::data_structures::DistinctIntervalRep& intervals)
     {
         std::vector<int> MIS(intervals.end + 1, 0);
         std::vector<int> CMIS(intervals.size, 0);

@@ -5,7 +5,7 @@
 
 namespace cg::data_structures
 {
-    SimpleIntervalRep::SimpleIntervalRep(std::span<const Interval> intervals)
+    DistinctIntervalRep::DistinctIntervalRep(std::span<const Interval> intervals)
         : end(2 * intervals.size()),
           size(intervals.size())
     {
@@ -23,27 +23,27 @@ namespace cg::data_structures
         }
     }
 
-    [[nodiscard]] std::optional<Interval> SimpleIntervalRep::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
+    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
     {
         return _rightEndpointToInterval[maybeRightEndpoint];
     }
 
-    [[nodiscard]] std::optional<Interval> SimpleIntervalRep::tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const
+    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const
     {
         return _leftEndpointToInterval[maybeLeftEndpoint];
     }
 
-    [[nodiscard]] Interval SimpleIntervalRep::getIntervalByRightEndpoint(int rightEndpoint) const
+    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByRightEndpoint(int rightEndpoint) const
     {
         return tryGetIntervalByRightEndpoint(rightEndpoint).value();
     }
 
-    [[nodiscard]] Interval SimpleIntervalRep::getIntervalByLeftEndpoint(int leftEndpoint) const
+    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByLeftEndpoint(int leftEndpoint) const
     {
         return tryGetIntervalByLeftEndpoint(leftEndpoint).value();
     }
 
-    [[nodiscard]] Interval SimpleIntervalRep::getIntervalByEndpoint(int endpoint) const
+    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByEndpoint(int endpoint) const
     {
         const auto& interval = tryGetIntervalByLeftEndpoint(endpoint); 
         if(interval)
@@ -53,7 +53,7 @@ namespace cg::data_structures
         return tryGetIntervalByLeftEndpoint(endpoint).value();
     }
 
-    [[nodiscard]] Interval SimpleIntervalRep::getIntervalByIndex(int intervalIndex) const
+    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByIndex(int intervalIndex) const
     {
         return _indexToInterval[intervalIndex];
     }
