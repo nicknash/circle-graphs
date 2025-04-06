@@ -2,11 +2,11 @@
 #include <stack>
 #include <list>
 
-#include "data_structures/simple_interval_rep.h"
+#include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
-#include "mis/independent_set.h"
+#include "mis/distinct/independent_set.h"
 
-#include "mis/pure_output_sensitive.h"
+#include "mis/distinct/pure_output_sensitive.h"
 
 namespace cg::mis
 {

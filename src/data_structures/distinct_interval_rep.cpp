@@ -1,7 +1,7 @@
 #include "utils/interval_rep_utils.h"
 #include "data_structures/interval.h"
 
-#include "data_structures/simple_interval_rep.h"
+#include "data_structures/distinct_interval_rep.h"
 
 namespace cg::data_structures
 {

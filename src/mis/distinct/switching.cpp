@@ -1,11 +1,11 @@
-#include "data_structures/simple_interval_rep.h"
-#include "mis/valiente.h"
-#include "mis/pure_output_sensitive.h"
+#include "data_structures/distinct_interval_rep.h"
+#include "mis/distinct/valiente.h"
+#include "mis/distinct/pure_output_sensitive.h"
 #include "utils/interval_rep_utils.h"
 #include "data_structures/interval.h"
 
 
-#include "mis/switching.h"
+#include "mis/distinct/switching.h"
 
 namespace cg::mis
 {

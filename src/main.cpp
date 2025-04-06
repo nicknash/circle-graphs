@@ -1,13 +1,13 @@
 #include <iostream>
 
 #include "data_structures/interval.h"
-#include "data_structures/simple_interval_rep.h"
+#include "data_structures/distinct_interval_rep.h"
 #include "utils/interval_rep_utils.h"
 
-#include "mis/naive.h"
-#include "mis/valiente.h"
-#include "mis/switching.h"
-#include "mis/pure_output_sensitive.h"
+#include "mis/distinct/naive.h"
+#include "mis/distinct/valiente.h"
+#include "mis/distinct/switching.h"
+#include "mis/distinct/pure_output_sensitive.h"
 
 int main()
 {
