@@ -7,7 +7,8 @@ namespace cg::data_structures
 {
     SharedIntervalRep::SharedIntervalRep(std::span<const Interval> intervals)
     {
-        
+        cg::utils::verifyEndpointsInRange(intervals);
+        cg::utils::verifyIndicesDense(intervals);
     }
 
 

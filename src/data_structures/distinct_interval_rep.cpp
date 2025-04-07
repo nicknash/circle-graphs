@@ -9,7 +9,8 @@ namespace cg::data_structures
         : end(2 * intervals.size()),
           size(intervals.size())
     {
-        cg::utils::verifyEndpointsDense(intervals);
+        cg::utils::verifyEndpointsInRange(intervals);
+        cg::utils::verifyEndpointsUnique(intervals);
         cg::utils::verifyIndicesDense(intervals);
         _leftEndpointToInterval = std::vector<std::optional<Interval>>(end);
         _rightEndpointToInterval = std::vector<std::optional<Interval>>(end);

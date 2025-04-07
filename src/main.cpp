@@ -42,7 +42,6 @@ int main()
         {
             // std::cout << std::format("{}", i) << std::endl;
         }
-        cg::utils::verifyNoOverlaps(mis3);
     
         if(mis.size() != mis2.size() || mis2.size() != mis3.size())
         {

@@ -14,7 +14,9 @@
  
  namespace cg::utils
  {
-    void verifyEndpointsDense(std::span<const cg::data_structures::Interval> intervals)
+    
+
+    void verifyEndpointsUnique(std::span<const cg::data_structures::Interval> intervals)
     {
         auto end = 2 * intervals.size();
         std::vector<bool> alreadySeen(end, false);        

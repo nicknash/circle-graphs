@@ -11,7 +11,8 @@ namespace cg::data_structures
 
 namespace cg::utils
 {
-    void verifyEndpointsDense(std::span<const cg::data_structures::Interval> intervals);
+    void verifyEndpointsInRange(std::span<const cg::data_structures::Interval> intervals);
+    void verifyEndpointsUnique(std::span<const cg::data_structures::Interval> intervals);
     void verifyIndicesDense(std::span<const cg::data_structures::Interval> intervals);
     void verifyNoOverlaps(std::span<const cg::data_structures::Interval> intervals);
     int computeDensity(const cg::data_structures::DistinctIntervalRep& intervals);
