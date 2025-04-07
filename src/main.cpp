@@ -9,7 +9,7 @@
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
 
-#include "mis/shared/naive.h"
+//#include "mis/shared/naive.h"
 
 int main()
 {
@@ -26,7 +26,6 @@ int main()
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-        cg::utils::verifyNoOverlaps(mis);
 
         auto mis2 = cg::mis::distinct::Valiente::computeMIS(intervalRep);
         std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
@@ -34,7 +33,6 @@ int main()
         {
             // std::cout << std::format("{}", i) << std::endl;
         }
-        cg::utils::verifyNoOverlaps(mis2);
 
         auto mis3 = cg::mis::distinct::Switching::computeMIS(intervalRep);
         std::cout << std::format("Switching {}", mis3.size()) << std::endl;

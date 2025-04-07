@@ -5,7 +5,7 @@
 
 namespace cg::data_structures
 {
-    SharedIntervalRep::SharedIntervalRep(std::span<const Interval> intervals) : 
+    SharedIntervalRep::SharedIntervalRep(std::span<Interval> intervals) : 
     size(intervals.size()),
     end(intervals.size() * 2)
     {

@@ -4,6 +4,7 @@
 
 #include "data_structures/shared_interval_rep.h"
 #include "data_structures/interval.h"
+#include "mis/independent_set.h"
 
 #include "mis/shared/naive.h"
 
@@ -35,7 +36,7 @@ namespace cg::mis::shared
         std::vector<int> MIS(1 + intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
 
-        IndependentSet independentSet(intervals);
+        cg::mis::IndependentSet independentSet(intervals.size);
 
         for(auto right = 1; right < intervals.end; ++right)
         {
@@ -63,7 +64,7 @@ namespace cg::mis::shared
             }
         }
 
-        std::vector<cg::data_structures::Interval> intervalsInMis(3);
+        auto intervalsInMis = independentSet.buildIndependentSet();
         return intervalsInMis;
     }
 }

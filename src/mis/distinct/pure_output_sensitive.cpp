@@ -4,7 +4,7 @@
 
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
-#include "mis/distinct/independent_set.h"
+#include "mis/independent_set.h"
 
 #include "mis/distinct/pure_output_sensitive.h"
 
@@ -19,7 +19,7 @@ namespace cg::mis::distinct
     bool PureOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
     {
         updateAt(pendingUpdates, MIS, newInterval.Left, 1 + CMIS[newInterval.Index]);
-        independentSet.setNewNextRightEndpoint(newInterval.Left, newInterval.Right);
+        independentSet.setNewNextInterval(newInterval.Left, newInterval);
         while (!pendingUpdates.empty())
         {
             auto updatedIndex = pendingUpdates.top();
@@ -28,7 +28,7 @@ namespace cg::mis::distinct
             if (updatedIndex > 0 && MIS[updatedIndex] > MIS[leftNeighbour])
             {
                 updateAt(pendingUpdates, MIS, leftNeighbour, MIS[updatedIndex]);
-                independentSet.setSameNextRightEndpoint(leftNeighbour);
+                independentSet.setSameNextInterval(leftNeighbour);
             }
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(leftNeighbour);
             if (maybeInterval)
@@ -42,7 +42,7 @@ namespace cg::mis::distinct
                 if (candidate > MIS[interval.Left])
                 {
                     updateAt(pendingUpdates, MIS, interval.Left, candidate);
-                    independentSet.setNewNextRightEndpoint(interval.Left, interval.Right);
+                    independentSet.setNewNextInterval(interval.Left, interval);
                 }
             }
         }
@@ -55,7 +55,7 @@ namespace cg::mis::distinct
         std::vector<int> CMIS(intervals.size, 0);
         std::stack<int> pendingUpdates;
 
-        IndependentSet independentSet(intervals);
+        cg::mis::IndependentSet independentSet(intervals.size);
 
         for (auto i = 0; i < intervals.end; ++i)
         {

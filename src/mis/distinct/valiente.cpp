@@ -3,7 +3,7 @@
 
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
-#include "mis/distinct/independent_set.h"
+#include "mis/independent_set.h"
 
 #include "mis/distinct/valiente.h"
 
@@ -14,7 +14,7 @@ namespace cg::mis::distinct
         std::vector<int> MIS(intervals.end + 1, 0);
         std::vector<int> CMIS(intervals.size, 0);
 
-        IndependentSet result(intervals);
+        cg::mis::IndependentSet result(intervals.size);
 
         for(auto i = 0; i < intervals.end; ++i)
         {
@@ -26,7 +26,7 @@ namespace cg::mis::distinct
                 {
                     auto maybeInnerInterval = intervals.tryGetIntervalByLeftEndpoint(j);
                     MIS[j] = MIS[j + 1];
-                    result.setSameNextRightEndpoint(j);
+                    result.setSameNextInterval(j);
                     if(maybeInnerInterval)
                     {
                         auto innerInterval = maybeInnerInterval.value();
@@ -36,7 +36,7 @@ namespace cg::mis::distinct
                            candidate > MIS[j + 1])
                         {
                             MIS[j] = candidate;
-                            result.setNewNextRightEndpoint(j, innerInterval.Right);
+                            result.setNewNextInterval(j, innerInterval);
                         }
                     }
                 }
@@ -49,7 +49,7 @@ namespace cg::mis::distinct
         for(auto i = intervals.end - 1; i >= 0; --i)
         {
             auto maybeInterval = intervals.tryGetIntervalByLeftEndpoint(i);
-            result.setSameNextRightEndpoint(i);
+            result.setSameNextInterval(i);
             
             MIS[i] = MIS[i + 1];
             if(maybeInterval)
@@ -59,7 +59,7 @@ namespace cg::mis::distinct
                 if(candidate > MIS[i + 1])
                 {
                     MIS[i] = candidate;
-                    result.setNewNextRightEndpoint(i, interval.Right);
+                    result.setNewNextInterval(i, interval);
                 }
             }
         }

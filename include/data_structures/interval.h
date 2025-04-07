@@ -7,9 +7,9 @@ namespace cg::data_structures
     class Interval
     {
     public:
-        const int Left;
-        const int Right;
-        const int Index;
+        int Left;
+        int Right;
+        int Index;
         Interval(int left, int right, int index);
     };
 }

@@ -3,18 +3,18 @@
 
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
-#include "mis/distinct/independent_set.h"
+#include "mis/independent_set.h"
 
 #include "mis/distinct/naive.h"
 
 namespace cg::mis::distinct
 {
-    void Naive::update(int i, cg::mis::distinct::IndependentSet &independentSet, const cg::data_structures::DistinctIntervalRep &intervals, std::vector<int> &MIS, std::vector<int> &CMIS)
+    void Naive::update(int i, cg::mis::IndependentSet &independentSet, const cg::data_structures::DistinctIntervalRep &intervals, std::vector<int> &MIS, std::vector<int> &CMIS)
     {
         for (auto j = i - 1; j >= 0; --j)
         {
             MIS[j] = MIS[j + 1];
-            independentSet.setSameNextRightEndpoint(j);
+            independentSet.setSameNextInterval(j);
             auto maybeInterval = intervals.tryGetIntervalByLeftEndpoint(j);
             if (maybeInterval)
             {
@@ -24,7 +24,7 @@ namespace cg::mis::distinct
                     auto candidate = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
                     if (candidate > MIS[j + 1])
                     {
-                        independentSet.setNewNextRightEndpoint(j, interval.Right);
+                        independentSet.setNewNextInterval(j, interval);
                         MIS[j] = candidate;
                     }
                 }
@@ -37,7 +37,7 @@ namespace cg::mis::distinct
         std::vector<int> MIS(intervals.end + 1, 0);
         std::vector<int> CMIS(intervals.size, 0);
         
-        IndependentSet independentSet(intervals);
+        cg::mis::IndependentSet independentSet(intervals.size);
 
         for(auto i = 0; i < intervals.end; ++i)
         {
