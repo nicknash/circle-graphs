@@ -1,5 +1,6 @@
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_rep.h"
+#include "utils/interval_rep_utils.h"
 
 #include "mis/distinct/independent_set.h"
 
@@ -61,7 +62,7 @@ namespace cg::mis::distinct
             }
             next = _intervalIndexToNextRightEndpoint[next];
         }
-
+        cg::utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;
     }
 }

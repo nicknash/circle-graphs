@@ -14,9 +14,7 @@
  
  namespace cg::utils
  {
-    
-
-    void verifyEndpointsUnique(std::span<const cg::data_structures::Interval> intervals)
+    void verifyEndpointsInRange(std::span<const cg::data_structures::Interval> intervals)
     {
         auto end = 2 * intervals.size();
         std::vector<bool> alreadySeen(end, false);        
@@ -30,6 +28,15 @@
             {
                 throw std::invalid_argument(std::format("Invalid right end-point {} for {}", i.Right, i));
             }
+        }
+    }
+
+    void verifyEndpointsUnique(std::span<const cg::data_structures::Interval> intervals)
+    {
+        auto end = 2 * intervals.size();
+        std::vector<bool> alreadySeen(end, false);        
+        for(const auto& i : intervals)
+        {
             if(alreadySeen[i.Left])
             {
                 throw std::invalid_argument(std::format("Left end-point of interval {} is used by more than one interval, end-points must be unique", i));
