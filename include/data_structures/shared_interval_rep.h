@@ -14,7 +14,7 @@ namespace cg::data_structures
     public:
         const int end;
         const int size;
-        SharedIntervalRep(std::span<Interval> intervals);
+        SharedIntervalRep(std::span<const Interval> intervals);
 
         [[nodiscard]] std::vector<Interval> getAllIntervalsWithLeftEndpoint(int leftEndpoint) const;
         [[nodiscard]] Interval getIntervalByIndex(int intervalIndex) const;

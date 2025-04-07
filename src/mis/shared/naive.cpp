@@ -44,20 +44,24 @@ namespace cg::mis::shared
             {
                 const auto& intervalsWithLeftEndpointHere = intervals.getAllIntervalsWithLeftEndpoint(here);
                 const auto& maybeMaxInterval = getMaxInterval(intervalsWithLeftEndpointHere, right, MIS, CMIS);
+                independentSet.setSameNextInterval(here);
+                MIS[here] = MIS[here + 1];
                 if(maybeMaxInterval)
                 {
                     const auto& maxInterval = maybeMaxInterval.value();
-                    MIS[here] = std::max(MIS[here + 1], 1 + CMIS[maxInterval.Index] + MIS[maxInterval.Right + 1]);
-                }
-                else
-                {
-                    MIS[here] = MIS[here + 1];
+                    const auto candidate = 1 + CMIS[maxInterval.Index] + MIS[maxInterval.Right + 1];
+                    if(candidate > MIS[here + 1])
+                    {
+                        MIS[here] = candidate;
+                        independentSet.setNewNextInterval(here, maxInterval);
+                    }
                 }
                 for(const auto& interval : intervalsWithLeftEndpointHere)
                 {
                     if(interval.Right == right)
                     {
                         CMIS[interval.Index] = MIS[here + 1];
+                        independentSet.assembleContainedIndependentSet(interval);
                         break;
                     }
                 }

@@ -2,6 +2,7 @@
 
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_rep.h"
+#include "data_structures/shared_interval_rep.h"
 #include "utils/interval_rep_utils.h"
 
 #include "mis/distinct/naive.h"
@@ -9,7 +10,7 @@
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
 
-//#include "mis/shared/naive.h"
+#include "mis/shared/naive.h"
 
 int main()
 {
@@ -41,13 +42,15 @@ int main()
             // std::cout << std::format("{}", i) << std::endl;
         }
     
-        if(mis.size() != mis2.size() || mis2.size() != mis3.size())
-        {
-            throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}", mis.size(), mis2.size(), mis3.size()));
-        }
+        auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
+        auto mis4 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
 
-        
-        //cg::mis::shared::Naive::computeMIS
+        std::cout << std::format("Shared naive {}", mis4.size()) << std::endl;
+
+        if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())
+        {
+            throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}, mis4.size() = {}", mis.size(), mis2.size(), mis3.size(), mis4.size()));
+        }
     }
     return 0;
 }
