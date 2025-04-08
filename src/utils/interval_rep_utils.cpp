@@ -7,6 +7,7 @@
 #include <ranges>
 #include <random>
 #include <tuple>
+#include <limits>
 
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_rep.h"
@@ -18,7 +19,8 @@
     void verifyEndpointsInRange(std::span<const cg::data_structures::Interval> intervals)
     {
         auto end = 2 * intervals.size();
-        std::vector<bool> alreadySeen(end, false);        
+        std::vector<bool> alreadySeen(end, false);   
+        int maxRight = std::numeric_limits<int>::min();     
         for(const auto& i : intervals)
         {
             if(i.Left < 0)
@@ -28,6 +30,18 @@
             if(i.Right >= end)
             {
                 throw std::invalid_argument(std::format("Invalid right end-point {} for {}", i.Right, i));
+            }
+            alreadySeen[i.Left] = alreadySeen[i.Right] = true;
+            if(i.Right > maxRight)
+            {
+                maxRight = i.Right;
+            }
+        }
+        for(auto i = 0; i < maxRight; ++i)
+        {
+            if(!alreadySeen[i])
+            {
+                throw std::invalid_argument(std::format("Interval end-points have gaps, end-point {} is never used.", i));
             }
         }
     }
@@ -65,6 +79,13 @@
                 throw std::invalid_argument(std::format("Interval index {} is used by more than one interval, interval indices must be unique.", i.Index));
             }
             alreadySeen[i.Index] = true;
+        }
+        for(auto i = 0; i < alreadySeen.size(); ++i)
+        {
+            if(!alreadySeen[i])
+            {
+                throw std::invalid_argument(std::format("Interval indices have gaps, index {} is never used.", i));
+            }
         }
     }
 
@@ -201,6 +222,9 @@
         auto remaining = numIntervals;
         auto here = 0;
         auto intervalIndex = 0;
+        
+        int minLeft = std::numeric_limits<int>::max();
+        int maxRight = std::numeric_limits<int>::min();
         while(remaining > 0)
         {
             const auto numEndpoints = std::uniform_int_distribution<>(1, maxPerEndpoint)(rng);
@@ -210,25 +234,48 @@
                 const auto isLeft = std::bernoulli_distribution(0.5)(rng);
                 const auto length = std::uniform_int_distribution<>(1, maxLength)(rng);
                 const auto interval = isLeft ? InitialInterval{ here, here + length, intervalIndex } : InitialInterval{here - length, here, intervalIndex}; 
+                
+                if(interval.Left < minLeft)
+                {
+                    minLeft = interval.Left;
+                }
+                if(interval.Right > maxRight)
+                {
+                    maxRight = interval.Right;
+                }
                 initialIntervals.push_back(interval);
                 ++intervalIndex;
             }
             remaining -= numEndpoints;
             ++here;
         }
-        auto it = std::min_element(initialIntervals.begin(), initialIntervals.end(),
-        [](const InitialInterval& a, const InitialInterval& b) {
-            return a.Left < b.Left;  
-        });
 
-        auto minLeft = (*it).Left;
-        
+        std::vector<bool> isOccupied(1 + maxRight - minLeft, false);
+        for(auto interval : initialIntervals)
+        {
+            isOccupied[interval.Left - minLeft] = isOccupied[interval.Right - minLeft] = true;
+        }
+        std::vector<int> cumulativeGap(isOccupied.size(), 0);
+        auto numGaps = 0;
+        for(auto i = 0; i < isOccupied.size(); ++i)
+        {
+            if(!isOccupied[i])
+            {
+                ++numGaps;
+            }
+            cumulativeGap[i] = numGaps;
+        }
+
         std::vector<cg::data_structures::Interval> result;
         result.reserve(numIntervals);
 
-        std::ranges::transform(initialIntervals, std::back_inserter(result), [minLeft](const InitialInterval& iv) {
-            return cg::data_structures::Interval(iv.Left - minLeft, iv.Right - minLeft, iv.Index);
-        });
+        for(const auto& interval : initialIntervals)
+        {
+            auto newLeft = interval.Left - minLeft;
+            auto newRight = interval.Right - minLeft;
+            const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], interval.Index);
+            result.push_back(newInterval);
+        }
         
         return result;
     }
