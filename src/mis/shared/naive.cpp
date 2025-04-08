@@ -68,7 +68,7 @@ namespace cg::mis::shared
             }
         }
 
-        auto intervalsInMis = independentSet.buildIndependentSet();
+        auto intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
         return intervalsInMis;
     }
 }

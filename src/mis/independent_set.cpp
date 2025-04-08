@@ -5,7 +5,7 @@
 
 namespace cg::mis
 {
-    IndependentSet::IndependentSet(int maxNumIntervals)
+    IndependentSet::IndependentSet(int maxNumIntervals) // should accept a max interval end-point really instead
     {
         _endpointToInterval.resize(2 * maxNumIntervals + 1);
         _intervalIndexToDirectlyContained.resize(maxNumIntervals);
@@ -18,6 +18,10 @@ namespace cg::mis
 
     void IndependentSet::setNewNextInterval(int where, const cg::data_structures::Interval& interval) 
     {
+        if(where == 0 && interval.Left == 2 && interval.Right == 5)
+        {
+            _endpointToInterval[where] = interval;
+        }
         _endpointToInterval[where] = interval;
     }
 
@@ -33,14 +37,13 @@ namespace cg::mis
         }
     }
 
-    std::vector<cg::data_structures::Interval> IndependentSet::buildIndependentSet()
+    std::vector<cg::data_structures::Interval> IndependentSet::buildIndependentSet(int expectedCardinality)
     {
-        const auto maxNumIntervals = _intervalIndexToDirectlyContained.size();
         std::vector<cg::data_structures::Interval> intervalsInMis; 
-        intervalsInMis.reserve(maxNumIntervals);
+        intervalsInMis.reserve(expectedCardinality);
 
         std::vector<cg::data_structures::Interval> pendingIntervals;
-        pendingIntervals.reserve(maxNumIntervals);
+        pendingIntervals.reserve(expectedCardinality);
         auto maybeInterval = _endpointToInterval[0];
         while(maybeInterval)
         {
@@ -58,6 +61,11 @@ namespace cg::mis
                 }
             }
             maybeInterval = _endpointToInterval[interval.Right + 1];
+        }
+        if(intervalsInMis.size() != expectedCardinality)
+        {
+            throw std::runtime_error(std::format("Constructed independent set has cardinality {} but a maximum independent set is expected to have cardinality {}", 
+            intervalsInMis.size(), expectedCardinality));
         }
         cg::utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;

@@ -25,7 +25,7 @@ namespace cg::mis::distinct
             auto updatedIndex = pendingUpdates.top();
             pendingUpdates.pop();
             auto leftNeighbour = updatedIndex - 1;
-            if (updatedIndex > 0 && MIS[updatedIndex] > MIS[leftNeighbour])
+            if (leftNeighbour >= 0 && MIS[updatedIndex] > MIS[leftNeighbour])
             {
                 updateAt(pendingUpdates, MIS, leftNeighbour, MIS[updatedIndex]);
                 independentSet.setSameNextInterval(leftNeighbour);
@@ -71,7 +71,7 @@ namespace cg::mis::distinct
                 }
             }
         }
-        const auto& intervalsInMis = independentSet.buildIndependentSet();
+        const auto& intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
         return intervalsInMis;
     }
 }

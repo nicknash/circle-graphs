@@ -64,7 +64,7 @@ namespace cg::mis::distinct
             }
         }
 
-        const auto& intervalsInMis = result.buildIndependentSet(); 
+        const auto& intervalsInMis = result.buildIndependentSet(MIS[0]); 
         
         return intervalsInMis;
     }

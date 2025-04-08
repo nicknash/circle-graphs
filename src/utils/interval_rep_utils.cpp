@@ -6,6 +6,7 @@
 #include <set>
 #include <ranges>
 #include <random>
+#include <tuple>
 
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_rep.h"
@@ -91,7 +92,7 @@
                           {
             if (a.point == b.point) 
             {
-                throw std::runtime_error(std::format("Equal end-points encountered {} and {}", a.point, b.point));
+                throw std::runtime_error(std::format("Overlap detected: Equal end-points encountered {} and {} for intervals {} and {}", a.point, b.point, *a.interval, *b.interval));
             }
             return a.point < b.point; });
 
@@ -181,5 +182,65 @@
     {
         throw std::exception();
         // Generate random centre point in [0, 1] and random radius in [0, R]
+    }
+
+    std::vector<cg::data_structures::Interval> generateRandomIntervalsShared(int numIntervals, int maxPerEndpoint, int maxLength, int seed)
+    {
+        struct InitialInterval
+        {
+            int Left;
+            int Right;
+            int Index;
+        };
+
+        std::mt19937 rng(seed);
+
+        std::vector<InitialInterval> initialIntervals;
+
+        initialIntervals.reserve(numIntervals);
+        auto remaining = numIntervals;
+        auto here = 0;
+        auto intervalIndex = 0;
+        while(remaining > 0)
+        {
+            const auto numEndpoints = std::uniform_int_distribution<>(1, maxPerEndpoint)(rng);
+            
+            for(auto i = 0; i < numEndpoints; ++i)
+            {
+                const auto isLeft = std::bernoulli_distribution(0.5)(rng);
+                const auto length = std::uniform_int_distribution<>(1, maxLength)(rng);
+                const auto interval = isLeft ? InitialInterval{ here, here + length, intervalIndex } : InitialInterval{here - length, here, intervalIndex}; 
+                initialIntervals.push_back(interval);
+                ++intervalIndex;
+            }
+            remaining -= numEndpoints;
+            ++here;
+        }
+        auto it = std::min_element(initialIntervals.begin(), initialIntervals.end(),
+        [](const InitialInterval& a, const InitialInterval& b) {
+            return a.Left < b.Left;  
+        });
+
+        auto minLeft = (*it).Left;
+        
+        std::vector<cg::data_structures::Interval> result;
+        result.reserve(numIntervals);
+
+        std::ranges::transform(initialIntervals, std::back_inserter(result), [minLeft](const InitialInterval& iv) {
+            return cg::data_structures::Interval(iv.Left - minLeft, iv.Right - minLeft, iv.Index);
+        });
+        
+        return result;
+    }
+
+    int getMaxRightEndpoint(std::span<const cg::data_structures::Interval> intervals)
+    {
+        auto it = std::max_element(intervals.begin(), intervals.end(),
+        [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
+            return a.Right < b.Right;  
+        });
+
+        auto maxRight = (*it).Right;
+        return maxRight;
     }
  }

@@ -17,4 +17,6 @@ namespace cg::utils
     void verifyNoOverlaps(std::span<const cg::data_structures::Interval> intervals);
     int computeDensity(const cg::data_structures::DistinctIntervalRep& intervals);
     std::vector<cg::data_structures::Interval> generateRandomIntervals(int numIntervals, int seed);
+    std::vector<cg::data_structures::Interval> generateRandomIntervalsShared(int numIntervals, int maxPerEndpoint, int maxLength, int seed);
+    int getMaxRightEndpoint(std::span<const cg::data_structures::Interval> intervals);
 }
