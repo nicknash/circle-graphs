@@ -4,6 +4,11 @@
 #include <vector>
 #include <optional>
 
+namespace cg::utils
+{
+    template<typename TCounter> class Counters;
+}
+
 namespace cg::mis
 {
     class IndependentSet;
@@ -17,29 +22,6 @@ namespace cg::data_structures
 
 namespace cg::mis::shared
 {
-template <typename T>
-class Counters
-{
-    std::array<int, static_cast<size_t>(T::NumMembers)> _counts{};
-
-public:
-    void Increment(T value)
-    {
-        _counts[static_cast<size_t>(value)]++;
-    }
-
-    int Get(T value) const
-    {
-        return _counts[static_cast<size_t>(value)];
-    }
-    
-    void Clear()
-    {
-        _counts.fill(0);
-    }
-};
-
-
     // An implementation of the output sensitive algorithm from
     // "New Algorithms for Maximum Independent Sets of Circle Graphs", 2013 (unpublished manuscript)
     class PureOutputSensitive
@@ -54,9 +36,9 @@ public:
             NumMembers
         };
     private:
-        static bool tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, Counters<Counts>& counts);
+        static bool tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     public:
         
-        static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS, Counters<Counts>& counts);
+        static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     };
 }

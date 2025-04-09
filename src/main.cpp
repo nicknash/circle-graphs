@@ -4,6 +4,7 @@
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/shared_interval_rep.h"
 #include "utils/interval_rep_utils.h"
+#include "utils/counters.h"
 
 #include "mis/distinct/naive.h"
 #include "mis/distinct/valiente.h"
@@ -25,13 +26,12 @@ int main()
     auto seed = 89;
         const auto numIntervals = 5000;
 
-        for (int maxEndpointsPerPoint = 2; maxEndpointsPerPoint < 32; maxEndpointsPerPoint *= 2)
+        for (int maxEndpointsPerPoint = 1; maxEndpointsPerPoint < 32; maxEndpointsPerPoint *= 2)
         {
             std::cout << std::format(" **** maxEndpointsPerPoint = {} **** ", maxEndpointsPerPoint) << std::endl;
             for (int maxLength = 4; maxLength < 2 * numIntervals;)
             {
 
-                cg::mis::shared::Counters<cg::mis::shared::PureOutputSensitive::Counts> c;
 
                 // std::cout << seed << std::endl;
                 const auto &intervals = cg::utils::generateRandomIntervalsShared(numIntervals, maxEndpointsPerPoint, maxLength, seed);
@@ -40,32 +40,31 @@ int main()
                 for (const auto &i : intervals)
                 {
                     totalIntervalLength += i.length();
-                    // std::cout << std::format("{}", i) << std::endl;
                 }
+
+                cg::utils::Counters<cg::mis::shared::PureOutputSensitive::Counts> osCounts;
+                cg::utils::Counters<cg::mis::shared::Naive::Counts> naiveCounts;
 
                 auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
-                auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
+                auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep, naiveCounts);
 
-                // std::cout << std::format("Shared naive {}", mis1.size()) << std::endl;
+                std::cout << std::format("Shared interval rep of {} intervals with maxEndpointsPerPoint={}, TotalEndpoints={}, TotalIntervalLength={}, MaxIntervalLength={}", numIntervals, maxEndpointsPerPoint, sharedIntervalRep.end, totalIntervalLength, maxLength) << std::endl;
 
-                for (const auto &i : mis1)
-                {
-                    // std::cout << std::format("{}", i) << std::endl;
-                }
+                std::cout << std::format("\tShared naive IndependenceNumber={}, InnerLoop={}, InnerMaxLoop={}, NormalizedInnerLoop={}, NormalizedMaxLoop={}", 
+                mis1.size(), 
+                naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerLoop), 
+                naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerMaxLoop), 
+                naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerLoop) / (float) (sharedIntervalRep.end * sharedIntervalRep.end), 
+                naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerMaxLoop) / (float) (sharedIntervalRep.end * numIntervals)) << std::endl;
 
-                auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, numIntervals, c).value();
+                auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, numIntervals, osCounts).value();
 
-                std::cout << std::format("Shared output sensitive NumIntervals={}, MaxLength={}, TotalIntervalLength={}, TotalEndpoints={}, IndependenceNumber={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", numIntervals, maxLength, totalIntervalLength, sharedIntervalRep.end, mis2.size(),
-                                         c.Get(cg::mis::shared::PureOutputSensitive::Counts::IntervalOuterLoop),
-                                         c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop),
-                                         c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop),
-                                         (c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop) + c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
+                std::cout << std::format("\tShared output sensitive IndependenceNumber={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", mis2.size(),
+                                         osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::IntervalOuterLoop),
+                                         osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop),
+                                         osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop),
+                                         (osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop) + osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
                           << std::endl;
-
-                for (const auto &i : mis2)
-                {
-                    // std::cout << std::format("{}", i) << std::endl;
-                }
 
                 if (mis1.size() != mis2.size())
                 {
