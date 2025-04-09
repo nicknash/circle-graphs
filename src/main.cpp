@@ -13,45 +13,75 @@
 #include "mis/shared/naive.h"
 #include "mis/shared/pure_output_sensitive.h"
 
+#include <array>
+
+
 
 int main()
 {
-    for (int seed = 0; seed < 10000; ++seed)
-    //auto seed = 89;
-    {
-        std::cout << seed << std::endl;
-        const auto numIntervals = 1000;
-        const auto &intervals = cg::utils::generateRandomIntervalsShared(numIntervals, 4, numIntervals, seed);
+    
 
-        for (const auto &i : intervals)
+    //for (int seed = 0; seed < 10000; ++seed)
+    auto seed = 89;
+        const auto numIntervals = 5000;
+
+        for (int maxEndpointsPerPoint = 2; maxEndpointsPerPoint < 32; maxEndpointsPerPoint *= 2)
         {
-            //std::cout << std::format("{}", i) << std::endl;
+            std::cout << std::format(" **** maxEndpointsPerPoint = {} **** ", maxEndpointsPerPoint) << std::endl;
+            for (int maxLength = 4; maxLength < 2 * numIntervals;)
+            {
+
+                cg::mis::shared::Counters<cg::mis::shared::PureOutputSensitive::Counts> c;
+
+                // std::cout << seed << std::endl;
+                const auto &intervals = cg::utils::generateRandomIntervalsShared(numIntervals, maxEndpointsPerPoint, maxLength, seed);
+
+                auto totalIntervalLength = 0;
+                for (const auto &i : intervals)
+                {
+                    totalIntervalLength += i.length();
+                    // std::cout << std::format("{}", i) << std::endl;
+                }
+
+                auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
+                auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
+
+                // std::cout << std::format("Shared naive {}", mis1.size()) << std::endl;
+
+                for (const auto &i : mis1)
+                {
+                    // std::cout << std::format("{}", i) << std::endl;
+                }
+
+                auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, numIntervals, c).value();
+
+                std::cout << std::format("Shared output sensitive NumIntervals={}, MaxLength={}, TotalIntervalLength={}, TotalEndpoints={}, IndependenceNumber={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", numIntervals, maxLength, totalIntervalLength, sharedIntervalRep.end, mis2.size(),
+                                         c.Get(cg::mis::shared::PureOutputSensitive::Counts::IntervalOuterLoop),
+                                         c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop),
+                                         c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop),
+                                         (c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop) + c.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
+                          << std::endl;
+
+                for (const auto &i : mis2)
+                {
+                    // std::cout << std::format("{}", i) << std::endl;
+                }
+
+                if (mis1.size() != mis2.size())
+                {
+                    throw std::runtime_error(std::format("mis1.size() = {}, mis2.size() = {}", mis1.size(), mis2.size()));
+                }
+
+                if (maxLength < 20)
+                {
+                    ++maxLength;
+                }
+                else
+                {
+                    maxLength *= 2;
+                }
+            }
         }
-
-        auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
-        auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
-
-        std::cout << std::format("Shared naive {}", mis1.size()) << std::endl;
-
-        for (const auto &i : mis1)
-        {
-            //std::cout << std::format("{}", i) << std::endl;
-        }
-
-        auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, 10000).value();
-
-        std::cout << std::format("Shared output sensitive {}", mis2.size()) << std::endl;
-
-        for (const auto &i : mis2)
-        {
-            //std::cout << std::format("{}", i) << std::endl;
-        }
-
-        if (mis1.size() != mis2.size())
-        {
-            throw std::runtime_error(std::format("mis1.size() = {}, mis2.size() = {}", mis1.size(), mis2.size()));
-        }
-    }
 
     /*
     for (int i = 0; i < 50; ++i)

@@ -23,7 +23,7 @@ namespace cg::mis::shared
         pendingUpdates.push(indexToUpdate);
     }
 
-    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
+    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, Counters<Counts>& counts)
     {
         const auto candidate = 1 + CMIS[newInterval.Index];
         if (candidate > MIS[newInterval.Left])
@@ -33,6 +33,7 @@ namespace cg::mis::shared
         }
         while (!pendingUpdates.empty())
         {
+            counts.Increment(Counts::StackOuterLoop);
             const auto updatedIndex = pendingUpdates.top();
             pendingUpdates.pop();
             const auto leftNeighbour = updatedIndex - 1;
@@ -48,6 +49,7 @@ namespace cg::mis::shared
             const auto &relevantIntervals = intervals.getAllIntervalsWithRightEndpoint(leftNeighbour);
             for (auto interval : relevantIntervals)
             {
+                counts.Increment(Counts::StackInnerLoop);
                 const auto candidate = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
                 if(candidate > maxAllowedMIS)
                 {
@@ -63,7 +65,7 @@ namespace cg::mis::shared
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS)
+    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS, Counters<Counts>& counts)
     {
         std::vector<int> MIS(intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
@@ -73,12 +75,13 @@ namespace cg::mis::shared
 
         for(auto right = 1; right < intervals.end + 1; ++right)
         {
-            const auto& interalsWithThisRightEndpoint = intervals.getAllIntervalsWithRightEndpoint(right - 1);
-            for(auto newInterval : interalsWithThisRightEndpoint)
+            const auto& intervalsWithThisRightEndpoint = intervals.getAllIntervalsWithRightEndpoint(right - 1);
+            for(auto newInterval : intervalsWithThisRightEndpoint)
             {
                 CMIS[newInterval.Index] = MIS[newInterval.Left + 1];
+                counts.Increment(Counts::IntervalOuterLoop);
                 independentSet.assembleContainedIndependentSet(newInterval);
-                if(!tryUpdate(intervals, pendingUpdates, independentSet, newInterval, MIS, CMIS, maxAllowedMIS))
+                if(!tryUpdate(intervals, pendingUpdates, independentSet, newInterval, MIS, CMIS, maxAllowedMIS, counts))
                 {
                     return std::nullopt;
                 }
