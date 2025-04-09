@@ -14,4 +14,9 @@ namespace cg::data_structures
             throw std::runtime_error(std::format("Invalid index for interval {}. Interval index must be non-negative.", *this));
         }
     }
+
+    [[nodiscard]] int Interval::length() const
+    {
+        return Right - Left;
+    }
 }

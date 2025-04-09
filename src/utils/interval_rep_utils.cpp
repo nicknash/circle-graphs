@@ -205,6 +205,7 @@
         // Generate random centre point in [0, 1] and random radius in [0, R]
     }
 
+    // TODO: Replace this with a more natural approach, I'll use this for initial experiments of independence number, etc
     std::vector<cg::data_structures::Interval> generateRandomIntervalsShared(int numIntervals, int maxPerEndpoint, int maxLength, int seed)
     {
         struct InitialInterval
@@ -223,11 +224,11 @@
         auto here = 0;
         auto intervalIndex = 0;
         
-        int minLeft = std::numeric_limits<int>::max();
-        int maxRight = std::numeric_limits<int>::min();
+        auto minLeft = std::numeric_limits<int>::max();
+        auto maxRight = std::numeric_limits<int>::min();
         while(remaining > 0)
         {
-            const auto numEndpoints = std::uniform_int_distribution<>(1, maxPerEndpoint)(rng);
+            const auto numEndpoints = std::uniform_int_distribution<>(1, std::min(maxPerEndpoint, remaining))(rng);
             
             for(auto i = 0; i < numEndpoints; ++i)
             {
@@ -251,9 +252,19 @@
         }
 
         std::vector<bool> isOccupied(1 + maxRight - minLeft, false);
+        std::vector<bool> shouldExclude(numIntervals, false);
         for(auto interval : initialIntervals)
         {
-            isOccupied[interval.Left - minLeft] = isOccupied[interval.Right - minLeft] = true;
+            auto newLeft = interval.Left - minLeft;
+            auto newRight = interval.Right - minLeft;
+            if(isOccupied[newLeft] && isOccupied[newRight])
+            {
+                shouldExclude[interval.Index] = true;
+            }
+            else
+            {
+                isOccupied[newLeft] = isOccupied[newRight] = true;
+            }
         }
         std::vector<int> cumulativeGap(isOccupied.size(), 0);
         auto numGaps = 0;
@@ -271,10 +282,13 @@
 
         for(const auto& interval : initialIntervals)
         {
-            auto newLeft = interval.Left - minLeft;
-            auto newRight = interval.Right - minLeft;
-            const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], interval.Index);
-            result.push_back(newInterval);
+            if (!shouldExclude[interval.Index])
+            {
+                auto newLeft = interval.Left - minLeft;
+                auto newRight = interval.Right - minLeft;
+                const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], result.size());
+                result.push_back(newInterval);
+            }
         }
         
         return result;

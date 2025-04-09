@@ -17,12 +17,12 @@ namespace cg::mis::shared
         auto max = 0;
         for(const auto& interval : intervals)
         {
-            if(interval.Right <= maxRightEndpoint)
+            if(interval.Right < maxRightEndpoint)
             {
                 auto candidateMax = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
                 if(candidateMax > max)
                 {
-                    candidateMax = max;
+                    max = candidateMax;
                     maxInterval.emplace(interval);
                 }
             }
@@ -38,11 +38,22 @@ namespace cg::mis::shared
 
         cg::mis::IndependentSet independentSet(intervals.size);
 
-        for(auto right = 1; right < intervals.end; ++right)
+        for(auto right = 1; right < intervals.end + 1; ++right)
         {
             for(auto here = right - 1; here >= 0; --here)
             {
                 const auto& intervalsWithLeftEndpointHere = intervals.getAllIntervalsWithLeftEndpoint(here);
+                
+                for(const auto& interval : intervalsWithLeftEndpointHere)
+                {
+                    if(interval.Right == right)
+                    {
+                        CMIS[interval.Index] = MIS[here + 1];
+                        independentSet.assembleContainedIndependentSet(interval);
+                        break;
+                    }
+                }
+
                 const auto& maybeMaxInterval = getMaxInterval(intervalsWithLeftEndpointHere, right, MIS, CMIS);
                 independentSet.setSameNextInterval(here);
                 MIS[here] = MIS[here + 1];
@@ -56,15 +67,7 @@ namespace cg::mis::shared
                         independentSet.setNewNextInterval(here, maxInterval);
                     }
                 }
-                for(const auto& interval : intervalsWithLeftEndpointHere)
-                {
-                    if(interval.Right == right)
-                    {
-                        CMIS[interval.Index] = MIS[here + 1];
-                        independentSet.assembleContainedIndependentSet(interval);
-                        break;
-                    }
-                }
+                
             }
         }
 

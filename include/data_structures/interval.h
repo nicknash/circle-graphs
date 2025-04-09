@@ -11,6 +11,7 @@ namespace cg::data_structures
         int Right;
         int Index;
         Interval(int left, int right, int index);
+        [[nodiscard]] int length() const;
     };
 }
 

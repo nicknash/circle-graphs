@@ -3,7 +3,8 @@
 
 #include "data_structures/shared_interval_rep.h"
 
-
+#include <algorithm>
+#include <ranges>
 
 namespace cg::data_structures
 {
@@ -21,7 +22,17 @@ namespace cg::data_structures
             _leftEndpointToIntervals[interval.Left].push_back(interval);
             _rightEndpointToIntervals[interval.Right].push_back(interval);
         }
-        // TODO: bucket sort by length.
+        for(auto i = 0; i < end; ++i)
+        {
+            auto& rightIntervals = _rightEndpointToIntervals[i];
+            std::ranges::sort(rightIntervals, [](const Interval &a, const Interval &b) {
+                return a.length() > b.length(); });
+ 
+            auto& leftIntervals = _leftEndpointToIntervals[i];
+            std::ranges::sort(leftIntervals, [](const Interval &a, const Interval &b) {
+                return a.length() > b.length(); });
+ 
+        }
     }
 
 

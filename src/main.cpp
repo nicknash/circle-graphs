@@ -16,26 +16,41 @@
 
 int main()
 {
-    const auto numIntervals = 10;
-    const auto& intervals = cg::utils::generateRandomIntervalsShared(numIntervals, 2, numIntervals / 2, 0);
-
-    for(const auto& i : intervals)
+    for (int seed = 0; seed < 10000; ++seed)
+    //auto seed = 89;
     {
-        std::cout << std::format("{}",i) << std::endl;
-    }
+        std::cout << seed << std::endl;
+        const auto numIntervals = 1000;
+        const auto &intervals = cg::utils::generateRandomIntervalsShared(numIntervals, 4, numIntervals, seed);
 
-    auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
-    auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
+        for (const auto &i : intervals)
+        {
+            //std::cout << std::format("{}", i) << std::endl;
+        }
 
-    std::cout << std::format("Shared naive {}", mis1.size()) << std::endl;
+        auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
+        auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
 
-    auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, 0).value();
+        std::cout << std::format("Shared naive {}", mis1.size()) << std::endl;
 
-    std::cout << std::format("Shared output sensitive {}", mis2.size()) << std::endl;
+        for (const auto &i : mis1)
+        {
+            //std::cout << std::format("{}", i) << std::endl;
+        }
 
-    if (mis1.size() != mis2.size())
-    {
-        throw std::runtime_error(std::format("mis1.size() = {}, mis2.size() = {}", mis1.size(), mis2.size()));
+        auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, 10000).value();
+
+        std::cout << std::format("Shared output sensitive {}", mis2.size()) << std::endl;
+
+        for (const auto &i : mis2)
+        {
+            //std::cout << std::format("{}", i) << std::endl;
+        }
+
+        if (mis1.size() != mis2.size())
+        {
+            throw std::runtime_error(std::format("mis1.size() = {}, mis2.size() = {}", mis1.size(), mis2.size()));
+        }
     }
 
     /*
