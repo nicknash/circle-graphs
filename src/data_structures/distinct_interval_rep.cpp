@@ -18,9 +18,9 @@ namespace cg::data_structures
         _indexToInterval.reserve(size);
         for(const auto& interval : intervals)
         {
-            _leftEndpointToInterval[interval.Left].emplace(interval.Left, interval.Right, interval.Index);
-            _rightEndpointToInterval[interval.Right].emplace(interval.Left, interval.Right, interval.Index);
-            _indexToInterval.emplace_back(interval.Left, interval.Right, interval.Index);
+            _leftEndpointToInterval[interval.Left].emplace(interval);
+            _rightEndpointToInterval[interval.Right].emplace(interval);
+            _indexToInterval.emplace_back(interval);
         }
     }
 

@@ -182,6 +182,8 @@
             auto firstIndex = 2 * i;
             int leftEndpoint;
             int rightEndpoint;
+            const auto weight = std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
+
             if(endPoints[firstIndex] < endPoints[firstIndex + 1])
             {
                 leftEndpoint = endPoints[firstIndex];
@@ -192,7 +194,7 @@
                 leftEndpoint = endPoints[firstIndex + 1];
                 rightEndpoint = endPoints[firstIndex];
             }
-            result.emplace_back(leftEndpoint, rightEndpoint, i);
+            result.emplace_back(leftEndpoint, rightEndpoint, i, weight);
         }
         return result;
     }
@@ -206,6 +208,8 @@
     }
 
     // TODO: Replace this with a more natural approach, I'll use this for initial experiments of independence number, etc
+    // Write something that exactly respects a parameter? (num end points or num intervals), or is the natural approach to produce an object
+    // centered around some ideal?
     std::vector<cg::data_structures::Interval> generateRandomIntervalsShared(int numIntervals, int maxPerEndpoint, int maxLength, int seed)
     {
         struct InitialInterval
@@ -286,7 +290,8 @@
             {
                 auto newLeft = interval.Left - minLeft;
                 auto newRight = interval.Right - minLeft;
-                const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], result.size());
+                const auto weight = std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
+                const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], result.size(), weight);
                 result.push_back(newInterval);
             }
         }
