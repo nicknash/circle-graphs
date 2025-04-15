@@ -40,7 +40,7 @@ namespace cg::mis::distinct
                         }
                     }
                 }
-                CMIS[outerInterval.Index] = 1 + MIS[outerInterval.Left + 1];
+                CMIS[outerInterval.Index] = outerInterval.Weight + MIS[outerInterval.Left + 1];
                 result.assembleContainedIndependentSet(outerInterval);
             }
         }

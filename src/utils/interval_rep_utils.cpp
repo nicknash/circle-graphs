@@ -182,7 +182,7 @@
             auto firstIndex = 2 * i;
             int leftEndpoint;
             int rightEndpoint;
-            const auto weight = std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
+            const auto weight = 1;//std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
 
             if(endPoints[firstIndex] < endPoints[firstIndex + 1])
             {
@@ -290,7 +290,7 @@
             {
                 auto newLeft = interval.Left - minLeft;
                 auto newRight = interval.Right - minLeft;
-                const auto weight = std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
+                const auto weight = 1;//std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
                 const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], result.size(), weight);
                 result.push_back(newInterval);
             }
@@ -308,5 +308,13 @@
 
         auto maxRight = (*it).Right;
         return maxRight;
+    }
+
+    long sumWeights(std::span<cg::data_structures::Interval> intervals)
+    {
+        return std::accumulate(
+        intervals.begin(), intervals.end(), 0,
+        [](int acc, const cg::data_structures::Interval& i) { return acc + i.Weight; }
+    );
     }
  }

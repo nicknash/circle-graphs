@@ -21,7 +21,7 @@ namespace cg::mis::distinct
                 auto interval = maybeInterval.value();
                 if (interval.Right <= i)
                 {
-                    auto candidate = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
+                    auto candidate = interval.Weight + CMIS[interval.Index] + MIS[interval.Right + 1];
                     if (candidate > MIS[j + 1])
                     {
                         independentSet.setNewNextInterval(j, interval);

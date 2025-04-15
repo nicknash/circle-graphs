@@ -27,7 +27,7 @@ namespace cg::mis::shared
 
     bool PureOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
-        const auto candidate = 1 + CMIS[newInterval.Index];
+        const auto candidate = newInterval.Weight + CMIS[newInterval.Index];
         if (candidate > MIS[newInterval.Left])
         {
             updateAt(pendingUpdates, MIS, newInterval.Left, candidate);
@@ -52,7 +52,7 @@ namespace cg::mis::shared
             for (auto interval : relevantIntervals)
             {
                 counts.Increment(Counts::StackInnerLoop);
-                const auto candidate = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
+                const auto candidate = interval.Weight + CMIS[interval.Index] + MIS[interval.Right + 1];
                 if(candidate > maxAllowedMIS)
                 {
                     return false;

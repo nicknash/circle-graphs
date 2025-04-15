@@ -18,7 +18,7 @@ namespace cg::mis::distinct
 
     bool PureOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
     {
-        updateAt(pendingUpdates, MIS, newInterval.Left, 1 + CMIS[newInterval.Index]);
+        updateAt(pendingUpdates, MIS, newInterval.Left, newInterval.Weight + CMIS[newInterval.Index]);
         independentSet.setNewNextInterval(newInterval.Left, newInterval);
         while (!pendingUpdates.empty())
         {
@@ -34,7 +34,7 @@ namespace cg::mis::distinct
             if (maybeInterval)
             {
                 auto interval = maybeInterval.value();
-                auto candidate = 1 + CMIS[interval.Index] + MIS[interval.Right + 1];
+                auto candidate = interval.Weight + CMIS[interval.Index] + MIS[interval.Right + 1];
                 if (candidate > maxAllowedMIS)
                 {
                     return false;
