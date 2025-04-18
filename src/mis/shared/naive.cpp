@@ -1,6 +1,7 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <set>
 
 #include "data_structures/shared_interval_rep.h"
 #include "data_structures/interval.h"
@@ -13,7 +14,7 @@
 
 namespace cg::mis::shared
 {
-    std::optional<cg::data_structures::Interval> Naive::getMaxInterval(std::span<const cg::data_structures::Interval> intervals, int maxRightEndpoint, std::vector<int> &MIS, std::vector<int>& CMIS, cg::utils::Counters<Counts>& counts, std::vector<int>& indexToLastWinner)
+    std::optional<cg::data_structures::Interval> Naive::getMaxInterval(std::span<const cg::data_structures::Interval> intervals, int maxRightEndpoint, std::vector<int> &MIS, std::vector<int>& CMIS, cg::utils::Counters<Counts>& counts, std::vector<cg::data_structures::Interval>& indexToLastWinner)
     {
         std::optional<cg::data_structures::Interval> maxInterval;
         
@@ -36,17 +37,27 @@ namespace cg::mis::shared
                 sawAll = false;
             }
         }
+        
+
+
         if(sawAll && maxInterval.has_value())
         {
             auto mi = maxInterval.value();
             auto lastWinner = indexToLastWinner[mi.Left];
-            if(lastWinner != -1 && lastWinner != mi.Index)
+            auto oldMax = lastWinner.Weight + CMIS[lastWinner.Index] + MIS[lastWinner.Right + 1];
+            if(max == oldMax)
+            {
+                maxInterval = lastWinner;
+                mi = lastWinner;
+            }
+
+            if(lastWinner.Weight != -1 && lastWinner.Index != mi.Index/* && mi.Left == 189*/)
             {
 
                 auto x = indexToLastWinner[mi.Index];
-                //std::cout << std::format("MAX INTERVAL changed at {} from {} to {} (newlength = {})", mi.Left, lastWinner, mi.Index, mi.length()) << std::endl;
+                //std::cout << std::format("MAX INTERVAL[MaxRight={}] changed at {} from {} to {} (newlength = {}, oldlength={}, #lep={}, newmax={}, oldmax={})", maxRightEndpoint, mi.Left, lastWinner, mi, mi.length(), lastWinner.length(), intervals.size(), max, oldMax) << std::endl;
             }
-            indexToLastWinner[mi.Left] = mi.Index;
+            indexToLastWinner[mi.Left] = mi;
         }
         return maxInterval;
     }
@@ -56,8 +67,15 @@ namespace cg::mis::shared
     {
         std::vector<int> MIS(1 + intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
-        std::vector<int> indexToLastWinner(1 + intervals.end, -1);
+        std::vector<cg::data_structures::Interval> indexToLastWinner;
+
+        for(int i = 0; i < intervals.size; ++i)
+        {
+            indexToLastWinner.push_back(cg::data_structures::Interval(0, 1, 0, -1));
+        }
         cg::mis::IndependentSet independentSet(intervals.size);
+
+        std::vector<std::set<int>> distinctWinners(intervals.end);
 
         for(auto right = 1; right < intervals.end + 1; ++right)
         {
@@ -89,13 +107,37 @@ namespace cg::mis::shared
                         independentSet.setNewNextInterval(here, maxInterval);
                     }
                 }
+                // We need a data structure of intervals with REP at 'here'
+                // Now when 'here' increases, we need it so that we can compute maxInterval efficiently...
+                // That is O(m) intervals, but it is WITHIN O(m) distinct CMIS+MIS sets.
+                // So e.g. if these were separate sets, this would require something like O(d log d)
+                // Now it only happens on a cell increase, so it's at worst k * alpha * d log d
+                // 
+                // MAYBE translate this to the valiente context....to see if any different 
             }
             /*for(auto x = 0; x < right; ++x)
             {
                 std::cout << MIS[x] << " ";
             }
             std::cout << std::endl;*/
+            for(auto x = 0; x < right; ++x)
+            {
+                //std::cout << indexToLastWinner[x] << " ";
+                auto q = indexToLastWinner[x];
+                if(q.Weight != -1)
+                {
+                    distinctWinners[x].insert(q.Index);
+                }
+            }
+            //std::cout << std::endl;
+        }
 
+        for(auto x = 0; x < intervals.end; ++x)
+        {
+            if(distinctWinners[x].size() > 1)
+            {
+                //std::cout << "NumWinners[" << x << "] = " << distinctWinners[x].size() << std::endl;
+            }
         }
 
         auto intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
