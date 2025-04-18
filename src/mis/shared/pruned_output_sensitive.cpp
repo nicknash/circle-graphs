@@ -72,27 +72,27 @@ namespace cg::mis::shared
         for(auto right = 1; right < intervals.end + 1; ++right)
         {
             const auto& intervalsWithThisRightEndpoint = intervals.getAllIntervalsWithRightEndpoint(right - 1);
-            for(auto newInterval : intervalsWithThisRightEndpoint)
+            for(auto interval : intervalsWithThisRightEndpoint)
             {
-                CMIS[newInterval.Index] = MIS[newInterval.Left + 1];
+                CMIS[interval.Index] = MIS[interval.Left + 1];
                 counts.Increment(Counts::IntervalOuterLoop);
-                independentSet.assembleContainedIndependentSet(newInterval);
+                independentSet.assembleContainedIndependentSet(interval);
 
-                const auto candidate = newInterval.Weight + CMIS[newInterval.Index];
-                if (candidate > MIS[newInterval.Left])
+                const auto candidate = interval.Weight + CMIS[interval.Index];
+                if (candidate > MIS[interval.Left])
                 {
-                    updateAt(pendingUpdates, MIS, newInterval.Left, candidate);
-                    independentSet.setNewNextInterval(newInterval.Left, newInterval);
+                    updateAt(pendingUpdates, MIS, interval.Left, candidate);
+                    independentSet.setNewNextInterval(interval.Left, interval);
                 }       
             }
             
             auto maxCMIS = -1;
-            for (auto newInterval : std::views::reverse(intervalsWithThisRightEndpoint)) 
+            for (auto interval : std::views::reverse(intervalsWithThisRightEndpoint)) 
             {
-                if(CMIS[newInterval.Index] > maxCMIS)
+                if(CMIS[interval.Index] > maxCMIS)
                 {
-                    indexToRelevantIntervals[right - 1].push_front(newInterval);
-                    maxCMIS = CMIS[newInterval.Index];
+                    indexToRelevantIntervals[right - 1].push_front(interval);
+                    maxCMIS = CMIS[interval.Index];
                 }
             }
 
