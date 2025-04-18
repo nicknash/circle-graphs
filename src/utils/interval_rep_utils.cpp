@@ -9,6 +9,9 @@
 #include <tuple>
 #include <limits>
 
+    #include <iostream>
+
+
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_rep.h"
 
@@ -207,6 +210,7 @@
         // Generate random centre point in [0, 1] and random radius in [0, R]
     }
 
+
     // TODO: Replace this with a more natural approach, I'll use this for initial experiments of independence number, etc
     // Write something that exactly respects a parameter? (num end points or num intervals), or is the natural approach to produce an object
     // centered around some ideal?
@@ -233,13 +237,11 @@
         while(remaining > 0)
         {
             const auto numEndpoints = std::uniform_int_distribution<>(1, std::min(maxPerEndpoint, remaining))(rng);
-            
             for(auto i = 0; i < numEndpoints; ++i)
             {
                 const auto isLeft = std::bernoulli_distribution(0.5)(rng);
                 const auto length = std::uniform_int_distribution<>(1, maxLength)(rng);
                 const auto interval = isLeft ? InitialInterval{ here, here + length, intervalIndex } : InitialInterval{here - length, here, intervalIndex}; 
-                
                 if(interval.Left < minLeft)
                 {
                     minLeft = interval.Left;
@@ -256,19 +258,11 @@
         }
 
         std::vector<bool> isOccupied(1 + maxRight - minLeft, false);
-        std::vector<bool> shouldExclude(numIntervals, false);
         for(auto interval : initialIntervals)
         {
             auto newLeft = interval.Left - minLeft;
             auto newRight = interval.Right - minLeft;
-            if(isOccupied[newLeft] && isOccupied[newRight])
-            {
-                shouldExclude[interval.Index] = true;
-            }
-            else
-            {
-                isOccupied[newLeft] = isOccupied[newRight] = true;
-            }
+            isOccupied[newLeft] = isOccupied[newRight] = true;
         }
         std::vector<int> cumulativeGap(isOccupied.size(), 0);
         auto numGaps = 0;
@@ -283,17 +277,27 @@
 
         std::vector<cg::data_structures::Interval> result;
         result.reserve(numIntervals);
+        std::ranges::sort(initialIntervals, [](const InitialInterval &a, const InitialInterval &b)
+                          { return a.Left < b.Left; });
 
+        std::optional<InitialInterval> previousInterval;
         for(const auto& interval : initialIntervals)
         {
-            if (!shouldExclude[interval.Index])
+            if(previousInterval)
             {
-                auto newLeft = interval.Left - minLeft;
-                auto newRight = interval.Right - minLeft;
-                const auto weight = 1;//std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
-                const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], result.size(), weight);
-                result.push_back(newInterval);
+                auto p = previousInterval.value();
+                if(p.Left == interval.Left && p.Right == interval.Right)
+                {
+                    continue; 
+                }
             }
+            previousInterval = interval;
+
+            auto newLeft = interval.Left - minLeft;
+            auto newRight = interval.Right - minLeft;
+            const auto weight = 1; // std::uniform_int_distribution<>(1, 10 * numIntervals)(rng);
+            const auto newInterval = cg::data_structures::Interval(newLeft - cumulativeGap[newLeft], newRight - cumulativeGap[newRight], result.size(), weight);
+            result.push_back(newInterval);
         }
         
         return result;
