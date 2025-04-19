@@ -65,14 +65,13 @@ namespace cg::mis::shared
         std::vector<int> CMIS(intervals.size, 0);
         std::stack<int> pendingUpdates;
         std::vector<std::list<cg::data_structures::Interval>> indexToRelevantIntervals(intervals.end + 1);
-        
 
         cg::mis::IndependentSet independentSet(intervals.size);
 
         for(auto right = 1; right < intervals.end + 1; ++right)
         {
             const auto& intervalsWithThisRightEndpoint = intervals.getAllIntervalsWithRightEndpoint(right - 1);
-            for(auto interval : intervalsWithThisRightEndpoint)
+            for(auto interval : intervalsWithThisRightEndpoint) // Longest to shortest
             {
                 CMIS[interval.Index] = MIS[interval.Left + 1];
                 counts.Increment(Counts::IntervalOuterLoop);
@@ -84,18 +83,16 @@ namespace cg::mis::shared
                     updateAt(pendingUpdates, MIS, interval.Left, candidate);
                     independentSet.setNewNextInterval(interval.Left, interval);
                 }       
-            }
-            
+            }            
             auto maxCMIS = -1;
-            for (auto interval : std::views::reverse(intervalsWithThisRightEndpoint)) 
+            for (auto interval : std::views::reverse(intervalsWithThisRightEndpoint)) // Shortest to longest
             {
                 if(CMIS[interval.Index] > maxCMIS)
                 {
-                    indexToRelevantIntervals[right - 1].push_front(interval);
+                    indexToRelevantIntervals[right - 1].push_back(interval); // An interval is only added here if there is no shorter interval with a CMIS at least as large.
                     maxCMIS = CMIS[interval.Index];
                 }
             }
-
 
             if (!tryUpdate(intervals, pendingUpdates, independentSet, MIS, CMIS, maxAllowedMIS, counts, indexToRelevantIntervals))
             {
