@@ -3,6 +3,8 @@
 
 #include "data_structures/distinct_interval_rep.h"
 
+#include <algorithm>
+
 namespace cg::data_structures
 {
     DistinctIntervalRep::DistinctIntervalRep(std::span<const Interval> intervals)
@@ -22,6 +24,12 @@ namespace cg::data_structures
             _rightEndpointToInterval[interval.Right].emplace(interval);
             _indexToInterval.emplace_back(interval);
         }
+
+        _intervalsByIncreasingRightEndpoint = std::vector<Interval>(intervals.begin(), intervals.end());
+         std::sort(_intervalsByIncreasingRightEndpoint.begin(), _intervalsByIncreasingRightEndpoint.end(),
+          [](const Interval& a, const Interval& b) {
+              return a.Right < b.Right;
+          });
     }
 
     [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
@@ -57,5 +65,24 @@ namespace cg::data_structures
     [[nodiscard]] Interval DistinctIntervalRep::getIntervalByIndex(int intervalIndex) const
     {
         return _indexToInterval[intervalIndex];
+    }
+
+    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetRightEndpointPredecessorInterval(int rightEndpointUpperBoundExclusive) const
+    {
+        auto it = std::lower_bound(
+        _intervalsByIncreasingRightEndpoint.begin(),
+        _intervalsByIncreasingRightEndpoint.end(),
+        rightEndpointUpperBoundExclusive,
+        [](const Interval& interval, int value) 
+        {
+            return interval.Right < value;
+        });
+
+        if (it == _intervalsByIncreasingRightEndpoint.begin())
+        {
+            return std::nullopt;
+        }
+        --it;
+        return *it;
     }
 }

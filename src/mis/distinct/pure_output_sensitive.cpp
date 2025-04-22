@@ -8,11 +8,13 @@
 
 #include "mis/distinct/pure_output_sensitive.h"
 
+#include <iostream>
+
 namespace cg::mis::distinct
 {
     void PureOutputSensitive::updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newMisValue)
     {
-        MIS[indexToUpdate] = newMisValue;
+        MIS[indexToUpdate] = newMisValue;  
         pendingUpdates.push(indexToUpdate);
     }
 
@@ -70,6 +72,13 @@ namespace cg::mis::distinct
                     return std::nullopt;
                 }
             }
+            // std::cout << i << " :: ";
+
+            // for(auto x = 0; x < i; ++x)
+            // {
+            //     std::cout << MIS[x] << " ";
+            // }
+            // std::cout << std::endl;
         }
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
         return intervalsInMis;

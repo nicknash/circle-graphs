@@ -10,23 +10,187 @@
 #include "mis/distinct/valiente.h"
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
+#include "mis/distinct/implicit_output_sensitive.h"
 
 #include "mis/shared/naive.h"
 #include "mis/shared/pure_output_sensitive.h"
 #include "mis/shared/pruned_output_sensitive.h"
 #include "mis/shared/valiente.h"
 
-#include <array>
+#include "data_structures/non_decreasing_seq.h"
 
+#include <array>
 
 
 int main()
 {
+//5 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 1 1 1 1 0 0 0 0 0
+//5 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 1 1 1 1 0 0 0 0 0 0
+//0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
 
+//
+/*
+    cg::mis::distinct::MonotoneSeq seq(25);
+
+    for(int i = 0; i < 5; ++i)
+    {
+        seq.increment(0);
+    }
+
+    for(int i = 0; i < 4; ++i)
+    {
+        seq.increment(3);
+    }
+
+    for(int i = 0; i < 3; ++i)
+    {
+        seq.increment(7);
+    }
+
+    for(int i = 0; i < 2; ++i)
+    {
+        seq.increment(11);
+    }
+
+    seq.increment(19);
+
+    std::vector<int> blah(25, 0);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout <<  std::endl;
+
+    seq.increment(12);
+
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout <<  std::endl;
+
+    return 0;
+  */
+  
+  /*
+    // Get a unit test framework, this is a disaster...
+  
+    cg::mis::distinct::MonotoneSeq seq(10);
+    std::vector<int> blah(10, 0);
+
+    auto x = seq.increment(5);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+    x = seq.increment(0);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+    x = seq.increment(0);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+
+    x = seq.increment(0);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+
+    x = seq.increment(3);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+
+
+    x = seq.increment(4);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+    x = seq.increment(4);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+    x = seq.increment(5);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+    x = seq.increment(9);
+    seq.copyTo(blah);
+
+    for(int i = 0; i < blah.size(); ++i)
+    {
+        std::cout << blah[i] << " ";
+    }
+    std::cout << std::format("[{},{}]", x.left, x.right) <<  std::endl;
+
+
+    return 0;
+*/
+
+    /*cg::data_structures::NonDecreasingSeq seq(10);
+
+    for(int i = 0; i < seq.size; ++i)
+    {
+        seq.increase(seq.size - i - 1);
+        for(int j = 0; j < seq.size; ++j)
+        {
+            std::cout << seq.get(j) << " ";
+        }
+        std::cout << std::endl;
+    }
+    return 0;
+*/
     // for (int seed = 0; seed < 10000; ++seed)
     auto seed = 89;
     //const auto numIntervals = 5000;
-
+/*
     const auto numIntervals = 100000;
     int maxEndpointsPerPoint = 1200;
     //for (int maxEndpointsPerPoint = 1; maxEndpointsPerPoint < 64; maxEndpointsPerPoint *= 2)
@@ -129,23 +293,31 @@ int main()
             {
                 throw std::runtime_error(std::format("weight1 = {}, weight2", weight1, weight2));
             }
-            /*if (maxLength < 20)
-            {
-                ++maxLength;
-            }
-            else
-            {
-                maxLength *= 2;
-            }*/
+            // if (maxLength < 20)
+            // {
+            //     ++maxLength;
+            // }
+            // else
+            // {
+            //     maxLength *= 2;
+            // }
         }
-    }
+    }*/
 
-    /*
-    for (int i = 0; i < 50; ++i)
+    
+    //for (int i = 0; i < 50; ++i)
+    //for (int seed2 = 0; seed2 < 50; ++seed2)
+    auto seed2 = 27;
     {
-        auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
-
+    //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
+        std::cout << "SEED = " << seed2 << std::endl;
+        auto intervals = cg::utils::generateRandomIntervals(4, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
+
+        for (auto i : intervals)
+        {
+            std::cout << std::format("{}", i) << std::endl;
+        }
 
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
         std::cout << std::format("Naive {}", mis.size()) << std::endl;
@@ -161,27 +333,25 @@ int main()
             // std::cout << std::format("{}", i) << std::endl;
         }
 
-        auto mis3 = cg::mis::distinct::Switching::computeMIS(intervalRep);
-        std::cout << std::format("Switching {}", mis3.size()) << std::endl;
+        auto mis3 = cg::mis::distinct::PureOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
+        std::cout << std::format("PureOutputSensitive {}", mis3.size()) << std::endl;
         for (auto i : mis3)
         {
-            // std::cout << std::format("{}", i) << std::endl;
+            std::cout << std::format("{}", i) << std::endl;
         }
+        auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
 
-        auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
-        auto mis4 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep);
-
-        std::cout << std::format("Shared naive {}", mis4.size()) << std::endl;
-
-        auto mis5 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, 0).value();
-
-        std::cout << std::format("Shared output sensitive {}", mis5.size()) << std::endl;
-
-        if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size() || mis4.size() != mis5.size())
+        std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
+        for (auto i : mis4)
         {
-            throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}, mis4.size() = {}, mis5.size() = {}", mis.size(), mis2.size(), mis3.size(), mis4.size(), mis5.size()));
+            std::cout << std::format("{}", i) << std::endl;
+        }
+      
+        if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())
+        {
+            throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}, mis4.size() = {}", mis.size(), mis2.size(), mis3.size(), mis4.size()));
         }
     }
-    */
+    
     return 0;
 }

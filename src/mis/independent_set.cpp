@@ -72,4 +72,82 @@ namespace cg::mis
         cg::utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;
     }
+
+
+
+    //
+
+    ImplicitIndependentSet::ImplicitIndependentSet(int maxNumIntervals) // should accept a max interval end-point really instead
+    {
+        _intervalIndexToDirectlyContained.resize(maxNumIntervals);
+    }
+
+
+    void ImplicitIndependentSet::setSameNextInterval(int target, int source) 
+    {
+        _endpointToInterval.erase(target);
+        auto maybeNext = _endpointToInterval.upper_bound(source-1);
+        if(maybeNext != _endpointToInterval.end())
+        {
+            auto i = maybeNext->second;
+            _endpointToInterval.emplace(target, i);
+        }
+    }
+
+    void ImplicitIndependentSet::addInterval(const cg::data_structures::Interval& interval) 
+    {
+        _endpointToInterval.erase(interval.Left);
+        _endpointToInterval.emplace(interval.Left, interval);
+    }
+
+    // It's worth a quick explanation of the space complexity implied by calling assembleContainedIndependentSet for each of k intervals.
+    // This results in, for each of the k intervals, the set of intervals directly contained in that interval being stored. Directly contained in an interval I, means intervals that are contained 
+    // in I, but not in any other interval that is contained in I.
+    //
+    // This requires, for all the k intervals only O(k) space. The reason is that for any interval, it can only be directly contained in at most 2 other intervals (because, if there was a third
+    // interval containing any interval, it would have to contain one of the other two, violating direct containment)
+    void ImplicitIndependentSet::assembleContainedIndependentSet(const cg::data_structures::Interval &interval)
+    {
+        auto maybeNext = _endpointToInterval.upper_bound(interval.Left);
+        auto &containedSet = _intervalIndexToDirectlyContained[interval.Index];
+        while (maybeNext != _endpointToInterval.end())
+        {
+            auto intervalHere = maybeNext->second;
+            containedSet.push_front(intervalHere);
+            maybeNext = _endpointToInterval.upper_bound(intervalHere.Right);
+        }
+    }
+
+    std::vector<cg::data_structures::Interval> ImplicitIndependentSet::buildIndependentSet(int expectedCardinality)
+    {
+        std::vector<cg::data_structures::Interval> intervalsInMis; 
+        intervalsInMis.reserve(expectedCardinality);
+
+        std::vector<cg::data_structures::Interval> pendingIntervals;
+        pendingIntervals.reserve(expectedCardinality);
+        auto maybeInterval = _endpointToInterval.begin();
+        while(maybeInterval != _endpointToInterval.end())
+        {
+            const auto& interval = maybeInterval->second;
+            pendingIntervals.push_back(interval);
+            while(!pendingIntervals.empty())
+            {
+                const auto& newInterval = pendingIntervals.back();
+                pendingIntervals.pop_back();
+                intervalsInMis.push_back(newInterval);
+                const auto& allContained = _intervalIndexToDirectlyContained[newInterval.Index];
+                for(auto c : allContained)
+                {   
+                    pendingIntervals.push_back(c);
+                }
+            }
+            maybeInterval = _endpointToInterval.upper_bound(interval.Right);
+        }
+        if(intervalsInMis.size() != expectedCardinality)
+        {
+            //throw std::runtime_error(std::format("Constructed independent set has cardinality {} but a maximum independent set is expected to have cardinality {}", intervalsInMis.size(), expectedCardinality));
+        }
+        cg::utils::verifyNoOverlaps(intervalsInMis);
+        return intervalsInMis;
+    }
 }

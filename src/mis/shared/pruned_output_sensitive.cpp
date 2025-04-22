@@ -67,7 +67,15 @@ namespace cg::mis::shared
         std::vector<std::list<cg::data_structures::Interval>> indexToRelevantIntervals(intervals.end + 1);
 
         cg::mis::IndependentSet independentSet(intervals.size);
-
+        // .........................
+        // 5 4 3 2 1 0 
+        // Increase(x)
+        // 0, k-1
+        // 0 0 0 0 0 0 0 0 0   [0, 0, k - 1] 
+        // Increment(x)
+        // [1, 0, x] [0, 0, k - 1]
+        // Look-up time is O(log alpha)
+        // k + alpha^2 log alpha
         for(auto right = 1; right < intervals.end + 1; ++right)
         {
             const auto& intervalsWithThisRightEndpoint = intervals.getAllIntervalsWithRightEndpoint(right - 1);
