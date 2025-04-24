@@ -1,31 +1,27 @@
+#include <stdexcept>
+
+#include "data_structures/interval.h"
+
+
 #include "mis/interval_store.h"
+#include <iostream>
 
 namespace cg::mis
 {
-    IntervalStore::IntervalStore(int numIntervals) : _cmisToIntervals(numIntervals), _maxContainedMIS(0)
+    IntervalStore::IntervalStore()
     {
         
     }
-    void IntervalStore::addInterval(int containedMIS, cg::data_structures::Interval &interval)
+    void IntervalStore::addInterval(cg::data_structures::Interval &interval)
     {
-        if(containedMIS > _maxContainedMIS)
-        {
-            _maxContainedMIS = containedMIS;
-        }
-
-        if(containedMIS - _maxContainedMIS > 1)
-        {
-            throw std::runtime_error("WHAT");
-        }
-        _cmisToIntervals[containedMIS].push_front(interval);
+        _intervals.push_front(interval);
     }
 
-    std::optional<cg::data_structures::Interval> IntervalStore::tryGetRelevantInterval(int containedMIS, int left, int right)
+    std::optional<cg::data_structures::Interval> IntervalStore::tryGetRelevantInterval(int left, int right)
     {
-        auto bucket = _cmisToIntervals[containedMIS];
         int maxLeft = -1;
         std::optional<cg::data_structures::Interval> result;
-        for(auto interval : bucket)
+        for(auto interval : _intervals)
         {
             auto r = interval.Right + 1;
             if(r >= left && r < right  // right end point is in [left, right) 
@@ -38,10 +34,4 @@ namespace cg::mis
         }
         return result;
     }
-
-    int IntervalStore::getMaxContainedMIS()
-    {
-        return _maxContainedMIS;
-    }
-
 }

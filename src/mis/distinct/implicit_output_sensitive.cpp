@@ -17,7 +17,7 @@
 
 namespace cg::mis::distinct
 {
-    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::MonotoneSeq &MIS, cg::mis::IntervalStore &intervalStore, int maxAllowedMIS)
+    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::MonotoneSeq &MIS, std::map<int, cg::mis::IntervalStore> &cmisToIntervalStore, int maxAllowedMIS)
     {
         pendingUpdates.push(newInterval);
 
@@ -30,11 +30,11 @@ namespace cg::mis::distinct
             
             independentSet.setRange(r.left, r.right - 1, currentInterval);
  
-            auto maxContainedMIS = intervalStore.getMaxContainedMIS();
             auto representativeMIS = MIS.get(r.changePoint);
-            for(auto cmis = 0; cmis <= maxContainedMIS; ++cmis)
+            for(auto it = cmisToIntervalStore.begin(); it != cmisToIntervalStore.end(); ++it)
             {
-                auto maybeInterval = intervalStore.tryGetRelevantInterval(cmis, r.changePoint, r.right); 
+                auto [cmis, intervalStore] = *it;
+                auto maybeInterval = intervalStore.tryGetRelevantInterval(r.changePoint, r.right); 
                 if (maybeInterval)
                 {
                     auto interval = maybeInterval.value();
@@ -85,8 +85,8 @@ namespace cg::mis::distinct
     std::optional<std::vector<cg::data_structures::Interval>> ImplicitOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS)
     {
         std::stack<cg::data_structures::Interval> pendingUpdates;
+        std::map<int, IntervalStore> cmisToIntervals;
         cg::mis::MonotoneSeq MIS(intervals.end);
-        cg::mis::IntervalStore intervalStore(intervals.size);
 
         cg::mis::ImplicitIndependentSet independentSet(intervals.size);
 
@@ -96,10 +96,10 @@ namespace cg::mis::distinct
             if (maybeInterval)
             {
                 auto interval = maybeInterval.value();
-                intervalStore.addInterval(MIS.get(interval.Left + 1), interval);
-                //CMIS[interval.Index] = MIS.get(interval.Left + 1);
+                auto cmis = MIS.get(interval.Left + 1);
+                cmisToIntervals[cmis].addInterval(interval);
                 independentSet.assembleContainedIndependentSet(interval);
-                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, intervalStore, maxAllowedMIS))
+                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, cmisToIntervals, maxAllowedMIS))
                 {
                     return std::nullopt;
                 }

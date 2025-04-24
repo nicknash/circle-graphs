@@ -30,7 +30,7 @@ namespace cg::mis::distinct
     {
     private:
         static void updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newMisValue);
-        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, cg::mis::ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &interval, cg::mis::MonotoneSeq &MIS, cg::mis::IntervalStore &intervalStore, int maxAllowedMIS);
+        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, cg::mis::ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &interval, cg::mis::MonotoneSeq &MIS, std::map<int, cg::mis::IntervalStore> &cmisToIntervalStore, int maxAllowedMIS);
     public:
         static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS);
     };

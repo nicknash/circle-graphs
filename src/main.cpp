@@ -304,17 +304,17 @@ int main()
 
     
     //for (int i = 0; i < 50; ++i)
-    for (int seed2 = 0; seed2 < 150; ++seed2)
-    //auto seed2 = 30;
+    //for (int seed2 = 0; seed2 < 150; ++seed2)
+    auto seed2 = 6;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(10000, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(4000, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)
         {
-            //std::cout << std::format("{}", i) << std::endl;
+            std::cout << std::format("{}", i) << std::endl;
         }
 
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);

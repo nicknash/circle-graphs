@@ -11,15 +11,12 @@ namespace cg::data_structures
 
 namespace cg::mis
 {
-
     class IntervalStore
     {
-        std::vector<std::list<cg::data_structures::Interval>> _cmisToIntervals; // This needs to be replaced with an efficient data structure.
-        int _maxContainedMIS;
+        std::list<cg::data_structures::Interval> _intervals; // This needs to be replaced with an efficient data structure.
     public:
-        IntervalStore(int numIntervals);
-        void addInterval(int containedMIS, cg::data_structures::Interval& interval);
-        std::optional<cg::data_structures::Interval> tryGetRelevantInterval(int containedMIS, int left, int right);
-        int getMaxContainedMIS();
+        IntervalStore();
+        void addInterval(cg::data_structures::Interval& interval);
+        std::optional<cg::data_structures::Interval> tryGetRelevantInterval(int left, int right);
     };
 }
