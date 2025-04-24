@@ -6,7 +6,8 @@
 
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
-#include "mis/independent_set.h"
+#include "mis/implicit_independent_set.h"
+#include "mis/monotone_seq.h"
 
 #include "mis/distinct/implicit_output_sensitive.h"
 
@@ -14,7 +15,7 @@
 
 namespace cg::mis::distinct
 {
-    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
+    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
     {
         pendingUpdates.push(newInterval.Left);
 
@@ -23,12 +24,12 @@ namespace cg::mis::distinct
             auto updatedIndex = pendingUpdates.top();
             pendingUpdates.pop();
 
-            MonotoneSeq::Range r = MIS.increment(updatedIndex);
+            cg::mis::MonotoneSeq::Range r = MIS.increment(updatedIndex);
             
-            independentSet.setRange(r.left, r.right-1, intervals.getIntervalByLeftEndpoint(updatedIndex));
+            independentSet.setRange(r.left, r.right - 1, intervals.getIntervalByLeftEndpoint(updatedIndex));
  
             auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(r.right);
-            while(maybeInterval) // This iterates O(min(d, alpha)) times, taking O(log^2 n) time per iteration.
+            while(maybeInterval) 
             {
                 auto interval = maybeInterval.value();
 
@@ -48,35 +49,6 @@ namespace cg::mis::distinct
                 {
                     pendingUpdates.push(interval.Left);
                 }
-                /*else
-                {
-                    auto currentLeft = r.left;
-                    auto currentRight = interval.Right;
-                    while(true)
-                    {
-                        auto mid = (currentLeft + currentRight) >> 1;
-                        auto midPred = intervals.tryGetRightEndpointPredecessorInterval(mid);
-                        auto foundNewCMISWithRightEndpointInRange = midPred.has_value() && midPred.value().Right >= r.left && CMIS[midPred.value().Index] > CMIS[interval.Index] && MIS.get(midPred.value().Left) == thisRegionValue;
-                        if(foundNewCMISWithRightEndpointInRange)
-                        {
-                            currentLeft = mid; 
-                        }
-                        else
-                        {
-                            currentRight = mid;
-                        }
-                    }
-                    auto foundNewCMISInThisRegion = false;
-                    if(foundNewCMISInThisRegion)
-                    {
-                        // If we found a new CMIS in this region, set maybeInterval to that interval,
-                    }
-                    else
-                    {
-                        // Set maybeInterval to the first interval in a new region (one-sided bsearch)...
-                    }
-                }*/
-
                 maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
             }
         }
@@ -87,7 +59,7 @@ namespace cg::mis::distinct
     {
         std::vector<int> CMIS(intervals.size, 0);
         std::stack<int> pendingUpdates;
-        MonotoneSeq MIS(intervals.end);
+        cg::mis::MonotoneSeq MIS(intervals.end);
 
         cg::mis::ImplicitIndependentSet independentSet(intervals.size);
 
