@@ -3,6 +3,8 @@
 
 #include "mis/independent_set.h"
 
+#include <iostream>
+
 namespace cg::mis
 {
     IndependentSet::IndependentSet(int maxNumIntervals) // should accept a max interval end-point really instead
@@ -73,31 +75,92 @@ namespace cg::mis
         return intervalsInMis;
     }
 
-
+    void IndependentSet::tempDump(int until)
+    {
+        for(int i = 0; i < until; ++i)
+        {
+            if(_endpointToInterval[i].has_value())
+            {
+                std::cout << _endpointToInterval[i].value().Index;
+            }
+            else
+            {
+                std::cout << '-';
+            }
+            std::cout << " ";
+        }
+        std::cout << std::endl;
+    }
 
     //
 
     ImplicitIndependentSet::ImplicitIndependentSet(int maxNumIntervals) // should accept a max interval end-point really instead
     {
         _intervalIndexToDirectlyContained.resize(maxNumIntervals);
+        _endpointToRange.emplace(-1, Range{-2,-1, cg::data_structures::Interval(-2, -1, 0, 0)});
+        _endpointToRange.emplace(2*maxNumIntervals+1, Range{2*maxNumIntervals,2*maxNumIntervals+1, cg::data_structures::Interval(2*maxNumIntervals, 2*maxNumIntervals+1, 0, 0)});
     }
 
-
-    void ImplicitIndependentSet::setSameNextInterval(int target, int source) 
-    {
-        _endpointToInterval.erase(target);
-        auto maybeNext = _endpointToInterval.upper_bound(source-1);
-        if(maybeNext != _endpointToInterval.end())
+    void ImplicitIndependentSet::setRange(int left, int right, const cg::data_structures::Interval& interval) // do this properly!
+    {        
+        
+        auto pred = _endpointToRange.upper_bound(right);
+        --pred;
+        auto predRange = pred->second; 
+        if(predRange.left < left) 
         {
-            auto i = maybeNext->second;
-            _endpointToInterval.emplace(target, i);
+            // PPPPP
+            //   LLLLL
+            pred->second.right = left - 1;
+            _endpointToRange.erase(pred);
+            _endpointToRange.emplace(left - 1, Range{predRange.left,left - 1, predRange.interval});
         }
-    }
+        else if(predRange.left == left)
+        {
+            // PPPPP
+            // LLLLLL
+            _endpointToRange.erase(pred);
+        }
+        else
+        {
 
-    void ImplicitIndependentSet::addInterval(const cg::data_structures::Interval& interval) 
-    {
-        _endpointToInterval.erase(interval.Left);
-        _endpointToInterval.emplace(interval.Left, interval);
+            //   PPPPP
+            // LLLLLL
+                        throw std::runtime_error("SURPRISING");
+//            std::cout << "surprising" << std::endl; 
+
+        }
+
+        auto next = _endpointToRange.upper_bound(right);
+        auto nextRange = next->second;
+        if(right < nextRange.right)
+        {
+            //   NNNNNN
+            // RRRRRR
+            next->second.left = right + 1;
+        }
+        else if(right == nextRange.right)
+        {
+            //  NNNNN
+            // RRRRRR
+            _endpointToRange.erase(next);
+        }
+        else
+        {
+            // NNNNN
+            // RRRRRRR
+  //          std::cout << "surprising2" << std::endl; 
+                      throw std::runtime_error("SURPRISING2");
+//
+        }
+
+
+        auto [it, wasInserted] = _endpointToRange.emplace(right, Range{left,right, interval});
+    
+        if(!wasInserted)
+        {
+            std::cout << "bug!" << std::endl;
+        }
     }
 
     // It's worth a quick explanation of the space complexity implied by calling assembleContainedIndependentSet for each of k intervals.
@@ -108,13 +171,24 @@ namespace cg::mis
     // interval containing any interval, it would have to contain one of the other two, violating direct containment)
     void ImplicitIndependentSet::assembleContainedIndependentSet(const cg::data_structures::Interval &interval)
     {
-        auto maybeNext = _endpointToInterval.upper_bound(interval.Left);
+
+        auto maybeNext = _endpointToRange.upper_bound(interval.Left);
+      
         auto &containedSet = _intervalIndexToDirectlyContained[interval.Index];
-        while (maybeNext != _endpointToInterval.end())
+        auto last = _endpointToRange.end();
+        --last;
+        while (maybeNext != last)
         {
-            auto intervalHere = maybeNext->second;
+            auto rangeHere = maybeNext->second;
+            if(rangeHere.right < interval.Left || rangeHere.left > interval.Right)
+            {
+                break;
+            }
+
+            auto intervalHere = rangeHere.interval;
+            
             containedSet.push_front(intervalHere);
-            maybeNext = _endpointToInterval.upper_bound(intervalHere.Right);
+            maybeNext = _endpointToRange.upper_bound(intervalHere.Right);
         }
     }
 
@@ -125,10 +199,14 @@ namespace cg::mis
 
         std::vector<cg::data_structures::Interval> pendingIntervals;
         pendingIntervals.reserve(expectedCardinality);
-        auto maybeInterval = _endpointToInterval.begin();
-        while(maybeInterval != _endpointToInterval.end())
+        auto maybeInterval = _endpointToRange.begin();
+        ++maybeInterval; // skip sentinel.
+
+        auto last = _endpointToRange.end();
+        --last; // skip sentinel.
+        while(maybeInterval != last)
         {
-            const auto& interval = maybeInterval->second;
+            const auto& interval = maybeInterval->second.interval;
             pendingIntervals.push_back(interval);
             while(!pendingIntervals.empty())
             {
@@ -141,7 +219,7 @@ namespace cg::mis
                     pendingIntervals.push_back(c);
                 }
             }
-            maybeInterval = _endpointToInterval.upper_bound(interval.Right);
+            maybeInterval = _endpointToRange.upper_bound(interval.Right);
         }
         if(intervalsInMis.size() != expectedCardinality)
         {

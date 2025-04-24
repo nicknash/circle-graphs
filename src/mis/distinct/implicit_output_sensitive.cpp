@@ -17,7 +17,6 @@ namespace cg::mis::distinct
     bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
     {
         pendingUpdates.push(newInterval.Left);
-        independentSet.addInterval(newInterval);
 
         while (!pendingUpdates.empty())
         {
@@ -25,10 +24,9 @@ namespace cg::mis::distinct
             pendingUpdates.pop();
 
             MonotoneSeq::Range r = MIS.increment(updatedIndex);
-            if(r.right - 1 > r.left)
-            {
-                independentSet.setSameNextInterval(r.left, r.right - 1);
-            }
+            
+            independentSet.setRange(r.left, r.right-1, intervals.getIntervalByLeftEndpoint(updatedIndex));
+ 
             auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(r.right);
             while(maybeInterval) // This iterates O(min(d, alpha)) times, taking O(log^2 n) time per iteration.
             {
@@ -49,7 +47,6 @@ namespace cg::mis::distinct
                 if (candidate > thisRegionValue)
                 {
                     pendingUpdates.push(interval.Left);
-                    independentSet.addInterval(interval);
                 }
                 /*else
                 {

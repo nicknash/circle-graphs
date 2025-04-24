@@ -72,6 +72,8 @@ namespace cg::mis::distinct
                     return std::nullopt;
                 }
             }
+            //independentSet.tempDump(i);
+
             // std::cout << i << " :: ";
 
             // for(auto x = 0; x < i; ++x)

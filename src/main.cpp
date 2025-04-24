@@ -17,8 +17,6 @@
 #include "mis/shared/pruned_output_sensitive.h"
 #include "mis/shared/valiente.h"
 
-#include "data_structures/non_decreasing_seq.h"
-
 #include <array>
 
 
@@ -306,17 +304,17 @@ int main()
 
     
     //for (int i = 0; i < 50; ++i)
-    //for (int seed2 = 0; seed2 < 50; ++seed2)
-    auto seed2 = 27;
+    for (int seed2 = 0; seed2 < 150; ++seed2)
+    //auto seed2 = 43;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(4, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(10000, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)
         {
-            std::cout << std::format("{}", i) << std::endl;
+            //std::cout << std::format("{}", i) << std::endl;
         }
 
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
@@ -337,14 +335,14 @@ int main()
         std::cout << std::format("PureOutputSensitive {}", mis3.size()) << std::endl;
         for (auto i : mis3)
         {
-            std::cout << std::format("{}", i) << std::endl;
+            //std::cout << std::format("{}", i) << std::endl;
         }
         auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
 
         std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
         for (auto i : mis4)
         {
-            std::cout << std::format("{}", i) << std::endl;
+            //std::cout << std::format("{}", i) << std::endl;
         }
       
         if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())

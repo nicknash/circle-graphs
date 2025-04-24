@@ -91,15 +91,18 @@ namespace cg::mis::distinct
             {
                 endChange = nextRangeStartIdx;
             }
+
+            auto beginChange = rangeStartForIdx;
             if(prevRangeValue == oldValue + 1)
             {
+                beginChange = prevRangeStartIdx;
                 _rangeLeftToValue.erase(rangeStartForIdx);
             }
             else
             {
                 ++it->second;
             }
-            return Range{rangeStartForIdx, endChange};
+            return Range{beginChange, endChange};
         }
 
         void copyTo(std::vector<int>& target)
