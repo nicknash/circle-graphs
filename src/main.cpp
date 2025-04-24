@@ -309,7 +309,7 @@ int main()
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(4000, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(20000, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)

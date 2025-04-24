@@ -17,12 +17,17 @@
 
 namespace cg::mis::distinct
 {
+    int total_outer_iters = 0;
+    int total_inner_iters = 0;
+
+
     bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::MonotoneSeq &MIS, std::map<int, cg::mis::IntervalStore> &cmisToIntervalStore, int maxAllowedMIS)
     {
         pendingUpdates.push(newInterval);
 
         while (!pendingUpdates.empty())
         {
+            ++total_outer_iters;
             auto currentInterval = pendingUpdates.top();
             pendingUpdates.pop();
 
@@ -33,19 +38,21 @@ namespace cg::mis::distinct
             auto representativeMIS = MIS.get(r.changePoint);
             for(auto it = cmisToIntervalStore.begin(); it != cmisToIntervalStore.end(); ++it)
             {
-                auto [cmis, intervalStore] = *it;
-                auto maybeInterval = intervalStore.tryGetRelevantInterval(r.changePoint, r.right); 
+                ++total_inner_iters;
+                auto maybeInterval = it->second.tryGetRelevantInterval(r.changePoint, r.changePoint, r.right); 
                 if (maybeInterval)
                 {
                     auto interval = maybeInterval.value();
-                    auto candidate = interval.Weight + cmis + representativeMIS; 
+                   //auto candidate = interval.Weight + cmis + representativeMIS;
+                   auto candidate = 1 + it->first + representativeMIS; 
                     if (candidate > maxAllowedMIS)
                     {
                         return false;
                     }
-                    if (candidate > MIS.get(interval.Left))
+                    if (candidate > MIS.get(interval.left))
                     {
-                        pendingUpdates.push(interval);
+                        auto realInterval = intervals.getIntervalByLeftEndpoint(interval.left);
+                        pendingUpdates.push(realInterval);
                     }
                 }
             }
@@ -105,6 +112,7 @@ namespace cg::mis::distinct
                 }
             }
         }
+        std::cout << "total outer iters " << total_outer_iters << ", total inner iters = " << total_inner_iters << std::endl;
 
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS.get(0));
         return intervalsInMis;
