@@ -70,7 +70,7 @@ namespace cg::mis
         {
             ++it->second;
         }
-        return Range{newBeginRange, newEndRange};
+        return Range{newBeginRange, rangeStartForIdx, newEndRange};
     }
 
     void MonotoneSeq::copyTo(std::vector<int> &target)

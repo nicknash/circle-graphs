@@ -19,6 +19,7 @@ namespace cg::mis
         struct Range
         {
             int left;
+            int changePoint;
             int right;
         };
         MonotoneSeq(int size);

@@ -305,7 +305,7 @@ int main()
     
     //for (int i = 0; i < 50; ++i)
     for (int seed2 = 0; seed2 < 150; ++seed2)
-    //auto seed2 = 43;
+    //auto seed2 = 30;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;

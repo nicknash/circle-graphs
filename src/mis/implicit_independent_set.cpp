@@ -14,7 +14,7 @@ namespace cg::mis
         _endpointToRange.emplace(2*maxNumIntervals+1, Range{2*maxNumIntervals,2*maxNumIntervals+1, cg::data_structures::Interval(2*maxNumIntervals, 2*maxNumIntervals+1, 0, 0)});
     }
 
-    void ImplicitIndependentSet::setRange(int left, int right, const cg::data_structures::Interval& interval) // do this properly!
+    void ImplicitIndependentSet::setRange(int left, int right, const cg::data_structures::Interval& interval) 
     {        
         
         auto pred = _endpointToRange.upper_bound(right);
@@ -28,13 +28,13 @@ namespace cg::mis
             _endpointToRange.erase(pred);
             _endpointToRange.emplace(left - 1, Range{predRange.left,left - 1, predRange.interval});
         }
-        else if(predRange.left == left)
+        else //if(predRange.left == left)
         {
             // PPPPP
             // LLLLLL
             _endpointToRange.erase(pred);
         }
-        else
+        /*else
         {
 
             //   PPPPP
@@ -42,7 +42,7 @@ namespace cg::mis
                         throw std::runtime_error("SURPRISING");
 //            std::cout << "surprising" << std::endl; 
 
-        }
+        }*/
 
         auto next = _endpointToRange.upper_bound(right);
         auto nextRange = next->second;
