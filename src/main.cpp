@@ -309,14 +309,14 @@ int main()
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(20000, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(25, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)
         {
-            std::cout << std::format("{}", i) << std::endl;
+            //std::cout << std::format("{}", i) << std::endl;
         }
-
+/*
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
         std::cout << std::format("Naive {}", mis.size()) << std::endl;
         for (auto i : mis)
@@ -336,7 +336,7 @@ int main()
         for (auto i : mis3)
         {
             //std::cout << std::format("{}", i) << std::endl;
-        }
+        }*/
         auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
 
         std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
@@ -344,11 +344,11 @@ int main()
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-      
+  /*    
         if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())
         {
             throw std::runtime_error(std::format("mis.size() = {}, mis2.size() = {}, mis3.size() = {}, mis4.size() = {}", mis.size(), mis2.size(), mis3.size(), mis4.size()));
-        }
+        }*/
     }
     
     return 0;

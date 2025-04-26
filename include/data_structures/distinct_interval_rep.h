@@ -23,6 +23,8 @@ namespace cg::data_structures
         [[nodiscard]] std::optional<Interval> tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const;
 
         [[nodiscard]] std::optional<Interval> tryGetRightEndpointPredecessorInterval(int rightEndpointUpperBoundExclusive) const; // find rightmost interval with right end-point < rightEndpointUpperBoundExclusive
+        [[nodiscard]] std::optional<Interval> tryGetMaxLeftInterval(int leftEndpointUpperBoundExclusive) const; // find interval with largest left end point < leftEndpointUpperBoundExclusive
+
 
         [[nodiscard]] Interval getIntervalByRightEndpoint(int rightEndpoint) const;
         [[nodiscard]] Interval getIntervalByLeftEndpoint(int leftEndpoint) const;
