@@ -304,17 +304,17 @@ int main()
 
     
     //for (int i = 0; i < 50; ++i)
-    //for (int seed2 = 0; seed2 < 150; ++seed2)
-    auto seed2 = 6;
+    //for (int seed2 = 0; seed2 < 1500; ++seed2)
+    auto seed2 = 52;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(25, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(8000, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)
         {
-            //std::cout << std::format("{}", i) << std::endl;
+    //        std::cout << std::format("{}", i) << std::endl;
         }
 /*
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
@@ -330,19 +330,37 @@ int main()
         {
             // std::cout << std::format("{}", i) << std::endl;
         }
-
+*/
         auto mis3 = cg::mis::distinct::PureOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
         std::cout << std::format("PureOutputSensitive {}", mis3.size()) << std::endl;
         for (auto i : mis3)
         {
             //std::cout << std::format("{}", i) << std::endl;
-        }*/
-        auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
+        }
+                       cg::utils::Counters<cg::mis::distinct::ImplicitOutputSensitive::Counts> posCounts;
+
+
+        auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), posCounts).value();
 
         std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
         for (auto i : mis4)
         {
             //std::cout << std::format("{}", i) << std::endl;
+        }
+
+        using Counts = cg::mis::distinct::ImplicitOutputSensitive::Counts;
+
+
+        // std::cout << std::format("\tShared pruned output sensitive PRUNEFACTOR={}, IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", tmp, mis4.size(), weight2,
+        //                              posCounts.Get(Counts::IntervalOuterLoop),
+        //                              posCounts.Get(Counts::StackOuterLoop),
+        //                              posCounts.Get(Counts::StackInnerLoop),
+        //                              (posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop) + posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
+        //               << std::endl;
+
+        if(mis3.size() != mis4.size())
+        {
+            throw std::runtime_error(std::format("mis3.size() = {}, mis4.size() = {}", mis3.size(), mis4.size()));
         }
   /*    
         if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())

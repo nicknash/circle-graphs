@@ -4,32 +4,42 @@
 #include <map>
 #include <stdexcept>
 
+#include <algorithm>
+
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
 #include "mis/implicit_independent_set.h"
 #include "mis/monotone_seq.h"
 #include "mis/interval_store.h"
+#include "utils/counters.h"
 
 #include "mis/distinct/implicit_output_sensitive.h"
+
+
 
 #include <iostream>
 
 
 namespace cg::mis::distinct
 {
-    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
+    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::map<int, cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
-        pendingUpdates.push(newInterval);
-        std::cout << std::format(" **** NEW INTERVAL {} DETECTED **** ", newInterval) << std::endl;
+        pendingUpdates.emplace(newInterval.Left, newInterval);
+        //std::cout << std::format(" **** NEW INTERVAL {} DETECTED **** ", newInterval) << std::endl;
 
-        std::vector<int> mis(intervals.end+1, 0);
+        //std::vector<int> mis(intervals.end+1, 0);
+
         while (!pendingUpdates.empty())
         {
-            auto currentInterval = pendingUpdates.top();
-            pendingUpdates.pop();
+
+            counts.Increment(Counts::StackOuterLoop);
+
+            auto it = std::prev(pendingUpdates.end());
+            auto currentInterval = it->second;
+            pendingUpdates.erase(it);
 
             cg::mis::MonotoneSeq::Range r = MIS.increment(currentInterval.Left);
-            std::cout << std::format("POPPED {}. INCREMENTED REGION {} {} {}", currentInterval, r.left, r.changePoint, r.right) << std::endl;
+/*            std::cout << std::format("POPPED {}. INCREMENTED REGION {} {} {}", currentInterval, r.left, r.changePoint, r.right) << std::endl;
             for(int i = 0; i < mis.size(); ++i)
             {
                 std::cout << i << " ";
@@ -46,22 +56,70 @@ namespace cg::mis::distinct
                 std::cout << mis[i] << " ";
             }
             std::cout << std::endl << std::endl;
+  */
             independentSet.setRange(r.left, r.right - 1, currentInterval);
  
             auto representativeMIS = MIS.get(r.changePoint);
-      
             auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(r.right);
-            while(maybeInterval) 
+
+
+
+            std::vector<std::optional<cg::data_structures::Interval>> regionIdToInterval(intervals.size);
+            while (maybeInterval)
             {
                 auto interval = maybeInterval.value();
+                if(interval.Right < r.changePoint)
+                {
+                    break;
+                }
+                if(interval.Left < r.changePoint)
+                {
+                    auto regionId = MIS.get(interval.Left);
+                    auto mri = regionIdToInterval[regionId];
+                    if(mri)
+                    {
+                        auto x = mri.value();
+                        if(x.Left < interval.Left)
+                        {
+                            regionIdToInterval[regionId] = interval;
+                        }
+                    }
+                    else
+                    {
+                        regionIdToInterval[regionId] = interval;
+                    }
+                }
+                maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
+
+            }
+            std::vector<cg::data_structures::Interval> candidates;
+            for(auto ii : regionIdToInterval)
+            {
+                if(ii)
+                {
+                    candidates.push_back(ii.value());
+                }
+            }
+
+                 std::sort(candidates.begin(), candidates.end(),
+          [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
+              return a.Left < b.Left;
+          });
+
+            //while(maybeInterval) 
+            for(auto interval : candidates)
+            {
+               // counts.Increment(Counts::StackInnerLoop);
+                //auto interval = maybeInterval.value();
                 if(interval.Left >= r.changePoint)
                 {
-                    std::cout << std::format("         INSPECTING: {} -- LEFT IS AFTER CHANGEPOINT {}", interval, r.changePoint) << std::endl;
+                    //std::cout << std::format("         INSPECTING: {} -- LEFT IS AFTER CHANGEPOINT {}", interval, r.changePoint) << std::endl;
+                    maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
                     continue;
                 }
                 if(interval.Right < r.changePoint)
                 {
-                    std::cout << std::format("         INSPECTING: {} -- RIGHT IS BEFORE CHANGEPOINT {}", interval, r.changePoint) << std::endl;
+                    //std::cout << std::format("         INSPECTING: {} -- RIGHT IS BEFORE CHANGEPOINT {}", interval, r.changePoint) << std::endl;
                     break;
                 }
 
@@ -72,31 +130,64 @@ namespace cg::mis::distinct
                 }
                 if (candidate > MIS.get(interval.Left))
                 {
-                    std::cout << std::format("         INSPECTING: {} -- CANDIDATE MIS {} IS LARGER than {} --- PUSHING!", interval, candidate, MIS.get(interval.Left))  << std::endl;
-                    pendingUpdates.push(interval);
+                    //std::cout << std::format("         INSPECTING: {} -- CANDIDATE MIS {} IS LARGER than {}", interval, candidate, MIS.get(interval.Left))  << std::endl;
+                    auto largerLeft = pendingUpdates.upper_bound(interval.Left);
+                     
+                    if(largerLeft != pendingUpdates.end() && MIS.get(largerLeft->second.Left) == MIS.get(interval.Left))
+                    {
+                        //std::cout << std::format("         NOT PUSHING {} there is a larger left interval {}", interval, largerLeft->second)  << std::endl;
+                    }
+                    else 
+                    {
+                        if (pendingUpdates.size() > 1)
+                        {
+                            auto smallerLeft = pendingUpdates.upper_bound(interval.Left);
+
+                            if (smallerLeft != pendingUpdates.begin())
+                            {
+                                --smallerLeft;
+                                if (MIS.get(smallerLeft->second.Left) == MIS.get(interval.Left))
+                                {
+                                    //std::cout << std::format("         ERASING {} it is a SMALLER LEFT than this interval interval {}", smallerLeft->second, interval) << std::endl;
+                                    pendingUpdates.erase(smallerLeft);
+                                }
+                            }
+                        }
+                        counts.Increment(Counts::StackInnerLoop);
+
+                        //std::cout << std::format("        ---- PUSHING {}", interval) << std::endl;
+                        auto [it2, wasInserted] = pendingUpdates.emplace(interval.Left, interval);
+                        if (!wasInserted)
+                        {
+                            std::cout << std::format("DROPPED {}", interval) << std::endl;
+                        }
+                    }
                 }
                 else
                 {
-                    std::cout << std::format("         INSPECTING: {} -- CANDIDATE MIS {} not larger than {}", interval, candidate, MIS.get(interval.Left)) << std::endl;
+                                            counts.Increment(Counts::StackInnerLoop);
+
+                    //std::cout << std::format("         INSPECTING: {} -- CANDIDATE MIS {} not larger than {}", interval, candidate, MIS.get(interval.Left)) << std::endl;
 
                 }
                 maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
+
             }
         }
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> ImplicitOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS)
+    std::optional<std::vector<cg::data_structures::Interval>> ImplicitOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
-        std::stack<cg::data_structures::Interval> pendingUpdates;
+        std::map<int, cg::data_structures::Interval> pendingUpdates;
         std::vector<int> CMIS(intervals.size);
-        std::map<int, IntervalStore> cmisToIntervals;
         cg::mis::MonotoneSeq MIS(intervals.end);
 
         cg::mis::ImplicitIndependentSet independentSet(intervals.size);
 
         for (auto i = 0; i < intervals.end; ++i)
         {
+            counts.Increment(Counts::IntervalOuterLoop);
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(i);
             if (maybeInterval)
             {
@@ -104,14 +195,21 @@ namespace cg::mis::distinct
                 auto cmis = MIS.get(interval.Left + 1);
                 CMIS[interval.Index] = cmis;
                 independentSet.assembleContainedIndependentSet(interval);
-                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, CMIS, maxAllowedMIS))
+                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, CMIS, maxAllowedMIS, counts))
                 {
                     return std::nullopt;
                 }
             }
         }
-    
+        std::cout << "IntervalOuter = " << counts.Get(Counts::IntervalOuterLoop) << std::endl;
+        std::cout << "StackOuter = " << counts.Get(Counts::StackOuterLoop) << std::endl;
+        std::cout << "StackInner = " << counts.Get(Counts::StackInnerLoop) << std::endl;
+        std::cout << "StackInner / (alpha*n) = " << counts.Get(Counts::StackInnerLoop) / (float) (MIS.get(0) * intervals.size) << std::endl;
+        std::cout << "StackInner / (alpha*alpha) = " << counts.Get(Counts::StackInnerLoop) / (float) (MIS.get(0) * MIS.get(0)) << std::endl;
+
+
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS.get(0));
+
         return intervalsInMis;
     }
 }
