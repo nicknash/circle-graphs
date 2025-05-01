@@ -24,7 +24,7 @@ namespace cg::mis
 {
     class IndependentSet;
     class ImplicitIndependentSet;
-    class UnitMonotoneSeq;
+    class MonotoneSeq;
     class IntervalStore;
 }
 
@@ -42,7 +42,12 @@ namespace cg::mis::distinct
             NumMembers
         };
     private:
-        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, int leftLimit, std::map<int, cg::data_structures::Interval> &pendingUpdates,  cg::mis::ImplicitIndependentSet& independentSet, cg::mis::UnitMonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
+        struct PendingUpdate
+        {
+            cg::data_structures::Interval interval;
+            int candidate;
+        };
+        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, int leftLimit, std::map<int, PendingUpdate> &pendingUpdates,  cg::mis::ImplicitIndependentSet& independentSet, cg::mis::MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     public:
         static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     };

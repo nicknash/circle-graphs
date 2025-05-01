@@ -9,7 +9,7 @@
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
 #include "mis/implicit_independent_set.h"
-#include "mis/monotone_seq.h"
+#include "mis/unit_monotone_seq.h"
 #include "mis/interval_store.h"
 #include "utils/counters.h"
 

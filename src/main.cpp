@@ -305,8 +305,8 @@ int main()
 
     
     //for (int i = 0; i < 50; ++i)
-    for (int seed2 = 0; seed2 < 1500; ++seed2)
-    //auto seed2 = 52;
+    //for (int seed2 = 0; seed2 < 1500; ++seed2)
+    auto seed2 = 124;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
@@ -315,7 +315,7 @@ int main()
 
         for (auto i : intervals)
         {
-    //        std::cout << std::format("{}", i) << std::endl;
+            std::cout << std::format("{}", i) << std::endl;
         }
 /*
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
