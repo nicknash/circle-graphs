@@ -8,7 +8,7 @@
 
 namespace cg::mis
 {
-    class MonotoneSeq
+    class UnitMonotoneSeq
     {
     private:
         std::map<int, int> _rangeLeftToValue;
@@ -22,7 +22,7 @@ namespace cg::mis
             int changePoint;
             int right;
         };
-        MonotoneSeq(int size);
+        UnitMonotoneSeq(int size);
         [[nodiscard]] int get(int idx);
         Range increment(int idx);
         void copyTo(std::vector<int>& target);

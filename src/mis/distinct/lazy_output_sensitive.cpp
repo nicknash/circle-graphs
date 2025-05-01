@@ -13,7 +13,7 @@
 #include "mis/interval_store.h"
 #include "utils/counters.h"
 
-#include "mis/distinct/implicit_output_sensitive.h"
+#include "mis/distinct/lazy_output_sensitive.h"
 
 
 
@@ -22,11 +22,9 @@
 
 namespace cg::mis::distinct
 {
-    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::map<int, cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::UnitMonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    bool LazyOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, int leftLimit, std::map<int, cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, cg::mis::UnitMonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
-        pendingUpdates.emplace(newInterval.Left, newInterval);
-        std::cout << std::format(" **** NEW INTERVAL {} DETECTED **** ", newInterval) << std::endl;
-
+       
         std::vector<int> mis(intervals.end+1, 0);
 
         std::vector<cg::mis::UnitMonotoneSeq::Range> changed;
@@ -38,6 +36,12 @@ namespace cg::mis::distinct
 
             auto it = std::prev(pendingUpdates.end());
             auto currentInterval = it->second;
+            if(currentInterval.Left < leftLimit)
+            {
+                std::cout << std::format("WILL NOT PROCESS INTERVAL {}, left limit is {}", currentInterval, leftLimit) << std::endl;
+                break;
+            }
+
             pendingUpdates.erase(it);
 
             cg::mis::UnitMonotoneSeq::Range r = MIS.increment(currentInterval.Left);
@@ -141,7 +145,7 @@ namespace cg::mis::distinct
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> ImplicitOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    std::optional<std::vector<cg::data_structures::Interval>> LazyOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::map<int, cg::data_structures::Interval> pendingUpdates;
         std::vector<int> CMIS(intervals.size);
@@ -156,15 +160,26 @@ namespace cg::mis::distinct
             if (maybeInterval)
             {
                 auto interval = maybeInterval.value();
-                auto cmis = MIS.get(interval.Left + 1);
-                CMIS[interval.Index] = cmis;
-                independentSet.assembleContainedIndependentSet(interval);
-                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, CMIS, maxAllowedMIS, counts))
+                std::cout << std::format("ENCOUNTERED INTERVAL {}, left limit is {}", interval, interval.Left + 1) << std::endl;
+
+                if (!tryUpdate(intervals, interval.Left + 1, pendingUpdates, independentSet, MIS, CMIS, maxAllowedMIS, counts))
                 {
                     return std::nullopt;
                 }
+                auto cmis = MIS.get(interval.Left + 1);
+                CMIS[interval.Index] = cmis;
+                std::cout << std::format("CMIS[{}] = {}", interval, CMIS[interval.Index]) << std::endl;
+
+                independentSet.assembleContainedIndependentSet(interval);
+
+                pendingUpdates.emplace(interval.Left, interval);
             }
         }
+        if (!tryUpdate(intervals, 0, pendingUpdates, independentSet, MIS, CMIS, maxAllowedMIS, counts))
+        {
+            return std::nullopt;
+        }
+
         std::cout << "IntervalOuter = " << counts.Get(Counts::IntervalOuterLoop) << std::endl;
         std::cout << "StackOuter = " << counts.Get(Counts::StackOuterLoop) << std::endl;
         std::cout << "StackInner = " << counts.Get(Counts::StackInnerLoop) << std::endl;

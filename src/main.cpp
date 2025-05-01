@@ -11,6 +11,7 @@
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
 #include "mis/distinct/implicit_output_sensitive.h"
+#include "mis/distinct/lazy_output_sensitive.h"
 
 #include "mis/shared/naive.h"
 #include "mis/shared/pure_output_sensitive.h"
@@ -304,12 +305,12 @@ int main()
 
     
     //for (int i = 0; i < 50; ++i)
-    //for (int seed2 = 0; seed2 < 1500; ++seed2)
-    auto seed2 = 52;
+    for (int seed2 = 0; seed2 < 1500; ++seed2)
+    //auto seed2 = 52;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(8000, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(4, seed2);
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)
@@ -337,10 +338,10 @@ int main()
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-                       cg::utils::Counters<cg::mis::distinct::ImplicitOutputSensitive::Counts> posCounts;
+                       cg::utils::Counters<cg::mis::distinct::LazyOutputSensitive::Counts> posCounts;
 
 
-        auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), posCounts).value();
+        auto mis4 = cg::mis::distinct::LazyOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), posCounts).value();
 
         std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
         for (auto i : mis4)
@@ -348,7 +349,7 @@ int main()
             //std::cout << std::format("{}", i) << std::endl;
         }
 
-        using Counts = cg::mis::distinct::ImplicitOutputSensitive::Counts;
+        using Counts = cg::mis::distinct::LazyOutputSensitive::Counts;
 
 
         // std::cout << std::format("\tShared pruned output sensitive PRUNEFACTOR={}, IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", tmp, mis4.size(), weight2,

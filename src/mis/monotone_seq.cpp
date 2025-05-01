@@ -2,21 +2,21 @@
 
 namespace cg::mis
 {
-    void MonotoneSeq::validateIndex(int idx)
+    void UnitMonotoneSeq::validateIndex(int idx)
     {
         if (idx < 0 || idx >= _size)
         {
             throw std::out_of_range(std::format("Index {} is out of range, should be between 0 and {} inclusive", idx, _size - 1));
         }
     }
-    std::map<int, int>::iterator MonotoneSeq::getRangeIter(int idx) // Largest key <= idx
+    std::map<int, int>::iterator UnitMonotoneSeq::getRangeIter(int idx) // Largest key <= idx
     {
         auto it = _rangeLeftToValue.upper_bound(idx); // This gives us the smallest key > idx, or end()
         --it;
         return it;
     }
 
-    MonotoneSeq::MonotoneSeq(int size)
+    UnitMonotoneSeq::UnitMonotoneSeq(int size)
     {
         _size = size;
         _rangeLeftToValue.emplace(-1, std::numeric_limits<int>::max());
@@ -24,7 +24,7 @@ namespace cg::mis
         _rangeLeftToValue.emplace(_size, -1);
     }
 
-    [[nodiscard]] int MonotoneSeq::get(int idx)
+    [[nodiscard]] int UnitMonotoneSeq::get(int idx)
     {
         validateIndex(idx);
         auto it = getRangeIter(idx);
@@ -32,7 +32,7 @@ namespace cg::mis
         return valueHere;
     }
 
-    MonotoneSeq::Range MonotoneSeq::increment(int idx)
+    UnitMonotoneSeq::Range UnitMonotoneSeq::increment(int idx)
     {
         validateIndex(idx);
 
@@ -73,7 +73,7 @@ namespace cg::mis
         return Range{newBeginRange, rangeStartForIdx, newEndRange};
     }
 
-    void MonotoneSeq::copyTo(std::vector<int> &target)
+    void UnitMonotoneSeq::copyTo(std::vector<int> &target)
     {
         auto it = _rangeLeftToValue.begin();
         ++it; // Skip sentinel.
