@@ -10,6 +10,7 @@
 #include "mis/distinct/valiente.h"
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
+#include "mis/distinct/simple_implicit_output_sensitive.h"
 #include "mis/distinct/implicit_output_sensitive.h"
 #include "mis/distinct/lazy_output_sensitive.h"
 
@@ -310,12 +311,21 @@ int main()
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(4, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(2000, seed2);
+        
+        //std::vector<cg::data_structures::Interval> intervals;
+        auto numIntervals = 100;
+        for(int x = 0; x < numIntervals; ++x)
+        {
+            //intervals.push_back(cg::data_structures::Interval(x, 2 * numIntervals - x - 1, x, 1)); // nested stack
+            //intervals.push_back(cg::data_structures::Interval(2 * x, 2 * x + 1, x, 1)); // disjoint units
+            //intervals.push_back(cg::data_structures::Interval(x, x + numIntervals, x, 1)); // clique
+        }
         auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
 
         for (auto i : intervals)
         {
-            std::cout << std::format("{}", i) << std::endl;
+            //std::cout << std::format("{}", i) << std::endl;
         }
 /*
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
@@ -324,31 +334,42 @@ int main()
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-
+*/
         auto mis2 = cg::mis::distinct::Valiente::computeMIS(intervalRep);
         std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
         for (auto i : mis2)
         {
             // std::cout << std::format("{}", i) << std::endl;
         }
-*/
-        auto mis3 = cg::mis::distinct::PureOutputSensitive::tryComputeMIS(intervalRep, intervals.size()).value();
+
+        cg::utils::Counters<cg::mis::distinct::PureOutputSensitive::Counts> posCounts;
+
+        auto mis3 = cg::mis::distinct::PureOutputSensitive::tryComputeMIS(intervalRep, 1000000000, posCounts).value();
         std::cout << std::format("PureOutputSensitive {}", mis3.size()) << std::endl;
         for (auto i : mis3)
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-                       cg::utils::Counters<cg::mis::distinct::LazyOutputSensitive::Counts> posCounts;
 
+        //cg::utils::Counters<cg::mis::distinct::ImplicitOutputSensitive::Counts> posCounts;
+        //auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), posCounts).value();
+        //std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
 
-        auto mis4 = cg::mis::distinct::LazyOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), posCounts).value();
+        cg::utils::Counters<cg::mis::distinct::SimpleImplicitOutputSensitive::Counts> siosCounts;
+        auto mis5 = cg::mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), siosCounts).value();
+        std::cout << std::format("Simple Implicit output sensitive {}", mis5.size()) << std::endl;
+/*
 
-        std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
+        cg::utils::Counters<cg::mis::distinct::LazyOutputSensitive::Counts> losCounts;
+
+        auto mis4 = cg::mis::distinct::LazyOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), losCounts).value();
+
+        std::cout << std::format("Lazy output sensitive {}", mis4.size()) << std::endl;
         for (auto i : mis4)
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-
+*/
         using Counts = cg::mis::distinct::LazyOutputSensitive::Counts;
 
 
@@ -359,10 +380,10 @@ int main()
         //                              (posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop) + posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
         //               << std::endl;
 
-        if(mis3.size() != mis4.size())
+/*        if(mis3.size() != mis4.size())
         {
             throw std::runtime_error(std::format("mis3.size() = {}, mis4.size() = {}", mis3.size(), mis4.size()));
-        }
+        }*/
   /*    
         if(mis.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())
         {

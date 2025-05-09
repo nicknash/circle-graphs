@@ -44,23 +44,21 @@ namespace cg::mis::distinct
             {
                 counts.Increment(Counts::StackInnerLoop);
                 auto interval = maybeInterval.value();
-                if(interval.Left >= r.changePoint)
-                {
-                    maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
-                    continue;
-                }
                 if(interval.Right < r.changePoint)
                 {
                     break;
                 }
-                auto candidate = interval.Weight + CMIS[interval.Index] + representativeMIS;
-                if (candidate > maxAllowedMIS)
+                if (interval.Left < r.changePoint)
                 {
-                    return false;
-                }
-                if (candidate > MIS.get(interval.Left))
-                {
-                    pendingUpdates.push(interval);
+                    auto candidate = interval.Weight + CMIS[interval.Index] + representativeMIS;
+                    if (candidate > maxAllowedMIS)
+                    {
+                        return false;
+                    }
+                    if (candidate > MIS.get(interval.Left))
+                    {
+                        pendingUpdates.push(interval);
+                    }
                 }
                 maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
 

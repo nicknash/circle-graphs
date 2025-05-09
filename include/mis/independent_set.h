@@ -16,6 +16,6 @@ namespace cg::mis
         void setSameNextInterval(int where);
         void setNewNextInterval(int where, const cg::data_structures::Interval& interval);
         void assembleContainedIndependentSet(const cg::data_structures::Interval &interval);
-        std::vector<cg::data_structures::Interval> buildIndependentSet(int expectedCardinality); 
+        std::vector<cg::data_structures::Interval> buildIndependentSet(long expectedWeight); 
     };
 }

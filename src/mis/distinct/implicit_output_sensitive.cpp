@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <stdexcept>
+#include <cmath>
 
 #include <algorithm>
 
@@ -64,12 +65,17 @@ namespace cg::mis::distinct
  
             auto representativeMIS = MIS.get(r.changePoint);
             auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(r.right);
+            /*while(maybeInterval)
+            {
+                auto interval = maybeInterval.value();
 
+                maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
+            }*/
         
 
             while(maybeInterval) 
             {
-                counts.Increment(Counts::StackInnerLoop);
+//                counts.Increment(Counts::StackInnerLoop);
                 auto interval = maybeInterval.value();
                 if(interval.Left >= r.changePoint)
                 {
@@ -82,6 +88,7 @@ namespace cg::mis::distinct
                     std::cout << std::format("         INSPECTING: {} -- RIGHT IS BEFORE CHANGEPOINT {}", interval, r.changePoint) << std::endl;
                     break;
                 }
+                counts.Increment(Counts::StackInnerLoop);
 
                 auto candidate = interval.Weight + CMIS[interval.Index] + representativeMIS;
                 if (candidate > maxAllowedMIS)
@@ -168,8 +175,13 @@ namespace cg::mis::distinct
         std::cout << "IntervalOuter = " << counts.Get(Counts::IntervalOuterLoop) << std::endl;
         std::cout << "StackOuter = " << counts.Get(Counts::StackOuterLoop) << std::endl;
         std::cout << "StackInner = " << counts.Get(Counts::StackInnerLoop) << std::endl;
+        std::cout << "StackOuter / (alpha*n) = " << counts.Get(Counts::StackOuterLoop) / (float) (MIS.get(0) * intervals.size) << std::endl;
+        std::cout << "StackOuter / (alpha*alpha) = " << counts.Get(Counts::StackOuterLoop) / (float) (MIS.get(0) * MIS.get(0)) << std::endl;
+        std::cout << "StackOuter / (n^1.5) = " << counts.Get(Counts::StackOuterLoop) / (float) (intervals.size * std::sqrt(intervals.size)) << std::endl;
         std::cout << "StackInner / (alpha*n) = " << counts.Get(Counts::StackInnerLoop) / (float) (MIS.get(0) * intervals.size) << std::endl;
         std::cout << "StackInner / (alpha*alpha) = " << counts.Get(Counts::StackInnerLoop) / (float) (MIS.get(0) * MIS.get(0)) << std::endl;
+        std::cout << "StackInner / (n^1.5) = " << counts.Get(Counts::StackInnerLoop) / (float) (intervals.size * std::sqrt(intervals.size)) << std::endl;
+
 
 
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS.get(0));

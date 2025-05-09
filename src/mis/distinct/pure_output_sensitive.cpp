@@ -5,6 +5,7 @@
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/interval.h"
 #include "mis/independent_set.h"
+#include "utils/counters.h"
 
 #include "mis/distinct/pure_output_sensitive.h"
 
@@ -18,12 +19,13 @@ namespace cg::mis::distinct
         pendingUpdates.push(indexToUpdate);
     }
 
-    bool PureOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS)
+    bool PureOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         updateAt(pendingUpdates, MIS, newInterval.Left, newInterval.Weight + CMIS[newInterval.Index]);
         independentSet.setNewNextInterval(newInterval.Left, newInterval);
         while (!pendingUpdates.empty())
         {
+            counts.Increment(Counts::StackOuterLoop);
             auto updatedIndex = pendingUpdates.top();
             pendingUpdates.pop();
             auto leftNeighbour = updatedIndex - 1;
@@ -39,11 +41,13 @@ namespace cg::mis::distinct
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(leftNeighbour);
             if (maybeInterval)
             {
+                counts.Increment(Counts::StackInnerLoop);
                 auto interval = maybeInterval.value();
                 auto candidate = interval.Weight + CMIS[interval.Index] + MIS[interval.Right + 1];
                 if (candidate > maxAllowedMIS)
                 {
-                    return false;
+                    //TODO we should be checking the cardinality here, not the weight.
+                    //return false;
                 }
                 if (candidate > MIS[interval.Left])
                 {
@@ -55,7 +59,7 @@ namespace cg::mis::distinct
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS)
+    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::vector<int> MIS(intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
@@ -65,13 +69,14 @@ namespace cg::mis::distinct
 
         for (auto i = 0; i < intervals.end; ++i)
         {
+            counts.Increment(Counts::IntervalOuterLoop);
             auto maybeInterval = intervals.tryGetIntervalByRightEndpoint(i);
             if (maybeInterval)
             {
                 auto interval = maybeInterval.value();
                 CMIS[interval.Index] = MIS[interval.Left + 1];
                 independentSet.assembleContainedIndependentSet(interval);
-                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, CMIS, maxAllowedMIS))
+                if (!tryUpdate(intervals, pendingUpdates, independentSet, interval, MIS, CMIS, maxAllowedMIS, counts))
                 {
                     return std::nullopt;
                 }
@@ -87,6 +92,17 @@ namespace cg::mis::distinct
             // std::cout << std::endl;
         }
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
+        auto alpha = intervalsInMis.size();
+
+        std::cout << "IntervalOuter = " << counts.Get(Counts::IntervalOuterLoop) << std::endl;
+        std::cout << "StackOuter = " << counts.Get(Counts::StackOuterLoop) << std::endl;
+        std::cout << "StackInner = " << counts.Get(Counts::StackInnerLoop) << std::endl;
+        std::cout << "StackOuter / (alpha*n) = " << counts.Get(Counts::StackOuterLoop) / (float) (alpha * intervals.size) << std::endl;
+        std::cout << "StackOuter / (alpha*alpha) = " << counts.Get(Counts::StackOuterLoop) / (float) (alpha * alpha) << std::endl;
+        std::cout << "StackInner / (alpha*n) = " << counts.Get(Counts::StackInnerLoop) / (float) (alpha * intervals.size) << std::endl;
+        std::cout << "StackInner / (alpha*alpha) = " << counts.Get(Counts::StackInnerLoop) / (float) (alpha * alpha) << std::endl;
+
+
         return intervalsInMis;
     }
 }
