@@ -8,6 +8,9 @@
 #include <random>
 #include <tuple>
 #include <limits>
+#include <map>
+#include <stack>
+#include <set>
 
     #include <iostream>
 
@@ -318,7 +321,98 @@
     {
         return std::accumulate(
         intervals.begin(), intervals.end(), 0,
-        [](int acc, const cg::data_structures::Interval& i) { return acc + i.Weight; }
-    );
+        [](int acc, const cg::data_structures::Interval& i) { return acc + i.Weight; });
     }
+
+    // This is the simple O(n \log^2 n) time algorithm to find the connected components of a circle graph given an interval model.
+    //
+    // Kim Jae-hoon, Korea Institute of Information and Communication Engineering, v.22 no.11, 2018, pp.1538 - 1543
+    //
+    std::vector<std::vector<cg::data_structures::Interval>> getConnectedComponents(cg::data_structures::DistinctIntervalRep& intervalRep)
+    {
+        std::stack<std::set<cg::data_structures::Interval, cg::data_structures::IntervalDistinctLeftCompare>> componentsInProgress;
+
+        std::vector<std::vector<cg::data_structures::Interval>> completeComponents;
+        
+        for(auto i = 0; i < intervalRep.end; ++i)
+        {
+            auto maybeInterval = intervalRep.tryGetIntervalByLeftEndpoint(i);
+            if(maybeInterval)
+            {
+                auto interval = maybeInterval.value();
+                
+                // Remove all components that don't intersect the current interval and mark them as complete.
+                // No future interval can be connected to any of them, since it will have a larger left end point than the current interval.
+                while(!componentsInProgress.empty())
+                {
+                    auto mostRecentComponent = componentsInProgress.top();
+                    if(mostRecentComponent.empty())
+                    {
+                        throw std::runtime_error("Internal error: encountered an empty most recent component");
+                    }
+                    auto last = *mostRecentComponent.rbegin();
+                    if(last.Right > interval.Left)
+                    {
+                        // This component may include interval.
+                        break;
+                    }
+                    // This component cannot have any more intervals, remove it from the in progress ones and add it to the complete components.
+                    auto complete = std::vector<cg::data_structures::Interval>{mostRecentComponent.begin(), mostRecentComponent.end()};
+                    completeComponents.push_back(complete);
+                    componentsInProgress.pop();
+                }
+                // At this point, there are either no more components, or the right-most end-point in the top component is after interval's left end-point.
+                // This latter case is either:
+                // This:
+                // .......     <-- right most interval of top component
+                //    ........ <--- new interval
+                // OR
+                // ..............    <--- right most interval of top component
+                //   .........       <--- new interval
+                if (componentsInProgress.empty() || componentsInProgress.top().rbegin()->Right > interval.Right)
+                {
+                    // Begin a new component.
+                    componentsInProgress.push(std::set<cg::data_structures::Interval, cg::data_structures::IntervalDistinctLeftCompare>{interval});        
+                }
+                else
+                {
+                    // This interval intersects at least one other component, do the merging!
+                    auto component = componentsInProgress.top(); // The new interval intersects this component, so it should be added here.
+                    componentsInProgress.pop();
+                    // However, if there are other components it may intersect them too. If that's the case, we need to merge them with 'component'
+                    // as they're all part of the same connected component of the graph.
+                    while (!componentsInProgress.empty())
+                    {
+                        auto prevComponent = componentsInProgress.top();
+                        if(prevComponent.rbegin()->Right < interval.Left)
+                        {
+                            break;
+                        }
+                        componentsInProgress.pop();
+                        // Insert the smaller component into the larger, and ensure 'component' points to the resulting component (where interval belongs)
+                        if (component.size() < prevComponent.size())
+                        {
+                            prevComponent.insert(component.begin(), component.end());
+                            component = prevComponent;
+                        }
+                        else
+                        {
+                            component.insert(prevComponent.begin(), prevComponent.end());
+                        }
+                    }
+                    component.insert(interval);
+                    componentsInProgress.push(component);
+                }
+            }
+        }
+        while(!componentsInProgress.empty())
+        {
+            auto top = componentsInProgress.top();
+            auto complete = std::vector<cg::data_structures::Interval>{top.begin(), top.end()};
+            completeComponents.push_back(complete);
+            componentsInProgress.pop();        
+        }
+        return completeComponents;
+    }
+
  }

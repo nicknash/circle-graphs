@@ -20,4 +20,5 @@ namespace cg::utils
     std::vector<cg::data_structures::Interval> generateRandomIntervalsShared(int numIntervals, int maxPerEndpoint, int maxLength, int seed);
     int getMaxRightEndpoint(std::span<const cg::data_structures::Interval> intervals);
     long sumWeights(std::span<cg::data_structures::Interval> intervals);
+    std::vector<std::vector<cg::data_structures::Interval>> getConnectedComponents(cg::data_structures::DistinctIntervalRep& intervalRep);
 }
