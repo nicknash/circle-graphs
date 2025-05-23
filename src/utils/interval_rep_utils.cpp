@@ -370,6 +370,7 @@
 
     // This is the simple O(n \log^2 n) time algorithm to find the connected components of a circle graph given an interval model.
     //
+    // "Subquadratic Time Algorithm to Find the Connected Components of Circle Graphs"
     // Kim Jae-hoon, Korea Institute of Information and Communication Engineering, v.22 no.11, 2018, pp.1538 - 1543
     //
     std::vector<std::vector<cg::data_structures::Interval>> getConnectedComponents(cg::data_structures::DistinctIntervalRep& intervalRep)
