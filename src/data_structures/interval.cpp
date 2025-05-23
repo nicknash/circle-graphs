@@ -19,4 +19,10 @@ namespace cg::data_structures
     {
         return Right - Left;
     }
+
+    [[nodiscard]] bool Interval::overlaps(const Interval& other) const
+    {
+        return Left <= other.Left && other.Left <= Right && Right <= other.Right ||
+               other.Left <= Left && Left <= other.Right && other.Right <= Right;
+    }
 }
