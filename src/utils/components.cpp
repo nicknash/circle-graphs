@@ -18,9 +18,9 @@ namespace cg::components
         // Just construct the entire adjacency matrix and then DFS.
         std::vector<std::vector<bool>> isAdjacent(intervals.size(), std::vector<bool>(intervals.size()));
 
-        for(auto i : intervals)
+        for(const auto& i : intervals)
         {
-            for(auto j : intervals)
+            for(const auto& j : intervals)
             {
                 isAdjacent[i.Index][j.Index] = i.Index != j.Index && i.overlaps(j);
             }
@@ -29,7 +29,7 @@ namespace cg::components
         std::vector<bool> visited(intervals.size(), false);
         std::stack<cg::data_structures::Interval> pending;
         std::vector<std::vector<cg::data_structures::Interval>> components;
-        for(auto i : intervals)
+        for(const auto& i : intervals)
         {
             if(!visited[i.Index])
             {
@@ -41,7 +41,7 @@ namespace cg::components
                     auto j = pending.top();
                     pending.pop();
                     currentComponent.push_back(j);
-                    for(auto k : intervals)
+                    for(const auto& k : intervals)
                     {
                         if(isAdjacent[j.Index][k.Index] && !visited[k.Index])
                         {
@@ -50,7 +50,7 @@ namespace cg::components
                         }
                     }
                 }
-                components.push_back(currentComponent);
+                components.push_back(std::move(currentComponent));
             }
         }
         return components;
@@ -73,18 +73,18 @@ namespace cg::components
         std::stack<std::set<cg::data_structures::Interval, cg::data_structures::IntervalDistinctRightCompare>> componentsInProgress;
 
         std::vector<std::vector<cg::data_structures::Interval>> completeComponents;
-        for (auto interval : sortedIntervals)
+        for (const auto& interval : sortedIntervals)
         {
             // Remove all components that don't intersect the current interval and mark them as complete.
             // No future interval can be connected to any of them, since it will have a larger left end point than the current interval.
             while (!componentsInProgress.empty())
             {
-                auto mostRecentComponent = componentsInProgress.top();
+                const auto& mostRecentComponent = componentsInProgress.top();
                 if (mostRecentComponent.empty())
                 {
                     throw std::runtime_error("Internal error: encountered an empty most recent component");
                 }
-                auto last = *mostRecentComponent.rbegin();
+                const auto& last = *mostRecentComponent.rbegin();
                 if (last.Right > interval.Left)
                 {
                     // This component may include 'interval'.
@@ -92,7 +92,7 @@ namespace cg::components
                 }
                 // This component cannot have any more intervals, remove it from the in progress ones and add it to the complete components.
                 auto complete = std::vector<cg::data_structures::Interval>{mostRecentComponent.begin(), mostRecentComponent.end()};
-                completeComponents.push_back(complete);
+                completeComponents.push_back(std::move(complete));
                 componentsInProgress.pop();
             }
             // At this point, there are either no more components, or there are no right end-points in the top component, within interval
@@ -103,7 +103,7 @@ namespace cg::components
             }
             else
             {
-                auto top = componentsInProgress.top();
+                const auto& top = componentsInProgress.top();
                 auto it = std::prev(top.upper_bound(interval)); // Find the interval with largest right end-point before interval's right end-point.
                 if (!it->overlaps(interval))
                 {
@@ -113,42 +113,43 @@ namespace cg::components
                 else
                 {
                     // This interval intersects at least one other component.
-                    auto mergedComponent = componentsInProgress.top(); // The new interval intersects this component, so it should be added here.
+                    auto mergedComponent = std::move(componentsInProgress.top()); // The new interval intersects this component, so it should be added here.
                     componentsInProgress.pop();
                     // However, if there are other components it may overlap them too. If that's the case, we need to merge them with 'mergedComponent'
                     // as they're all part of the same connected component of the graph.
                     while (!componentsInProgress.empty())
                     {
-                        auto prevComponent = componentsInProgress.top();
+                        auto& prevComponent = componentsInProgress.top();
                         auto it = std::prev(prevComponent.upper_bound(interval));
                         if (!it->overlaps(interval))
                         {
                             break;
                         }
+                        auto movedPrevComponent = std::move(componentsInProgress.top());
                         componentsInProgress.pop();
                         // Insert the smaller component into the larger, and ensure 'mergedComponent' points to the resulting component (where interval belongs)
                         // Inserting the smaller component into the larger is important so that each interval can participate in at most O(\log n) merges
-                        if (mergedComponent.size() < prevComponent.size())
+                        if (mergedComponent.size() < movedPrevComponent.size())
                         {
-                            prevComponent.insert(mergedComponent.begin(), mergedComponent.end());
-                            mergedComponent = prevComponent;
+                            movedPrevComponent.merge(mergedComponent); // moves nodes from merged → prev
+                            mergedComponent.swap(movedPrevComponent);  // now merged has the union
                         }
                         else
                         {
-                            mergedComponent.insert(prevComponent.begin(), prevComponent.end());
+                            mergedComponent.merge(movedPrevComponent); // moves nodes from prev → merged
                         }
                     }
                     mergedComponent.insert(interval);
-                    componentsInProgress.push(mergedComponent);
+                    componentsInProgress.push(std::move(mergedComponent));
                 }
             }
         }
         while (!componentsInProgress.empty())
         {
-            auto top = componentsInProgress.top();
-            auto complete = std::vector<cg::data_structures::Interval>{top.begin(), top.end()};
-            completeComponents.push_back(complete);
+            auto top = std::move(componentsInProgress.top());
             componentsInProgress.pop();
+            auto complete = std::vector<cg::data_structures::Interval>{top.begin(), top.end()};
+            completeComponents.push_back(std::move(complete));
         }
         return completeComponents;
     }
