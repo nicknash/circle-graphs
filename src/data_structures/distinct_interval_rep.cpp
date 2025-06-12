@@ -60,12 +60,12 @@ namespace cg::data_structures
 
     [[nodiscard]] Interval DistinctIntervalRep::getIntervalByEndpoint(int endpoint) const
     {
-        const auto& interval = tryGetIntervalByLeftEndpoint(endpoint); 
+        const auto& interval = tryGetIntervalByLeftEndpoint(endpoint);
         if(interval)
         {
             return interval.value();
         }
-        return tryGetIntervalByLeftEndpoint(endpoint).value();
+        return tryGetIntervalByRightEndpoint(endpoint).value();
     }
 
     [[nodiscard]] Interval DistinctIntervalRep::getIntervalByIndex(int intervalIndex) const
