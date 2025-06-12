@@ -25,7 +25,6 @@ namespace cg::mis
     class IndependentSet;
     class ImplicitIndependentSet;
     class UnitMonotoneSeq;
-    class IntervalStore;
 }
 
 

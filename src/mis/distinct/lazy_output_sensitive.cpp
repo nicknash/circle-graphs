@@ -12,7 +12,6 @@
 #include "data_structures/interval.h"
 #include "mis/implicit_independent_set.h"
 #include "mis/monotone_seq.h"
-#include "mis/interval_store.h"
 #include "utils/counters.h"
 
 #include "mis/distinct/lazy_output_sensitive.h"
