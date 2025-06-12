@@ -38,6 +38,8 @@ namespace cg::mis
 
     void MonotoneSeq::copyTo(std::vector<int> &target)
     {
-        target.assign(_values.begin(), _values.end());
+        auto last = _values.end();
+        --last;
+        target.assign(_values.begin(), last);
     }
 }

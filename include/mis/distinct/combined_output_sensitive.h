@@ -3,6 +3,12 @@
 #include <stack>
 #include <vector>
 #include <optional>
+#include <map>
+
+namespace cg::utils
+{
+    template<typename TCounter> class Counters;
+}
 
 namespace cg::mis
 {
@@ -19,10 +25,17 @@ namespace cg::mis::distinct
 {
     class CombinedOutputSensitive
     {
-    private:
-        static void updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newMisValue);
-        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::stack<int> &pendingUpdates, cg::mis::IndependentSet& independentSet, const cg::data_structures::Interval &interval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS);
     public:
-        static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS);
+        enum Counts
+        {
+            StackOuterLoop,
+            StackInnerLoop,
+            IntervalOuterLoop,
+            NumMembers
+        };
+    private:
+        static bool tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals,  int leftLimit, std::map<int, std::optional<cg::data_structures::Interval>> &pendingUpdates, cg::mis::IndependentSet& independentSet, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
+    public:
+        static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     };
 }

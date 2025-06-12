@@ -1,15 +1,21 @@
 #include <iostream>
+#include <array>
+#include <ranges>
+#include <format>
+#include <sstream>
 
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_rep.h"
 #include "data_structures/shared_interval_rep.h"
 #include "utils/interval_rep_utils.h"
 #include "utils/counters.h"
+#include "utils/components.h"
 
 #include "mis/distinct/naive.h"
 #include "mis/distinct/valiente.h"
 #include "mis/distinct/switching.h"
 #include "mis/distinct/pure_output_sensitive.h"
+#include "mis/distinct/combined_output_sensitive.h"
 #include "mis/distinct/simple_implicit_output_sensitive.h"
 #include "mis/distinct/implicit_output_sensitive.h"
 #include "mis/distinct/lazy_output_sensitive.h"
@@ -19,7 +25,24 @@
 #include "mis/shared/pruned_output_sensitive.h"
 #include "mis/shared/valiente.h"
 
-#include <array>
+
+template<typename Range>
+std::string csv_sizes(const Range& r) {
+    std::ostringstream oss;
+    auto it = std::begin(r);
+    auto end = std::end(r);
+
+    if (it != end) {
+        // first element (no leading comma)
+        oss << it->size();
+        ++it;
+    }
+    // remaining elements, each prefixed by comma
+    for (; it != end; ++it) {
+        oss << ',' << it->size();
+    }
+    return oss.str();
+}
 
 
 int main()
@@ -306,27 +329,54 @@ int main()
 
     
     //for (int i = 0; i < 50; ++i)
-    //for (int seed2 = 0; seed2 < 1500; ++seed2)
-    auto seed2 = 124;
+    //for (int seed2 = 0; seed2 < 15000; ++seed2)
+    auto seed2 = 1;
     {
     //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(2000, seed2);
+        auto intervals = cg::utils::generateRandomIntervals(10000, seed2);
         
+    
+
         //std::vector<cg::data_structures::Interval> intervals;
-        auto numIntervals = 100;
+        /*int numLayers = 10;
+        int numIntervalsAcordingToLayers = numLayers * 2;
+        int intervalIdx = 0;
+        for(int layer = 0; layer < numLayers; ++layer)
+        {
+            int e = 2 * numIntervalsAcordingToLayers - 1 - 3 * layer;
+            int s = layer;
+            intervals.push_back(cg::data_structures::Interval(s, e - 2, intervalIdx, 1));
+            intervals.push_back(cg::data_structures::Interval(e - 1, e, intervalIdx + 1, 1));
+            intervalIdx += 2;
+        }*/
+   
+
+        auto numIntervals = 10;
         for(int x = 0; x < numIntervals; ++x)
         {
-            //intervals.push_back(cg::data_structures::Interval(x, 2 * numIntervals - x - 1, x, 1)); // nested stack
-            //intervals.push_back(cg::data_structures::Interval(2 * x, 2 * x + 1, x, 1)); // disjoint units
+//            intervals.push_back(cg::data_structures::Interval(x, 2 * numIntervals - x - 1, x, 1)); // nested stack
+  //          auto y = x + numIntervals;
+    //        intervals.push_back(cg::data_structures::Interval(2 * y, 2 * y + 1, y, 1)); // disjoint units, offset (to combine with nested stack on left)
+
+
+        //   intervals.push_back(cg::data_structures::Interval(2 * x, 2 * x + 1, x, 1)); // disjoint units
             //intervals.push_back(cg::data_structures::Interval(x, x + numIntervals, x, 1)); // clique
         }
-        auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
+        
 
+        auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
+        long totalLength = 0;
         for (auto i : intervals)
         {
+            totalLength += i.length();
             //std::cout << std::format("{}", i) << std::endl;
         }
+        std::cout << "Average length: " << totalLength / (float) intervals.size() << std::endl;
+        return 0;
+
+        const auto& components = cg::components::getConnectedComponents(intervals);
+        std::cout << std::format("There are {} connected components of sizes: {}", components.size(), csv_sizes(components)) << std::endl;
 /*
         auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
         std::cout << std::format("Naive {}", mis.size()) << std::endl;
@@ -358,7 +408,7 @@ int main()
         cg::utils::Counters<cg::mis::distinct::SimpleImplicitOutputSensitive::Counts> siosCounts;
         auto mis5 = cg::mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), siosCounts).value();
         std::cout << std::format("Simple Implicit output sensitive {}", mis5.size()) << std::endl;
-/*
+
 
         cg::utils::Counters<cg::mis::distinct::LazyOutputSensitive::Counts> losCounts;
 
@@ -369,8 +419,11 @@ int main()
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
-*/
-        using Counts = cg::mis::distinct::LazyOutputSensitive::Counts;
+        cg::utils::Counters<cg::mis::distinct::CombinedOutputSensitive::Counts> cosCounts;
+
+        auto mis6 = cg::mis::distinct::CombinedOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), cosCounts).value();
+
+        std::cout << std::format("Combined output sensitive {}", mis6.size()) << std::endl;
 
 
         // std::cout << std::format("\tShared pruned output sensitive PRUNEFACTOR={}, IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", tmp, mis4.size(), weight2,

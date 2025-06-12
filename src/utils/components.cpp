@@ -22,7 +22,7 @@ namespace cg::components
         {
             for(const auto& j : intervals)
             {
-                isAdjacent[i.Index][j.Index] = i.Index != j.Index && i.overlaps(j);
+                isAdjacent[i.Index][j.Index] = i.overlaps(j);
             }
         }
 

@@ -29,7 +29,13 @@ namespace cg::data_structures
          std::sort(_intervalsByIncreasingRightEndpoint.begin(), _intervalsByIncreasingRightEndpoint.end(),
           [](const Interval& a, const Interval& b) {
               return a.Right < b.Right;
+          });  
+         _intervalsByIncreasingLeftEndpoint = std::vector<Interval>(intervals.begin(), intervals.end());
+         std::sort(_intervalsByIncreasingLeftEndpoint.begin(), _intervalsByIncreasingLeftEndpoint.end(),
+          [](const Interval& a, const Interval& b) {
+              return a.Left < b.Left;
           });
+
     }
 
     [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
@@ -79,6 +85,25 @@ namespace cg::data_structures
         });
 
         if (it == _intervalsByIncreasingRightEndpoint.begin())
+        {
+            return std::nullopt;
+        }
+        --it;
+        return *it;
+    }
+
+    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetLeftEndpointPredecessorInterval(int leftEndpointUpperBoundExclusive) const
+    {
+        auto it = std::lower_bound(
+        _intervalsByIncreasingLeftEndpoint.begin(),
+        _intervalsByIncreasingLeftEndpoint.end(),
+        leftEndpointUpperBoundExclusive,
+        [](const Interval& interval, int value) 
+        {
+            return interval.Left < value;
+        });
+
+        if (it == _intervalsByIncreasingLeftEndpoint.begin())
         {
             return std::nullopt;
         }

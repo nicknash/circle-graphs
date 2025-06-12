@@ -13,6 +13,7 @@ namespace cg::data_structures
         std::vector<std::optional<Interval>> _rightEndpointToInterval; 
         std::vector<Interval> _indexToInterval;
         std::vector<Interval> _intervalsByIncreasingRightEndpoint;
+        std::vector<Interval> _intervalsByIncreasingLeftEndpoint;
     public:
         const int end; 
         const int size;
@@ -23,7 +24,7 @@ namespace cg::data_structures
         [[nodiscard]] std::optional<Interval> tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const;
 
         [[nodiscard]] std::optional<Interval> tryGetRightEndpointPredecessorInterval(int rightEndpointUpperBoundExclusive) const; // find rightmost interval with right end-point < rightEndpointUpperBoundExclusive
-        [[nodiscard]] std::optional<Interval> tryGetMaxLeftInterval(int leftEndpointUpperBoundExclusive) const; // find interval with largest left end point < leftEndpointUpperBoundExclusive
+        [[nodiscard]] std::optional<Interval> tryGetLeftEndpointPredecessorInterval(int leftEndpointUpperBoundExclusive) const; // find interval with largest left end point < leftEndpointUpperBoundExclusive
 
 
         [[nodiscard]] Interval getIntervalByRightEndpoint(int rightEndpoint) const;

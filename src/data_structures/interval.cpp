@@ -22,7 +22,8 @@ namespace cg::data_structures
 
     [[nodiscard]] bool Interval::overlaps(const Interval& other) const
     {
-        return Left <= other.Left && other.Left <= Right && Right <= other.Right ||
-               other.Left <= Left && Left <= other.Right && other.Right <= Right;
+        return Index != other.Index && // By convention, make it so an interval doesn't overlap itself.
+               (Left <= other.Left && other.Left <= Right && Right <= other.Right ||
+               other.Left <= Left && Left <= other.Right && other.Right <= Right);
     }
 }

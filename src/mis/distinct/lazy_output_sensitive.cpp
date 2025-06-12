@@ -4,6 +4,7 @@
 #include <map>
 #include <stdexcept>
 #include <tuple>
+#include <cmath>
 
 #include <algorithm>
 
@@ -27,6 +28,8 @@ namespace cg::mis::distinct
     {
        
         std::vector<int> mis(intervals.end+1, 0);
+        std::vector<int> prev(intervals.end+1, 0);
+
 
         std::vector<cg::mis::MonotoneSeq::Range> changed;
 
@@ -37,8 +40,6 @@ namespace cg::mis::distinct
 
         while (!pendingUpdates.empty())
         {
-
-
             auto it = std::prev(pendingUpdates.end());
             auto newUpdate = it->second;
             auto currentInterval = newUpdate.interval;
@@ -49,7 +50,8 @@ namespace cg::mis::distinct
                 //pendingUpdates.erase(it);
                 //continue;
             }
-                        counts.Increment(Counts::StackOuterLoop);
+            //std::cout << std::format("HERE: {}", currentInterval.Left) << std::endl;
+            counts.Increment(Counts::StackOuterLoop);
 
             maxSoFar = currentIntervalCandidate;
             //std::cout << std::format("GOT {}, candiate = {}, MIS at left = {}", currentInterval, currentIntervalCandidate, MIS.get(currentInterval.Left)) << std::endl;
@@ -61,6 +63,7 @@ namespace cg::mis::distinct
 
             pendingUpdates.erase(it);
 
+
             if(currentIntervalCandidate <= MIS.get(currentInterval.Left))
             {
                 //std::cout << std::format("CURRENT INTERVAL CANDIDATE TOO SMALL {}, MIS[{}]={}, MIS[{}] = {}", currentIntervalCandidate, currentInterval.Left, MIS.get(currentInterval.Left), currentInterval.Right + 1, MIS.get(currentInterval.Right + 1)) << std::endl;
@@ -69,103 +72,83 @@ namespace cg::mis::distinct
 
 
             cg::mis::MonotoneSeq::Range r = MIS.set(currentInterval.Left, currentIntervalCandidate);
-            changed.push_back(r);
+            //changed.push_back(r);
             //std::cout << std::format(" --- SET AT {} to {}, Range = {} {}", currentInterval.Left, currentIntervalCandidate, r.changeStartInclusive, r.changeEndExclusive) << std::endl;
             /*for(int i = 0; i < mis.size(); ++i)
             {
                 std::cout << i << " ";
             }
-            std::cout << std::endl;
+            std::cout << std::endl;*/
             MIS.copyTo(mis);
-            
-            for(int i = 0; i < mis.size(); ++i)
+            std::cout << std::format("{}:\t", currentInterval);
+            for(int i = 0; i < mis.size()-1; ++i)
             {
                 if(i > 9 && mis[i] < 10)
                 {
-                    std::cout << " ";
+                   // std::cout << " ";
                 }
-                std::cout << mis[i] << " ";
+                //std::cout << mis[i] - prev[i] << " ";
+                std::cout << mis[i] - mis[i + 1] << " ";
+                prev[i] = mis[i];
             }
-            std::cout << std::endl << std::endl;
-*/  
+            std::cout << std::endl;
+            //std::cout << std::endl << std::endl;
+  
             //independentSet.setRange(r.left, r.right - 1, currentInterval);
  
+            int nextPending = -1;
+            if(!pendingUpdates.empty())
+            {
+                 auto it2 = std::prev(pendingUpdates.end());
+                nextPending = it2->first;
+            }
+
             auto representativeMIS = currentIntervalCandidate;
-            auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(r.changeEndExclusive);
-            while(maybeInterval)
+            auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(currentInterval.Left); 
+            while (maybeInterval)
             {
                 auto interval = maybeInterval.value();
+                if(interval.Right <= nextPending)
+                {
+                       counts.Increment(Counts::StackInnerLoop);
+                    //pendingUpdates.emplace(interval.Left, PendingUpdate{interval, -1});
+
+                    break;
+                }
+                
                 if (interval.Left < r.changeStartInclusive && interval.Right >= r.changeStartInclusive)
                 {
                     counts.Increment(Counts::StackInnerLoop);
-
                     pendingUpdates.emplace(interval.Left, PendingUpdate{interval, -1});
 
-                    // relevant.emplace(CMIS[interval.Index], interval);
+                    // NO HANG ON ... SHOULD ALSO BE CHECKING THE PREV PENDING! nextPending, just with a better condition...!
+                    /*auto largerLeft = pendingUpdates.upper_bound(interval.Left);
+                    if (largerLeft == pendingUpdates.end()) 
+                    {
+                        counts.Increment(Counts::StackInnerLoop);
+                        pendingUpdates.emplace(interval.Left, PendingUpdate{interval, -1});
+                    }
+                    else
+                    {
+                        auto candidate1 = interval.Weight + CMIS[interval.Index] + MIS.get(interval.Right + 1);
+                        auto interval2 = largerLeft->second.interval;
+                        auto largerLeftCandidate = interval2.Weight + CMIS[interval2.Index] + MIS.get(interval2.Right + 1);
+                        if(candidate1 > largerLeftCandidate)
+                        {
+                            counts.Increment(Counts::StackInnerLoop);
+                            pendingUpdates.emplace(interval.Left, PendingUpdate{interval, -1});
+                        }
+                    }*/
                 }
                 maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
             }
-            /*for(auto it = relevant.begin(); it != relevant.end(); ++it)
-            {
-                counts.Increment(Counts::StackInnerLoop);
-                auto interval = it->second;
-                //pendingUpdates.erase(interval.Left);
-                pendingUpdates.emplace(interval.Left, PendingUpdate{interval,-1}); 
-            }*/
-/*
-            while(maybeInterval) 
-            {
-                counts.Increment(Counts::StackInnerLoop);
-
-                auto interval = maybeInterval.value();
-                
-                if(interval.Left < leftLimit)
-                {
-                    break;
-                }
-                
-                if(interval.Left >= r.changeStartInclusive)
-                {
-                    std::cout << std::format("         INSPECTING: {} -- LEFT IS AFTER change-start {}", interval, r.changeStartInclusive) << std::endl;
-                    maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
-                    continue;
-                }
-                if(interval.Right < r.changeStartInclusive)
-                {
-                    std::cout << std::format("         INSPECTING: {} -- RIGHT IS BEFORE change-start {}", interval, r.changeStartInclusive) << std::endl;
-                    break;
-                }
-
-                
-
-                auto candidate = interval.Weight + CMIS[interval.Index] + representativeMIS;
-                if(candidate < maxSoFar)
-                {
-                    maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
-                    continue;
-                }
-                //maxSoFar = candidate;
-                
-                if (candidate > maxAllowedMIS)
-                {
-                    return false;
-                }
-                if (candidate > MIS.get(interval.Left))
-                {
-                pendingUpdates.erase(interval.Left);
-                pendingUpdates.emplace(interval.Left, PendingUpdate{interval,candidate}); 
-                }
-             
-                maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(interval.Right);
-
-            }*/
         }
-        std::cout << "CHANGED REGIONS" << std::endl;
+        /*std::cout << "CHANGED REGIONS" << std::endl;
         for(auto r : changed)
         {
             //std::cout << std::format("[{}, {}], ", r.changeEndExclusive-1, r.changeStartInclusive);
         }
-        std::cout << std::endl;
+        std::cout << std::endl;*/
         return true;
     }
 
@@ -192,13 +175,15 @@ namespace cg::mis::distinct
                 }
                 auto cmis = MIS.get(interval.Left + 1);
                 CMIS[interval.Index] = cmis;
-                std::cout << std::format("CMIS[{}] = {}", interval, CMIS[interval.Index]) << std::endl;
+                //std::cout << std::format("CMIS[{}] = {}", interval, CMIS[interval.Index]) << std::endl;
 
                 independentSet.assembleContainedIndependentSet(interval);
 
+                pendingUpdates.erase(interval.Left);
                 pendingUpdates.emplace(interval.Left, PendingUpdate{interval, interval.Weight + cmis});
             }
         }
+        //std::cout << " --- FINAL PENDING --- " << std::endl;
         if (!tryUpdate(intervals, 0, pendingUpdates, independentSet, MIS, CMIS, maxAllowedMIS, counts))
         {
             return std::nullopt;
@@ -209,8 +194,11 @@ namespace cg::mis::distinct
         std::cout << "StackInner = " << counts.Get(Counts::StackInnerLoop) << std::endl;
         std::cout << "StackOuter / (alpha*n) = " << counts.Get(Counts::StackOuterLoop) / (float) (MIS.get(0) * intervals.size) << std::endl;
         std::cout << "StackOuter / (n + alpha*alpha) = " << counts.Get(Counts::StackOuterLoop) / (float) (intervals.size + MIS.get(0) * MIS.get(0)) << std::endl;
+        std::cout << "StackOuter / (n^1.5) = " << counts.Get(Counts::StackOuterLoop) / (float) (intervals.size * std::sqrt(intervals.size)) << std::endl;
+
         std::cout << "StackInner / (alpha*n) = " << counts.Get(Counts::StackInnerLoop) / (float) (MIS.get(0) * intervals.size) << std::endl;
         std::cout << "StackInner / (n + alpha*alpha) = " << counts.Get(Counts::StackInnerLoop) / (float) (intervals.size + MIS.get(0) * MIS.get(0)) << std::endl;
+        std::cout << "StackInner / (n^1.5) = " << counts.Get(Counts::StackInnerLoop) / (float) (intervals.size * std::sqrt(intervals.size)) << std::endl;
 
 
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS.get(0));
