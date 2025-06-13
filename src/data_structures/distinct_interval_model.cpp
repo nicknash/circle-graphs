@@ -1,7 +1,7 @@
-#include "utils/interval_rep_utils.h"
+#include "utils/interval_model_utils.h"
 #include "data_structures/interval.h"
 
-#include "data_structures/distinct_interval_rep.h"
+#include "data_structures/distinct_interval_model.h"
 
 #include <algorithm>
 
@@ -11,9 +11,9 @@ namespace cg::data_structures
         : end(2 * intervals.size()),
           size(intervals.size())
     {
-        cg::utils::verifyEndpointsInRange(intervals);
-        cg::utils::verifyEndpointsUnique(intervals);
-        cg::utils::verifyIndicesDense(intervals);
+        cg::interval_model_utils::verifyEndpointsInRange(intervals);
+        cg::interval_model_utils::verifyEndpointsUnique(intervals);
+        cg::interval_model_utils::verifyIndicesDense(intervals);
         _leftEndpointToInterval = std::vector<std::optional<Interval>>(end);
         _rightEndpointToInterval = std::vector<std::optional<Interval>>(end);
         _indexToInterval = std::vector<Interval>();

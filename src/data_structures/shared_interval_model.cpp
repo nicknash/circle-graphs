@@ -1,7 +1,7 @@
-#include "utils/interval_rep_utils.h"
+#include "utils/interval_model_utils.h"
 #include "data_structures/interval.h"
 
-#include "data_structures/shared_interval_rep.h"
+#include "data_structures/shared_interval_model.h"
 
 #include <algorithm>
 #include <ranges>
@@ -10,10 +10,10 @@ namespace cg::data_structures
 {
     SharedIntervalModel::SharedIntervalModel(std::span<const Interval> intervals) : 
     size(intervals.size()),
-    end(cg::utils::getMaxRightEndpoint(intervals) + 1)
+    end(cg::interval_model_utils::getMaxRightEndpoint(intervals) + 1)
     {
-        cg::utils::verifyEndpointsInRange(intervals);
-        cg::utils::verifyIndicesDense(intervals);
+        cg::interval_model_utils::verifyEndpointsInRange(intervals);
+        cg::interval_model_utils::verifyIndicesDense(intervals);
 
         _leftEndpointToIntervals = std::vector<std::vector<Interval>>(end);
         _rightEndpointToIntervals = std::vector<std::vector<Interval>>(end);

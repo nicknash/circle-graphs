@@ -1,4 +1,4 @@
-#include "data_structures/distinct_interval_rep.h"
+#include "data_structures/distinct_interval_model.h"
 
 #include "utils/spinrad_prime.h"
 

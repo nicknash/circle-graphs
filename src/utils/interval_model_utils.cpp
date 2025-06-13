@@ -16,11 +16,11 @@
 
 
 #include "data_structures/interval.h"
-#include "data_structures/distinct_interval_rep.h"
+#include "data_structures/distinct_interval_model.h"
 
-#include "utils/interval_rep_utils.h"
+#include "utils/interval_model_utils.h"
  
- namespace cg::utils
+ namespace cg::interval_model_utils
  {
     void verifyEndpointsInRange(std::span<const cg::data_structures::Interval> intervals)
     {

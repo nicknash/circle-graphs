@@ -1,5 +1,5 @@
 #include "data_structures/interval.h"
-#include "utils/interval_rep_utils.h"
+#include "utils/interval_model_utils.h"
 
 #include "mis/implicit_independent_set.h"
 
@@ -140,7 +140,7 @@ namespace cg::mis
             
             std::cout << std::format("ERROR ERROR !!!! Constructed independent set has cardinality {} but a maximum independent set is expected to have cardinality {}", intervalsInMis.size(), expectedCardinality) << std::endl;
         }
-        cg::utils::verifyNoOverlaps(intervalsInMis);
+        cg::interval_model_utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;
     }
 }

@@ -1,5 +1,5 @@
 #include "data_structures/interval.h"
-#include "utils/interval_rep_utils.h"
+#include "utils/interval_model_utils.h"
 
 #include "mis/independent_set.h"
 
@@ -73,7 +73,7 @@ namespace cg::mis
             //throw std::runtime_error(std::format("Constructed independent set has weight {} but a maximum independent set is expected to have weight {}", totalWeight, expectedWeight));
         }
         std::cout << "TOTAL WEIGHT: " << totalWeight << std::endl;
-        cg::utils::verifyNoOverlaps(intervalsInMis);
+        cg::interval_model_utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;
     }
 }

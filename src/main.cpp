@@ -5,9 +5,9 @@
 #include <sstream>
 
 #include "data_structures/interval.h"
-#include "data_structures/distinct_interval_rep.h"
-#include "data_structures/shared_interval_rep.h"
-#include "utils/interval_rep_utils.h"
+#include "data_structures/distinct_interval_model.h"
+#include "data_structures/shared_interval_model.h"
+#include "utils/interval_model_utils.h"
 #include "utils/counters.h"
 #include "utils/components.h"
 
@@ -224,7 +224,7 @@ int main()
         {
 
             // std::cout << seed << std::endl;
-            const auto &intervals = cg::utils::generateRandomIntervalsShared(numIntervals, maxEndpointsPerPoint, maxLength, seed);
+            const auto &intervals = cg::interval_model_utils::generateRandomIntervalsShared(numIntervals, maxEndpointsPerPoint, maxLength, seed);
 
             auto totalIntervalLength = 0;
             
@@ -262,7 +262,7 @@ int main()
 
 
             auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalModel, naiveCounts);
-            auto weight1 = cg::utils::sumWeights(mis1);
+            auto weight1 = cg::interval_model_utils::sumWeights(mis1);
 
 
             std::cout << std::format("\tShared naive IndependenceNumber={}, TotalWeight={}, InnerLoop={}, InnerMaxLoop={}, NormalizedInnerLoop={}, NormalizedMaxLoop={}",
@@ -275,7 +275,7 @@ int main()
                       << std::endl;
 
             auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalModel, numIntervals, osCounts).value();
-            auto weight2 = cg::utils::sumWeights(mis2);
+            auto weight2 = cg::interval_model_utils::sumWeights(mis2);
 
             std::cout << std::format("\tShared output sensitive IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", mis2.size(), weight2,
                                      osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::IntervalOuterLoop),
@@ -285,7 +285,7 @@ int main()
                       << std::endl;
 
             auto mis3 = cg::mis::shared::Valiente::computeMIS(sharedIntervalModel, valienteCounts);
-            auto weight3 = cg::utils::sumWeights(mis3);
+            auto weight3 = cg::interval_model_utils::sumWeights(mis3);
 
 
             std::cout << std::format("\tShared valiente IndependenceNumber={}, TotalWeight={}, InnerLoop={}, InnerMaxLoop={}, NormalizedInnerLoop={}, NormalizedMaxLoop={}",
@@ -297,7 +297,7 @@ int main()
                                      valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerMaxLoop) / (float)(sharedIntervalModel.end * numIntervals)) << std::endl;
 
             auto mis4 = cg::mis::shared::PrunedOutputSensitive::tryComputeMIS(sharedIntervalModel, numIntervals, posCounts).value();
-            auto weight4 = cg::utils::sumWeights(mis4);
+            auto weight4 = cg::interval_model_utils::sumWeights(mis4);
             auto tmp = (long)sharedIntervalModel.end * mis4.size() / (float)numIntervals;
 
             std::cout << std::format("\tShared pruned output sensitive PRUNEFACTOR={}, IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", tmp, mis4.size(), weight2,
@@ -332,9 +332,9 @@ int main()
     //for (int seed2 = 0; seed2 < 15000; ++seed2)
     auto seed2 = 1;
     {
-    //    auto intervals = cg::utils::generateRandomIntervals(50 + 100 * i, i);
+    //    auto intervals = cg::interval_model_utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::utils::generateRandomIntervals(10000, seed2);
+        auto intervals = cg::interval_model_utils::generateRandomIntervals(10000, seed2);
         
     
 
