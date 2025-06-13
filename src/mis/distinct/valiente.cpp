@@ -9,7 +9,7 @@
 
 namespace cg::mis::distinct
 {
-    std::vector<cg::data_structures::Interval> Valiente::computeMIS(const cg::data_structures::DistinctIntervalRep& intervals)
+    std::vector<cg::data_structures::Interval> Valiente::computeMIS(const cg::data_structures::DistinctIntervalModel& intervals)
     {
         std::vector<int> MIS(intervals.end + 1, 0);
         std::vector<int> CMIS(intervals.size, 0);

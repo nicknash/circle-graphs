@@ -7,6 +7,6 @@ namespace cg::mis::distinct
     class Valiente
     {
     public:
-        static std::vector<cg::data_structures::Interval> computeMIS(const cg::data_structures::DistinctIntervalRep& intervals);
+        static std::vector<cg::data_structures::Interval> computeMIS(const cg::data_structures::DistinctIntervalModel& intervals);
     };
 }

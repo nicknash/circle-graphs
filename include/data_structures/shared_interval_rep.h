@@ -6,14 +6,14 @@
 namespace cg::data_structures
 {
     class Interval;
-    class SharedIntervalRep
+    class SharedIntervalModel
     {
         std::vector<std::vector<Interval>> _leftEndpointToIntervals;
         std::vector<std::vector<Interval>> _rightEndpointToIntervals;
     public:
         const int end;
         const int size;
-        SharedIntervalRep(std::span<const Interval> intervals);
+        SharedIntervalModel(std::span<const Interval> intervals);
 
         [[nodiscard]] std::vector<Interval> getAllIntervalsWithLeftEndpoint(int leftEndpoint) const;
         [[nodiscard]] std::vector<Interval> getAllIntervalsWithRightEndpoint(int rightEndpoint) const;

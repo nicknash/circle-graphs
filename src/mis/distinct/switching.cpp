@@ -10,7 +10,7 @@
 
 namespace cg::mis::distinct
 {
-    std::vector<cg::data_structures::Interval> Switching::computeMIS(const cg::data_structures::DistinctIntervalRep &intervals)
+    std::vector<cg::data_structures::Interval> Switching::computeMIS(const cg::data_structures::DistinctIntervalModel &intervals)
     {
         int density = cg::utils::computeDensity(intervals);
         cg::utils::Counters<PureOutputSensitive::Counts> counts;

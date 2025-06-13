@@ -241,27 +241,27 @@ int main()
             cg::utils::Counters<cg::mis::shared::Valiente::Counts> valienteCounts;
 
 
-            auto sharedIntervalRep = cg::data_structures::SharedIntervalRep(intervals);
+            auto sharedIntervalModel = cg::data_structures::SharedIntervalModel(intervals);
             auto totalLeft = 0;
             auto totalRight = 0;
-            for(auto x = 0; x < sharedIntervalRep.end; ++x)
+            for(auto x = 0; x < sharedIntervalModel.end; ++x)
             {
-                auto y = sharedIntervalRep.getAllIntervalsWithLeftEndpoint(x).size();
+                auto y = sharedIntervalModel.getAllIntervalsWithLeftEndpoint(x).size();
                 totalLeft += y;
                 //std::cout << std::format("NUM_LEFT[{}] = {}", x, y) << std::endl;
-                auto z = sharedIntervalRep.getAllIntervalsWithRightEndpoint(x).size();
+                auto z = sharedIntervalModel.getAllIntervalsWithRightEndpoint(x).size();
                 //std::cout << std::format("NUM_RIGHT[{}] = {}", x, z) << std::endl;
 
                 totalRight += z;
             }
-            auto avgLeftPerEp = totalLeft / (double) sharedIntervalRep.end;
-            auto avgRightPerEp = totalRight / (double) sharedIntervalRep.end;
+            auto avgLeftPerEp = totalLeft / (double) sharedIntervalModel.end;
+            auto avgRightPerEp = totalRight / (double) sharedIntervalModel.end;
 
 
-            std::cout << std::format("Shared interval rep of {} intervals with maxEndpointsPerPoint={}, TotalEndpoints={}, TotalIntervalLength={}, MaxIntervalLength={}, avgLeftPerEp={}, avgRightPerEp={}", intervals.size(), maxEndpointsPerPoint, sharedIntervalRep.end, totalIntervalLength, maxLength, avgLeftPerEp, avgRightPerEp) << std::endl;
+            std::cout << std::format("Shared interval rep of {} intervals with maxEndpointsPerPoint={}, TotalEndpoints={}, TotalIntervalLength={}, MaxIntervalLength={}, avgLeftPerEp={}, avgRightPerEp={}", intervals.size(), maxEndpointsPerPoint, sharedIntervalModel.end, totalIntervalLength, maxLength, avgLeftPerEp, avgRightPerEp) << std::endl;
 
 
-            auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalRep, naiveCounts);
+            auto mis1 = cg::mis::shared::Naive::computeMIS(sharedIntervalModel, naiveCounts);
             auto weight1 = cg::utils::sumWeights(mis1);
 
 
@@ -270,21 +270,21 @@ int main()
                                      weight1,
                                      naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerLoop),
                                      naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerMaxLoop),
-                                     naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerLoop) / (float)(sharedIntervalRep.end * sharedIntervalRep.end),
-                                     naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerMaxLoop) / (float)(sharedIntervalRep.end * numIntervals))
+                                     naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerLoop) / (float)(sharedIntervalModel.end * sharedIntervalModel.end),
+                                     naiveCounts.Get(cg::mis::shared::Naive::Counts::InnerMaxLoop) / (float)(sharedIntervalModel.end * numIntervals))
                       << std::endl;
 
-            auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalRep, numIntervals, osCounts).value();
+            auto mis2 = cg::mis::shared::PureOutputSensitive::tryComputeMIS(sharedIntervalModel, numIntervals, osCounts).value();
             auto weight2 = cg::utils::sumWeights(mis2);
 
             std::cout << std::format("\tShared output sensitive IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", mis2.size(), weight2,
                                      osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::IntervalOuterLoop),
                                      osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop),
                                      osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop),
-                                     (osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop) + osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
+                                     (osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackOuterLoop) + osCounts.Get(cg::mis::shared::PureOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalModel.end * mis2.size()))
                       << std::endl;
 
-            auto mis3 = cg::mis::shared::Valiente::computeMIS(sharedIntervalRep, valienteCounts);
+            auto mis3 = cg::mis::shared::Valiente::computeMIS(sharedIntervalModel, valienteCounts);
             auto weight3 = cg::utils::sumWeights(mis3);
 
 
@@ -293,18 +293,18 @@ int main()
                                      weight3,
                                      valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerLoop),
                                      valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerMaxLoop),
-                                     valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerLoop) / (float)(sharedIntervalRep.end * sharedIntervalRep.end),
-                                     valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerMaxLoop) / (float)(sharedIntervalRep.end * numIntervals)) << std::endl;
+                                     valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerLoop) / (float)(sharedIntervalModel.end * sharedIntervalModel.end),
+                                     valienteCounts.Get(cg::mis::shared::Valiente::Counts::InnerMaxLoop) / (float)(sharedIntervalModel.end * numIntervals)) << std::endl;
 
-            auto mis4 = cg::mis::shared::PrunedOutputSensitive::tryComputeMIS(sharedIntervalRep, numIntervals, posCounts).value();
+            auto mis4 = cg::mis::shared::PrunedOutputSensitive::tryComputeMIS(sharedIntervalModel, numIntervals, posCounts).value();
             auto weight4 = cg::utils::sumWeights(mis4);
-            auto tmp = (long)sharedIntervalRep.end * mis4.size() / (float)numIntervals;
+            auto tmp = (long)sharedIntervalModel.end * mis4.size() / (float)numIntervals;
 
             std::cout << std::format("\tShared pruned output sensitive PRUNEFACTOR={}, IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", tmp, mis4.size(), weight2,
                                      posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::IntervalOuterLoop),
                                      posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop),
                                      posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop),
-                                     (posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop) + posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
+                                     (posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop) + posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalModel.end * mis2.size()))
                       << std::endl;
 
             if (mis1.size() != mis2.size() || mis2.size() != mis3.size() || mis3.size() != mis4.size())
@@ -365,7 +365,7 @@ int main()
         }
         
 
-        auto intervalRep = cg::data_structures::DistinctIntervalRep(intervals);
+        auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
         long totalLength = 0;
         for (auto i : intervals)
         {
@@ -378,14 +378,14 @@ int main()
         const auto& components = cg::components::getConnectedComponents(intervals);
         std::cout << std::format("There are {} connected components of sizes: {}", components.size(), csv_sizes(components)) << std::endl;
 /*
-        auto mis = cg::mis::distinct::Naive::computeMIS(intervalRep);
+        auto mis = cg::mis::distinct::Naive::computeMIS(intervalModel);
         std::cout << std::format("Naive {}", mis.size()) << std::endl;
         for (auto i : mis)
         {
             //std::cout << std::format("{}", i) << std::endl;
         }
 */
-        auto mis2 = cg::mis::distinct::Valiente::computeMIS(intervalRep);
+        auto mis2 = cg::mis::distinct::Valiente::computeMIS(intervalModel);
         std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
         for (auto i : mis2)
         {
@@ -394,7 +394,7 @@ int main()
 
         cg::utils::Counters<cg::mis::distinct::PureOutputSensitive::Counts> posCounts;
 
-        auto mis3 = cg::mis::distinct::PureOutputSensitive::tryComputeMIS(intervalRep, 1000000000, posCounts).value();
+        auto mis3 = cg::mis::distinct::PureOutputSensitive::tryComputeMIS(intervalModel, 1000000000, posCounts).value();
         std::cout << std::format("PureOutputSensitive {}", mis3.size()) << std::endl;
         for (auto i : mis3)
         {
@@ -402,17 +402,17 @@ int main()
         }
 
         //cg::utils::Counters<cg::mis::distinct::ImplicitOutputSensitive::Counts> posCounts;
-        //auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), posCounts).value();
+        //auto mis4 = cg::mis::distinct::ImplicitOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), posCounts).value();
         //std::cout << std::format("Implicit output sensitive {}", mis4.size()) << std::endl;
 
         cg::utils::Counters<cg::mis::distinct::SimpleImplicitOutputSensitive::Counts> siosCounts;
-        auto mis5 = cg::mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), siosCounts).value();
+        auto mis5 = cg::mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), siosCounts).value();
         std::cout << std::format("Simple Implicit output sensitive {}", mis5.size()) << std::endl;
 
 
         cg::utils::Counters<cg::mis::distinct::LazyOutputSensitive::Counts> losCounts;
 
-        auto mis4 = cg::mis::distinct::LazyOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), losCounts).value();
+        auto mis4 = cg::mis::distinct::LazyOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), losCounts).value();
 
         std::cout << std::format("Lazy output sensitive {}", mis4.size()) << std::endl;
         for (auto i : mis4)
@@ -421,7 +421,7 @@ int main()
         }
         cg::utils::Counters<cg::mis::distinct::CombinedOutputSensitive::Counts> cosCounts;
 
-        auto mis6 = cg::mis::distinct::CombinedOutputSensitive::tryComputeMIS(intervalRep, intervals.size(), cosCounts).value();
+        auto mis6 = cg::mis::distinct::CombinedOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), cosCounts).value();
 
         std::cout << std::format("Combined output sensitive {}", mis6.size()) << std::endl;
 
@@ -430,7 +430,7 @@ int main()
         //                              posCounts.Get(Counts::IntervalOuterLoop),
         //                              posCounts.Get(Counts::StackOuterLoop),
         //                              posCounts.Get(Counts::StackInnerLoop),
-        //                              (posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop) + posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalRep.end * mis2.size()))
+        //                              (posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackOuterLoop) + posCounts.Get(cg::mis::shared::PrunedOutputSensitive::Counts::StackInnerLoop)) / (float)(sharedIntervalModel.end * mis2.size()))
         //               << std::endl;
 
 /*        if(mis3.size() != mis4.size())

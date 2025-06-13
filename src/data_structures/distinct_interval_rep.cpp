@@ -7,7 +7,7 @@
 
 namespace cg::data_structures
 {
-    DistinctIntervalRep::DistinctIntervalRep(std::span<const Interval> intervals)
+    DistinctIntervalModel::DistinctIntervalModel(std::span<const Interval> intervals)
         : end(2 * intervals.size()),
           size(intervals.size())
     {
@@ -38,27 +38,27 @@ namespace cg::data_structures
 
     }
 
-    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
+    [[nodiscard]] std::optional<Interval> DistinctIntervalModel::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
     {
         return _rightEndpointToInterval[maybeRightEndpoint];
     }
 
-    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const
+    [[nodiscard]] std::optional<Interval> DistinctIntervalModel::tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const
     {
         return _leftEndpointToInterval[maybeLeftEndpoint];
     }
 
-    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByRightEndpoint(int rightEndpoint) const
+    [[nodiscard]] Interval DistinctIntervalModel::getIntervalByRightEndpoint(int rightEndpoint) const
     {
         return tryGetIntervalByRightEndpoint(rightEndpoint).value();
     }
 
-    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByLeftEndpoint(int leftEndpoint) const
+    [[nodiscard]] Interval DistinctIntervalModel::getIntervalByLeftEndpoint(int leftEndpoint) const
     {
         return tryGetIntervalByLeftEndpoint(leftEndpoint).value();
     }
 
-    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByEndpoint(int endpoint) const
+    [[nodiscard]] Interval DistinctIntervalModel::getIntervalByEndpoint(int endpoint) const
     {
         const auto& interval = tryGetIntervalByLeftEndpoint(endpoint);
         if(interval)
@@ -68,12 +68,12 @@ namespace cg::data_structures
         return tryGetIntervalByRightEndpoint(endpoint).value();
     }
 
-    [[nodiscard]] Interval DistinctIntervalRep::getIntervalByIndex(int intervalIndex) const
+    [[nodiscard]] Interval DistinctIntervalModel::getIntervalByIndex(int intervalIndex) const
     {
         return _indexToInterval[intervalIndex];
     }
 
-    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetRightEndpointPredecessorInterval(int rightEndpointUpperBoundExclusive) const
+    [[nodiscard]] std::optional<Interval> DistinctIntervalModel::tryGetRightEndpointPredecessorInterval(int rightEndpointUpperBoundExclusive) const
     {
         auto it = std::lower_bound(
         _intervalsByIncreasingRightEndpoint.begin(),
@@ -92,7 +92,7 @@ namespace cg::data_structures
         return *it;
     }
 
-    [[nodiscard]] std::optional<Interval> DistinctIntervalRep::tryGetLeftEndpointPredecessorInterval(int leftEndpointUpperBoundExclusive) const
+    [[nodiscard]] std::optional<Interval> DistinctIntervalModel::tryGetLeftEndpointPredecessorInterval(int leftEndpointUpperBoundExclusive) const
     {
         auto it = std::lower_bound(
         _intervalsByIncreasingLeftEndpoint.begin(),

@@ -13,7 +13,7 @@ namespace cg::mif
 
         auto levelNumber = 0;
 
-        cg::data_structures::DistinctIntervalRep intervalRep(intervals);
+        cg::data_structures::DistinctIntervalModel intervalModel(intervals);
         while (levelEndIndex < intervals.size())
         {
             auto levelStartIndex = 3343;
@@ -24,9 +24,9 @@ namespace cg::mif
 
 
                 // may not want these loops: ? does the "The right endpoints r_w .. " begin to describe the mechanism for the computation of FR_w,i FL_w,i ?
-                for (auto x = 0; x < intervalRep.end; x++)
+                for (auto x = 0; x < intervalModel.end; x++)
                 {
-                    for (auto y = x + 1; y < intervalRep.end; ++y)
+                    for (auto y = x + 1; y < intervalModel.end; ++y)
                     {
                         // if l_w < x and r_w \in [x, y]
                         if(w_interval.Left < x && x <= w_interval.Right && w_interval.Right <= y)

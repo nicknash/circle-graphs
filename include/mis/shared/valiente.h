@@ -12,7 +12,7 @@ namespace cg::utils
 namespace cg::data_structures
 {
     class Interval;
-    class SharedIntervalRep;
+    class SharedIntervalModel;
 }
 
 namespace cg::mis::shared
@@ -29,6 +29,6 @@ namespace cg::mis::shared
     private:
         static std::optional<cg::data_structures::Interval> getMaxInterval(std::span<const cg::data_structures::Interval> intervals, int maxRightEndpoint, std::vector<int> &MIS, std::vector<int> &CMIS, cg::utils::Counters<Counts>& counts);
     public:
-        static std::vector<cg::data_structures::Interval> computeMIS(const cg::data_structures::SharedIntervalRep &intervals, cg::utils::Counters<Counts>& counts);
+        static std::vector<cg::data_structures::Interval> computeMIS(const cg::data_structures::SharedIntervalModel &intervals, cg::utils::Counters<Counts>& counts);
     };
 }

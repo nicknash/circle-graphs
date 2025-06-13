@@ -34,7 +34,7 @@ namespace cg::mis::shared
         return maxInterval;
     }
 
-    std::vector<cg::data_structures::Interval> Valiente::computeMIS(const cg::data_structures::SharedIntervalRep &intervals, cg::utils::Counters<Counts> &counts)
+    std::vector<cg::data_structures::Interval> Valiente::computeMIS(const cg::data_structures::SharedIntervalModel &intervals, cg::utils::Counters<Counts> &counts)
     {
         std::vector<int> MIS(1 + intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);

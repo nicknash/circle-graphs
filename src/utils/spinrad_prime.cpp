@@ -4,7 +4,7 @@
 
 namespace cg::utils
 {
-    bool SpinradPrime::isPrime(const cg::data_structures::DistinctIntervalRep& intervalRep)
+    bool SpinradPrime::isPrime(const cg::data_structures::DistinctIntervalModel& intervalModel)
     {
 
         return true;

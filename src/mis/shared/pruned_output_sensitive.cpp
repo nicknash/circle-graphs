@@ -23,7 +23,7 @@ namespace cg::mis::shared
         pendingUpdates.push(indexToUpdate);
     }
 
-    bool PrunedOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts, std::vector<std::list<cg::data_structures::Interval>>& indexToRelevantIntervals)
+    bool PrunedOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalModel &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts, std::vector<std::list<cg::data_structures::Interval>>& indexToRelevantIntervals)
     {
         while (!pendingUpdates.empty())
         {
@@ -59,7 +59,7 @@ namespace cg::mis::shared
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> PrunedOutputSensitive::tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    std::optional<std::vector<cg::data_structures::Interval>> PrunedOutputSensitive::tryComputeMIS(const cg::data_structures::SharedIntervalModel &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::vector<int> MIS(intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);

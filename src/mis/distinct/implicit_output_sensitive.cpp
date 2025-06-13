@@ -22,7 +22,7 @@
 
 namespace cg::mis::distinct
 {
-    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, std::map<int, cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::UnitMonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    bool ImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalModel &intervals, std::map<int, cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::UnitMonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         pendingUpdates.emplace(newInterval.Left, newInterval);
         std::cout << std::format(" **** NEW INTERVAL {} DETECTED **** ", newInterval) << std::endl;
@@ -147,7 +147,7 @@ namespace cg::mis::distinct
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> ImplicitOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    std::optional<std::vector<cg::data_structures::Interval>> ImplicitOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalModel &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::map<int, cg::data_structures::Interval> pendingUpdates;
         std::vector<int> CMIS(intervals.size);

@@ -2,7 +2,7 @@
 
 namespace cg::data_structures
 {
-    class DistinctIntervalRep;
+    class DistinctIntervalModel;
 }
 
 namespace cg::utils
@@ -10,6 +10,6 @@ namespace cg::utils
     class SpinradPrime
     {
         public:
-            bool isPrime(const cg::data_structures::DistinctIntervalRep& intervalRep);
+            bool isPrime(const cg::data_structures::DistinctIntervalModel& intervalModel);
     };
 }
