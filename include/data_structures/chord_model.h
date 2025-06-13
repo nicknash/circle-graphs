@@ -12,6 +12,7 @@ namespace cg::data_structures
 
     class ChordModel
     {
+        int _numEndpoints;
         std::vector<std::vector<Chord>> _endpointToChords; 
     public:
         ChordModel(std::span<const Chord> chords);

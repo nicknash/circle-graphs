@@ -8,7 +8,7 @@
 
 namespace cg::utils
 {
-    void verifyNoGaps(std::span<const cg::data_structures::Chord> chords)
+    int verifyNoGaps(std::span<const cg::data_structures::Chord> chords)
     {
         std::vector<int> endpoints;
         endpoints.reserve(2 * chords.size());
@@ -25,5 +25,6 @@ namespace cg::utils
                 throw std::invalid_argument(std::format("Chord end-points have gaps, end-point {} is never used", endpoints[i] - 1));
             }
         }
+        return endpoints[endpoints.size() - 1];
     }
 }
