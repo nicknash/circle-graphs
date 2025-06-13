@@ -4,7 +4,7 @@
 #include <cmath>
 #include <map>
 
-#include "data_structures/distinct_interval_rep.h"
+#include "data_structures/distinct_interval_model.h"
 #include "data_structures/interval.h"
 #include "mis/independent_set.h"
 #include "utils/counters.h"

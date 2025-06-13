@@ -2,7 +2,7 @@
 
 #include <span>
 
-#include "data_structures/distinct_interval_rep.h"
+#include "data_structures/distinct_interval_model.h"
 
 namespace cg::data_structures
 {

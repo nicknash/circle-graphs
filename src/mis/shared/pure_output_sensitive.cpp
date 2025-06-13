@@ -2,7 +2,7 @@
 #include <stack>
 #include <list>
 
-#include "data_structures/shared_interval_rep.h"
+#include "data_structures/shared_interval_model.h"
 #include "data_structures/interval.h"
 #include "mis/independent_set.h"
 

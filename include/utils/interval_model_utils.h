@@ -9,7 +9,7 @@ namespace cg::data_structures
     class DistinctIntervalModel;
 }
 
-namespace cg::utils
+namespace cg::interval_model_utils
 {
     void verifyEndpointsInRange(std::span<const cg::data_structures::Interval> intervals);
     void verifyEndpointsUnique(std::span<const cg::data_structures::Interval> intervals);

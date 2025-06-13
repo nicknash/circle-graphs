@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-#include "data_structures/distinct_interval_rep.h"
+#include "data_structures/distinct_interval_model.h"
 #include "data_structures/interval.h"
 #include "mis/implicit_independent_set.h"
 #include "mis/monotone_seq.h"

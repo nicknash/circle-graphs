@@ -1,5 +1,5 @@
 #include "utils/components.h"
-#include "utils/interval_rep_utils.h"
+#include "utils/interval_model_utils.h"
 #include "data_structures/interval.h"
 
 #include <set>
@@ -13,7 +13,7 @@ namespace cg::components
     // This is the naive algorithm for computing the connected components of a circle graph, requiring O(n^2) time and space.
     std::vector<std::vector<cg::data_structures::Interval>> getConnectedComponentsNaive(std::span<const cg::data_structures::Interval> intervals)
     {
-        cg::utils::verifyIndicesDense(intervals);
+        cg::interval_model_utils::verifyIndicesDense(intervals);
      
         // Just construct the entire adjacency matrix and then DFS.
         std::vector<std::vector<bool>> isAdjacent(intervals.size(), std::vector<bool>(intervals.size()));
@@ -63,8 +63,8 @@ namespace cg::components
     //
     std::vector<std::vector<cg::data_structures::Interval>> getConnectedComponents(std::span<const cg::data_structures::Interval> intervals)
     {
-        cg::utils::verifyEndpointsInRange(intervals);
-        cg::utils::verifyEndpointsUnique(intervals);
+        cg::interval_model_utils::verifyEndpointsInRange(intervals);
+        cg::interval_model_utils::verifyEndpointsUnique(intervals);
 
         std::vector<cg::data_structures::Interval> sortedIntervals(intervals.begin(), intervals.end());
             
