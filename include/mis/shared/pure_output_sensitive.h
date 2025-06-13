@@ -17,7 +17,7 @@ namespace cg::mis
 namespace cg::data_structures
 {
     class Interval;
-    class SharedIntervalRep;
+    class SharedIntervalModel;
 }
 
 namespace cg::mis::shared
@@ -36,9 +36,9 @@ namespace cg::mis::shared
             NumMembers
         };
     private:
-        static bool tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
+        static bool tryUpdate(const cg::data_structures::SharedIntervalModel &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     public:
         
-        static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
+        static std::optional<std::vector<cg::data_structures::Interval>> tryComputeMIS(const cg::data_structures::SharedIntervalModel &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts);
     };
 }

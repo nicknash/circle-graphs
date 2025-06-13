@@ -23,7 +23,7 @@
 
 namespace cg::mis::distinct
 {
-    bool LazyOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, int leftLimit, std::map<int, PendingUpdate> &pendingUpdates, ImplicitIndependentSet& independentSet, cg::mis::MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    bool LazyOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalModel &intervals, int leftLimit, std::map<int, PendingUpdate> &pendingUpdates, ImplicitIndependentSet& independentSet, cg::mis::MonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
        
         std::vector<int> mis(intervals.end+1, 0);
@@ -151,7 +151,7 @@ namespace cg::mis::distinct
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> LazyOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    std::optional<std::vector<cg::data_structures::Interval>> LazyOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalModel &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::map<int, PendingUpdate> pendingUpdates;
         std::vector<int> CMIS(intervals.size);

@@ -8,7 +8,7 @@
 
 namespace cg::data_structures
 {
-    SharedIntervalRep::SharedIntervalRep(std::span<const Interval> intervals) : 
+    SharedIntervalModel::SharedIntervalModel(std::span<const Interval> intervals) : 
     size(intervals.size()),
     end(cg::utils::getMaxRightEndpoint(intervals) + 1)
     {
@@ -36,12 +36,12 @@ namespace cg::data_structures
     }
 
 
-    [[nodiscard]] std::vector<Interval> SharedIntervalRep::getAllIntervalsWithLeftEndpoint(int leftEndpoint) const
+    [[nodiscard]] std::vector<Interval> SharedIntervalModel::getAllIntervalsWithLeftEndpoint(int leftEndpoint) const
     {
         return _leftEndpointToIntervals[leftEndpoint];
     }
 
-    [[nodiscard]] std::vector<Interval> SharedIntervalRep::getAllIntervalsWithRightEndpoint(int rightEndpoint) const
+    [[nodiscard]] std::vector<Interval> SharedIntervalModel::getAllIntervalsWithRightEndpoint(int rightEndpoint) const
     {
         return _rightEndpointToIntervals[rightEndpoint];
     }

@@ -6,7 +6,7 @@
 
 namespace cg::data_structures
 {
-    class DistinctIntervalRep;
+    class DistinctIntervalModel;
     class Interval;
 }
 

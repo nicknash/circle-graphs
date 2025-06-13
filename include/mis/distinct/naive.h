@@ -11,8 +11,8 @@ namespace cg::mis::distinct
 {
     class Naive
     {
-        static void update(int endIndex, cg::mis::IndependentSet &independentSet, const cg::data_structures::DistinctIntervalRep &intervals, std::vector<int> &MIS, std::vector<int> &CMIS);
+        static void update(int endIndex, cg::mis::IndependentSet &independentSet, const cg::data_structures::DistinctIntervalModel &intervals, std::vector<int> &MIS, std::vector<int> &CMIS);
     public:
-        static std::vector<cg::data_structures::Interval> computeMIS(const cg::data_structures::DistinctIntervalRep &intervals);
+        static std::vector<cg::data_structures::Interval> computeMIS(const cg::data_structures::DistinctIntervalModel &intervals);
     };
 }

@@ -7,7 +7,7 @@
 namespace cg::data_structures
 {
     class Interval;
-    class DistinctIntervalRep
+    class DistinctIntervalModel
     {
         std::vector<std::optional<Interval>> _leftEndpointToInterval; 
         std::vector<std::optional<Interval>> _rightEndpointToInterval; 
@@ -18,7 +18,7 @@ namespace cg::data_structures
         const int end; 
         const int size;
 
-        DistinctIntervalRep(std::span<const Interval> intervals);
+        DistinctIntervalModel(std::span<const Interval> intervals);
 
         [[nodiscard]] std::optional<Interval> tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const;
         [[nodiscard]] std::optional<Interval> tryGetIntervalByLeftEndpoint(int maybeLeftEndpoint) const;

@@ -15,7 +15,7 @@
 namespace cg::mis::distinct
 {
 
-    bool CombinedOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalRep &intervals, int leftLimit, std::map<int, std::optional<cg::data_structures::Interval>> &pendingUpdates, IndependentSet& independentSet, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    bool CombinedOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalModel &intervals, int leftLimit, std::map<int, std::optional<cg::data_structures::Interval>> &pendingUpdates, IndependentSet& independentSet, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::vector<int> changed;
 
@@ -106,7 +106,7 @@ namespace cg::mis::distinct
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> CombinedOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    std::optional<std::vector<cg::data_structures::Interval>> CombinedOutputSensitive::tryComputeMIS(const cg::data_structures::DistinctIntervalModel &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::vector<int> MIS(intervals.end + 1, 0);
         std::vector<int> CMIS(intervals.size, 0);

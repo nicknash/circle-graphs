@@ -25,7 +25,7 @@ namespace cg::mis::shared
         pendingUpdates.push(indexToUpdate);
     }
 
-    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalRep &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    bool PureOutputSensitive::tryUpdate(const cg::data_structures::SharedIntervalModel &intervals, std::stack<int> &pendingUpdates, IndependentSet &independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         const auto candidate = newInterval.Weight + CMIS[newInterval.Index];
         if (candidate > MIS[newInterval.Left])
@@ -67,7 +67,7 @@ namespace cg::mis::shared
         return true;
     }
 
-    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::SharedIntervalRep &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
+    std::optional<std::vector<cg::data_structures::Interval>> PureOutputSensitive::tryComputeMIS(const cg::data_structures::SharedIntervalModel &intervals, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
         std::vector<int> MIS(intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
