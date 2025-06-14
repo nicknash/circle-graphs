@@ -5,6 +5,7 @@
 
 #include "utils/chord_model_utils.h"
 #include "data_structures/chord.h"
+#include "data_structures/chord_model.h"
 
 namespace cg::utils
 {
@@ -27,4 +28,20 @@ namespace cg::utils
         }
         return endpoints[endpoints.size() - 1];
     }
+
+    cg::data_structures::ChordModel generateChordModel(int numEndpoints, std::span<int> connectionSeq)
+    {
+        std::vector<cg::data_structures::Chord> chords;
+        for(int i = 0; i < numEndpoints; ++i)
+        {
+            for(auto j : connectionSeq)
+            {
+                cg::data_structures::Chord newChord(i, (i + j) % numEndpoints, chords.size(), 1);
+                chords.push_back(newChord);
+            }
+        }
+        cg::data_structures::ChordModel result(chords);
+        return result;
+    }
+
 }

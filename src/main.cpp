@@ -2,12 +2,16 @@
 #include <array>
 #include <ranges>
 #include <format>
+#include <cmath>
 #include <sstream>
 
 #include "data_structures/interval.h"
+#include "data_structures/chord.h"
 #include "data_structures/distinct_interval_model.h"
 #include "data_structures/shared_interval_model.h"
+#include "data_structures/chord_model.h"
 #include "utils/interval_model_utils.h"
+#include "utils/chord_model_utils.h"
 #include "utils/counters.h"
 #include "utils/components.h"
 
@@ -334,7 +338,7 @@ int main()
     {
     //    auto intervals = cg::interval_model_utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        auto intervals = cg::interval_model_utils::generateRandomIntervals(10000, seed2);
+        //auto intervals = cg::interval_model_utils::generateRandomIntervals(10000, seed2);
         
     
 
@@ -363,18 +367,18 @@ int main()
         //   intervals.push_back(cg::data_structures::Interval(2 * x, 2 * x + 1, x, 1)); // disjoint units
             //intervals.push_back(cg::data_structures::Interval(x, x + numIntervals, x, 1)); // clique
         }
-        
-
-        auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
-        long totalLength = 0;
-        for (auto i : intervals)
+        int numEndpoints = 12;
+        std::vector<int> connectionSeq;
+        for(int i = 1; i < numEndpoints; i++)
         {
-            totalLength += i.length();
-            //std::cout << std::format("{}", i) << std::endl;
+            connectionSeq.push_back(i);
         }
-        std::cout << "Average length: " << totalLength / (float) intervals.size() << std::endl;
-        return 0;
 
+        auto chordModel = cg::utils::generateChordModel(numEndpoints, connectionSeq);
+        auto intervalModel = chordModel.toDistinctIntervalModel();
+        auto intervals = intervalModel.getAllIntervals();
+        //auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
+        
         const auto& components = cg::components::getConnectedComponents(intervals);
         std::cout << std::format("There are {} connected components of sizes: {}", components.size(), csv_sizes(components)) << std::endl;
 /*
@@ -385,6 +389,7 @@ int main()
             //std::cout << std::format("{}", i) << std::endl;
         }
 */
+
         auto mis2 = cg::mis::distinct::Valiente::computeMIS(intervalModel);
         std::cout << std::format("Valiente {}", mis2.size()) << std::endl;
         for (auto i : mis2)
@@ -408,10 +413,26 @@ int main()
         cg::utils::Counters<cg::mis::distinct::SimpleImplicitOutputSensitive::Counts> siosCounts;
         auto mis5 = cg::mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), siosCounts).value();
         std::cout << std::format("Simple Implicit output sensitive {}", mis5.size()) << std::endl;
+        
+        long totalIntervalLength = 0;
+        long totalChordLength = 0;
+
+        for(auto i : intervals) 
+        {
+            std::cout << std::format("{}", i) << std::endl;
+
+            totalIntervalLength += i.length();
+            totalChordLength += cg::data_structures::Chord(i.Left, i.Right, 0, 0).length(2 * intervals.size());
+        }
+        
+        
+        std::cout << std::format("NumIntervals: {}, Alpha: {}, Sqrt(NumIntervals): {}, Alpha/sqrt(NumIntervals): {}, totalLength: {}, totalLength/numIntervals^2: {}, totalChordLengthDistinctModel: {}, totalChordLengthDistinctModel/numIntervals^2: {} ", intervals.size(), mis5.size(), std::sqrt(intervals.size()), mis5.size()/std::sqrt(intervals.size()), 
+        totalIntervalLength, totalIntervalLength / (float) (intervals.size() * intervals.size()), totalChordLength, totalChordLength / (float) (intervals.size() * intervals.size())) << std::endl; 
 
 
         cg::utils::Counters<cg::mis::distinct::LazyOutputSensitive::Counts> losCounts;
 
+/*
         auto mis4 = cg::mis::distinct::LazyOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), losCounts).value();
 
         std::cout << std::format("Lazy output sensitive {}", mis4.size()) << std::endl;
@@ -425,7 +446,7 @@ int main()
 
         std::cout << std::format("Combined output sensitive {}", mis6.size()) << std::endl;
 
-
+*/
         // std::cout << std::format("\tShared pruned output sensitive PRUNEFACTOR={}, IndependenceNumber={}, TotalWeight={}, OuterInterval={}, OuterStack={}, InnerStack={}, NormalizedStackTotal={}", tmp, mis4.size(), weight2,
         //                              posCounts.Get(Counts::IntervalOuterLoop),
         //                              posCounts.Get(Counts::StackOuterLoop),

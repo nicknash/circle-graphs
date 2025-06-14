@@ -31,5 +31,8 @@ namespace cg::data_structures
         [[nodiscard]] Interval getIntervalByLeftEndpoint(int leftEndpoint) const;
         [[nodiscard]] Interval getIntervalByEndpoint(int endpoint) const;
         [[nodiscard]] Interval getIntervalByIndex(int intervalIndex) const;
+
+        [[nodiscard]] std::vector<Interval> getAllIntervals() const;
+
     };
 }

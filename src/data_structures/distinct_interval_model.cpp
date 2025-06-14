@@ -110,4 +110,10 @@ namespace cg::data_structures
         --it;
         return *it;
     }
+
+    [[nodiscard]] std::vector<Interval> DistinctIntervalModel::getAllIntervals() const
+    {
+        return _intervalsByIncreasingLeftEndpoint;
+    }
+
 }

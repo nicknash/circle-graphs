@@ -22,6 +22,7 @@ namespace cg::data_structures
         for (const auto &c : chords)
         {
             _endpointToChords[c.first()].push_back(c);
+            _allChords.push_back(c);
         }
     }
 
@@ -39,11 +40,7 @@ namespace cg::data_structures
                 intervals.push_back(c.asInterval());
             }    
         }
-        std::cout << "CUT CIRCLE: " << std::endl;
-        for(auto i : intervals)
-        {
-            std::cout << std::format("{}", i) << std::endl;
-        }
+    
         return intervals;
     }
 
@@ -82,8 +79,6 @@ namespace cg::data_structures
         };
         std::vector<Endpoint> distinctEndpoints;
 
-
-        std::cout << " *********************" << std::endl;
         for(auto idx = 0; idx < _numEndpoints; ++idx)
         {
             for(const auto& leftInterval : endpointToLeftIntervals[idx])
@@ -117,15 +112,6 @@ namespace cg::data_structures
                 distinctIntervals.push_back(interval);
             }
         }
-
-        std::cout << "DISTINCT INTERVALS: " << std::endl;
-
-        for(auto i : distinctIntervals)
-        {
-            std::cout << std::format("{}", i) << std::endl;
-        }
-
-
         auto result = cg::data_structures::DistinctIntervalModel(distinctIntervals);
         return result;
     }
@@ -136,4 +122,10 @@ namespace cg::data_structures
         auto result = cg::data_structures::SharedIntervalModel(intervals);
         return result;
     }
+
+    [[nodiscard]] std::vector<Chord> ChordModel::getAllChords() const
+    {
+        return _allChords;
+    }
+
 }

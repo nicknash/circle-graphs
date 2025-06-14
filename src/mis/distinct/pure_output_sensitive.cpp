@@ -29,7 +29,7 @@ namespace cg::mis::distinct
         changed.emplace(newInterval.Left, newInterval.Left);
                 auto old = MIS[newInterval.Left];
 
-        std::cout << std::format("MIS[{}] <- {} (was: {}), newInterval={}", newInterval.Left, newInterval.Weight + CMIS[newInterval.Index], old, newInterval) << std::endl;
+        //std::cout << std::format("MIS[{}] <- {} (was: {}), newInterval={}", newInterval.Left, newInterval.Weight + CMIS[newInterval.Index], old, newInterval) << std::endl;
 
         updateAt(pendingUpdates, MIS, newInterval.Left, newInterval.Weight + CMIS[newInterval.Index]);
         independentSet.setNewNextInterval(newInterval.Left, newInterval);
@@ -40,7 +40,7 @@ namespace cg::mis::distinct
             //auto updatedIndex = pendingUpdates.top();
             //pendingUpdates.pop();
             auto updatedIndex = changed.begin()->first;
-            std::cout << updatedIndex << std::format("({}) ", MIS[updatedIndex]); 
+            //std::cout << updatedIndex << std::format("({}) ", MIS[updatedIndex]); 
             changed.erase(updatedIndex);
 
             auto leftNeighbour = updatedIndex - 1;
@@ -73,7 +73,7 @@ namespace cg::mis::distinct
                 }
             }
         }
-                std::cout << std::endl;
+                //std::cout << std::endl;
 
         /*for(int i = newInterval.Left; i >= 0; --i)
         {
@@ -83,7 +83,7 @@ namespace cg::mis::distinct
         {
             //std::cout << c.first << " "; 
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
         while(!pendingUpdates.empty()) pendingUpdates.pop();
         return true;
     }

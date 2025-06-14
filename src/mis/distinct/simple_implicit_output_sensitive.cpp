@@ -27,22 +27,22 @@ namespace cg::mis::distinct
 
     bool SimpleImplicitOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalModel &intervals, std::stack<cg::data_structures::Interval> &pendingUpdates, ImplicitIndependentSet& independentSet, const cg::data_structures::Interval &newInterval, cg::mis::UnitMonotoneSeq &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
-        std::vector<int> mis(intervals.end+1, 0);
+        //std::vector<int> mis(intervals.end+1, 0);
 
-        std::cout << std::format("Processing interval {}", newInterval) << std::endl;
+        //std::cout << std::format("Processing interval {}", newInterval) << std::endl;
         pendingUpdates.push(newInterval);
         while (!pendingUpdates.empty())
         {
             counts.Increment(Counts::StackOuterLoop);
 
             auto currentInterval = pendingUpdates.top();
-            std::cout << std::format("\t Popped interval {}", currentInterval) << std::endl;
+            //std::cout << std::format("\t Popped interval {}", currentInterval) << std::endl;
             pendingUpdates.pop();
 
             cg::mis::UnitMonotoneSeq::Range r = MIS.increment(currentInterval.Left);
   
 
-            MIS.copyTo(mis);
+            /*MIS.copyTo(mis);
             std::cout << "\t ";
             for(int i = 0; i < mis.size(); ++i)
             {
@@ -68,27 +68,27 @@ namespace cg::mis::distinct
                     std::cout << " ";
                 }
                 std::cout << age[i] << " ";
-            }
+            }*/
             
             independentSet.setRange(r.left, r.right - 1, currentInterval);
             
 
-            std::cout << std::endl;
-            std::cout << "\t Current MIS is: ";
-            auto intervalsInMis = independentSet.buildIndependentSet(MIS.get(0));
+            //std::cout << std::endl;
+            //std::cout << "\t Current MIS is: ";
+            /*auto intervalsInMis = independentSet.buildIndependentSet(MIS.get(0));
             for(auto q : intervalsInMis)
             {
                 std::cout << std::format("{}", q) << ", ";
             }
             std::cout << std::endl;
-
+*/
             // Maintain 'alive' here ? 
             // If rep updated but NOT left, then its alive
             // figure out if there is a way to maintain this.
  
             auto representativeMIS = MIS.get(r.changePoint);
             auto maybeInterval = intervals.tryGetRightEndpointPredecessorInterval(r.right);
-            std::cout << std::format("\t Range is Left={},Right={},ChangedPoint={}", r.left, r.right, r.changePoint) << std::endl;
+            //std::cout << std::format("\t Range is Left={},Right={},ChangedPoint={}", r.left, r.right, r.changePoint) << std::endl;
             while(maybeInterval) 
             {
                 auto interval = maybeInterval.value();
@@ -106,12 +106,12 @@ namespace cg::mis::distinct
                     }
                     if (candidate > MIS.get(interval.Left))
                     {
-                        std::cout << std::format("\t Encountered interval {} in range and PUSHED. LeftAge = {}, RightAge = {}", interval, age[interval.Left], age[interval.Right]) << std::endl;
+                        //std::cout << std::format("\t Encountered interval {} in range and PUSHED. LeftAge = {}, RightAge = {}", interval, age[interval.Left], age[interval.Right]) << std::endl;
                         pendingUpdates.push(interval);
                     }
                     else
                     {
-                        std::cout << std::format("\t Encountered interval {} in range and DID NOT PUSH.  LeftAge = {}, RightAge = {}", interval, age[interval.Left], age[interval.Right]) << std::endl;
+                        //std::cout << std::format("\t Encountered interval {} in range and DID NOT PUSH.  LeftAge = {}, RightAge = {}", interval, age[interval.Left], age[interval.Right]) << std::endl;
                     }
 
                 }
