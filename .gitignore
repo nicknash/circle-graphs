@@ -8,7 +8,6 @@
 /cmake_install.cmake
 /Makefile
 /install_manifest.txt
-/tests/
 
 # Visual Studio Code settings
 /.vscode/
@@ -62,6 +61,7 @@ desktop.ini
 .idea/
 
 # CTest-related files
+tests/Testing
 /Testing/
 *.test
 
