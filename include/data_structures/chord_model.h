@@ -9,11 +9,13 @@ namespace cg::data_structures
     class DistinctIntervalModel;
     class SharedIntervalModel;
     class Chord;
+    class Interval;
 
     class ChordModel
     {
         int _numEndpoints;
         std::vector<std::vector<Chord>> _endpointToChords; 
+        std::vector<Interval> cutCircle() const;
     public:
         ChordModel(std::span<const Chord> chords);
         [[nodiscard]] DistinctIntervalModel toDistinctIntervalModel() const;
