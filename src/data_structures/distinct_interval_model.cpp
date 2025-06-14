@@ -22,7 +22,7 @@ namespace cg::data_structures
         {
             _leftEndpointToInterval[interval.Left].emplace(interval);
             _rightEndpointToInterval[interval.Right].emplace(interval);
-            _indexToInterval.emplace_back(interval); // huh? I assumes indices are in order! FIX
+            _indexToInterval[interval.Index] = interval;
         }
 
         _intervalsByIncreasingRightEndpoint = std::vector<Interval>(intervals.begin(), intervals.end());
