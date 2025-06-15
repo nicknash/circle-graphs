@@ -338,7 +338,7 @@ int main()
     {
     //    auto intervals = cg::interval_model_utils::generateRandomIntervals(50 + 100 * i, i);
         std::cout << "SEED = " << seed2 << std::endl;
-        //auto intervals = cg::interval_model_utils::generateRandomIntervals(10000, seed2);
+        //auto intervals = cg::interval_model_utils::generateRandomIntervals(15000, seed2);
         
     
 
@@ -355,6 +355,7 @@ int main()
             intervalIdx += 2;
         }*/
    
+        //auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
 
         auto numIntervals = 10;
         for(int x = 0; x < numIntervals; ++x)
@@ -367,9 +368,9 @@ int main()
         //   intervals.push_back(cg::data_structures::Interval(2 * x, 2 * x + 1, x, 1)); // disjoint units
             //intervals.push_back(cg::data_structures::Interval(x, x + numIntervals, x, 1)); // clique
         }
-        int numEndpoints = 12;
+        int numEndpoints = 400;
         std::vector<int> connectionSeq;
-        for(int i = 1; i < numEndpoints; i++)
+        for(int i = 1; i < numEndpoints/2; i+=13)
         {
             connectionSeq.push_back(i);
         }
@@ -377,7 +378,7 @@ int main()
         auto chordModel = cg::utils::generateChordModel(numEndpoints, connectionSeq);
         auto intervalModel = chordModel.toDistinctIntervalModel();
         auto intervals = intervalModel.getAllIntervals();
-        //auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
+        
         
         const auto& components = cg::components::getConnectedComponents(intervals);
         std::cout << std::format("There are {} connected components of sizes: {}", components.size(), csv_sizes(components)) << std::endl;
@@ -419,7 +420,7 @@ int main()
 
         for(auto i : intervals) 
         {
-            std::cout << std::format("{}", i) << std::endl;
+            //std::cout << std::format("{}", i) << std::endl;
 
             totalIntervalLength += i.length();
             totalChordLength += cg::data_structures::Chord(i.Left, i.Right, 0, 0).length(2 * intervals.size());
