@@ -5,6 +5,7 @@
 #include <queue>
 #include <stack>
 #include <algorithm>
+#include <optional>
 
 #include "data_structures/graph.h"
 #include "utils/spinrad_prime.h"
@@ -28,96 +29,31 @@ namespace cg::utils
         std::optional<InitialLevel&> _maybeInitialLevel;
         bool _mark;
     public:
-        Node(int vertexId, int levelId, Node* parent) : _vertexId(vertexId), _levelId(levelId), _parent(parent)
-        {
+        Node(int vertexId, int levelId, Node* parent);
 
-        }
+        Node* parent() const;
 
-        Node* parent() const 
-        {
-            return _parent;
-        }
+        const std::vector<Node*> copy_children() const;
 
-        const std::vector<Node*> copy_children() const
-        {
-            std::vector<Node*> alive;
-            for(auto c : _children)
-            {
-                if(c)
-                {
-                    alive.push_back(c);
-                }
-            }
-            return alive;
-        }
+        void mark();
 
-        void mark()
-        {
-            _mark = true;
-        }
+        void unmark();
 
-        void unmark()
-        {
-            _mark = false;
-        }
+        bool isMarked();
 
-        bool isMarked()
-        {
-            return _mark;
-        }
+        void setLevelId(int levelId);
 
-        void setLevelId(int levelId)
-        {
-            _levelId = levelId;
-        }
+        int levelId();
 
-        int levelId()
-        {
-            return _levelId;
-        }
+        void addToInitialLevel(InitialLevel& initialLevel);
 
-        void addToInitialLevel(InitialLevel& initialLevel)
-        {
-            if(parent)
-            {
-                throw std::runtime_error("Cannot set initial level, this node has a parent.");
-            }
-            _maybeInitialLevel = initialLevel;
-        }
+        const std::optional<InitialLevel&> getInitialLevel() const;
 
-        const std::optional<InitialLevel&> getInitialLevel() const
-        {
-            return _maybeInitialLevel;
-        }
+        [[nodiscard]] int vertexId() const;
 
-        [[nodiscard]] int vertexId() const
-        {
-            return _vertexId;
-        }
+        void addChild(Node* child);
 
-        void addChild(Node* child)
-        {
-            child->_childIdx = _children.size();
-            _children.push_back(child);
-        }
-
-
-        void deleteFromForest()
-        {
-            if(_parent)
-            {
-                _parent->_children[_childIdx] = nullptr;
-            }
-            else
-            {
-                if(!_maybeInitialLevel)
-                {
-                    throw std::runtime_error("This node doesn't have a parent, so its initial level should be set, but isn't.");
-                }
-                auto& initialLevel = _maybeInitialLevel.value();
-                initialLevel.remove(this);
-            }
-        }
+        void deleteFromForest();
     };
 
     class InitialLevel
@@ -126,111 +62,228 @@ namespace cg::utils
         Node *head = nullptr;
         int _levelId;
     public:
-        InitialLevel(int levelId) : _levelId(levelId)
-        {
+        explicit InitialLevel(int levelId);
 
-        }
+        int levelId() const;
 
-        int levelId() const
-        {
-            return _levelId;
-        }
+        int size() const noexcept;
 
-        // O(1)
-        int size() const noexcept
-        {
-            return _size;
-        }
+        void add(Node *n) noexcept;
 
-        // insert at front
-        void add(Node *n) noexcept
-        {
-            n->_initialLevelPrev = nullptr;
-            n->_initialLevelNext = head;
+        void remove(Node *n) noexcept;
 
-            if (head)
-            {
-                head->_initialLevelPrev = n;
-            }
-
-            head = n;
-            ++_size;
-        }
-
-        // O(1)
-        void remove(Node *n) noexcept
-        {
-            if (n->_initialLevelPrev)
-            {
-                n->_initialLevelPrev->_initialLevelNext = n->_initialLevelNext;
-            }
-            else
-            {
-                head = n->_initialLevelNext;
-            }
-
-            if (n->_initialLevelNext)
-            {
-                n->_initialLevelNext->_initialLevelPrev = n->_initialLevelPrev;
-            }
-
-            n->_initialLevelPrev = nullptr;
-            n->_initialLevelNext = nullptr;
-            --_size;
-        }
-
-        // forward iterator yielding Node*
         struct iterator
         {
             Node *node;
 
-            Node *operator*() const noexcept
-            {
-                return node;
-            }
+            Node *operator*() const noexcept;
 
-            iterator &operator++() noexcept
-            {
-                node = node->_initialLevelNext;
-                return *this;
-            }
+            iterator &operator++() noexcept;
 
-            bool operator!=(const iterator &o) const noexcept
-            {
-                return node != o.node;
-            }
+            bool operator!=(const iterator &o) const noexcept;
         };
 
-        iterator begin() noexcept
-        {
-            return iterator{head};
-        }
+        iterator begin() noexcept;
 
-        iterator end() noexcept
-        {
-            return iterator{nullptr};
-        }
+        iterator end() noexcept;
     };
 
 
-    class Forest
+class Forest
+{
+    InitialLevel& _initialLevel;
+public:
+    Forest(InitialLevel& initialLevel, std::vector<Node*>& initialLevelNodes);
+
+    InitialLevel& initialLevel() const;
+
+};
+
+    // ---------------------------------------------------------------------
+    // Implementation details
+    // ---------------------------------------------------------------------
+
+    // Node ----------------------------------------------------------------
+    Node::Node(int vertexId, int levelId, Node* parent) : _vertexId(vertexId), _levelId(levelId), _parent(parent)
     {
-        InitialLevel& _initialLevel;
-    public:
-        Forest(InitialLevel& initialLevel, std::vector<Node*>& initialLevelNodes) : _initialLevel(initialLevel)
+
+    }
+
+    Node* Node::parent() const
+    {
+        return _parent;
+    }
+
+    const std::vector<Node*> Node::copy_children() const
+    {
+        std::vector<Node*> alive;
+        for(auto c : _children)
         {
-            for(auto n : initialLevelNodes)
+            if(c)
             {
-                n->addToInitialLevel(initialLevel);
+                alive.push_back(c);
             }
         }
+        return alive;
+    }
 
-        InitialLevel& initialLevel() const
+    void Node::mark()
+    {
+        _mark = true;
+    }
+
+    void Node::unmark()
+    {
+        _mark = false;
+    }
+
+    bool Node::isMarked()
+    {
+        return _mark;
+    }
+
+    void Node::setLevelId(int levelId)
+    {
+        _levelId = levelId;
+    }
+
+    int Node::levelId()
+    {
+        return _levelId;
+    }
+
+    void Node::addToInitialLevel(InitialLevel& initialLevel)
+    {
+        if(parent)
         {
-            return _initialLevel;
+            throw std::runtime_error("Cannot set initial level, this node has a parent.");
+        }
+        _maybeInitialLevel = initialLevel;
+    }
+
+    const std::optional<InitialLevel&> Node::getInitialLevel() const
+    {
+        return _maybeInitialLevel;
+    }
+
+    int Node::vertexId() const
+    {
+        return _vertexId;
+    }
+
+    void Node::addChild(Node* child)
+    {
+        child->_childIdx = _children.size();
+        _children.push_back(child);
+    }
+
+    void Node::deleteFromForest()
+    {
+        if(_parent)
+        {
+            _parent->_children[_childIdx] = nullptr;
+        }
+        else
+        {
+            if(!_maybeInitialLevel)
+            {
+                throw std::runtime_error("This node doesn't have a parent, so its initial level should be set, but isn't.");
+            }
+            auto& initialLevel = _maybeInitialLevel.value();
+            initialLevel.remove(this);
+        }
+    }
+
+    // InitialLevel ---------------------------------------------------------
+    InitialLevel::InitialLevel(int levelId) : _levelId(levelId)
+    {
+
+    }
+
+    int InitialLevel::levelId() const
+    {
+        return _levelId;
+    }
+
+    int InitialLevel::size() const noexcept
+    {
+        return _size;
+    }
+
+    void InitialLevel::add(Node *n) noexcept
+    {
+        n->_initialLevelPrev = nullptr;
+        n->_initialLevelNext = head;
+
+        if (head)
+        {
+            head->_initialLevelPrev = n;
         }
 
-    };
+        head = n;
+        ++_size;
+    }
+
+    void InitialLevel::remove(Node *n) noexcept
+    {
+        if (n->_initialLevelPrev)
+        {
+            n->_initialLevelPrev->_initialLevelNext = n->_initialLevelNext;
+        }
+        else
+        {
+            head = n->_initialLevelNext;
+        }
+
+        if (n->_initialLevelNext)
+        {
+            n->_initialLevelNext->_initialLevelPrev = n->_initialLevelPrev;
+        }
+
+        n->_initialLevelPrev = nullptr;
+        n->_initialLevelNext = nullptr;
+        --_size;
+    }
+
+    Node *InitialLevel::iterator::operator*() const noexcept
+    {
+        return node;
+    }
+
+    InitialLevel::iterator &InitialLevel::iterator::operator++() noexcept
+    {
+        node = node->_initialLevelNext;
+        return *this;
+    }
+
+    bool InitialLevel::iterator::operator!=(const iterator &o) const noexcept
+    {
+        return node != o.node;
+    }
+
+    InitialLevel::iterator InitialLevel::begin() noexcept
+    {
+        return iterator{head};
+    }
+
+    InitialLevel::iterator InitialLevel::end() noexcept
+    {
+        return iterator{nullptr};
+    }
+
+    // Forest ---------------------------------------------------------------
+    Forest::Forest(InitialLevel& initialLevel, std::vector<Node*>& initialLevelNodes) : _initialLevel(initialLevel)
+    {
+        for(auto n : initialLevelNodes)
+        {
+            n->addToInitialLevel(initialLevel);
+        }
+    }
+
+    InitialLevel& Forest::initialLevel() const
+    {
+        return _initialLevel;
+    }
 
     // return all neighbours of 'a' except 'b' and except those also in neighbours(b)
     // i.e., N(a) - N(b) - {b}
