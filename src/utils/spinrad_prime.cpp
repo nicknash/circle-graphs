@@ -22,11 +22,10 @@ namespace cg::utils
         int _levelId;
         std::vector<Node*> _children;
         Node* _parent;
-        Node* _initialLevelHead;
         Node* _initialLevelPrev;
         Node* _initialLevelNext;
 
-        std::optional<InitialLevel&> _maybeInitialLevel;
+        InitialLevel* _initialLevel;
         bool _mark;
     public:
         Node(int vertexId, int levelId, Node* parent);
@@ -45,9 +44,9 @@ namespace cg::utils
 
         int levelId();
 
-        void addToInitialLevel(InitialLevel& initialLevel);
+        void addToInitialLevel(InitialLevel* initialLevel);
 
-        const std::optional<InitialLevel&> getInitialLevel() const;
+        const InitialLevel* getInitialLevel() const;
 
         [[nodiscard]] int vertexId() const;
 
@@ -104,7 +103,7 @@ public:
     // ---------------------------------------------------------------------
 
     // Node ----------------------------------------------------------------
-    Node::Node(int vertexId, int levelId, Node* parent) : _vertexId(vertexId), _levelId(levelId), _parent(parent)
+    Node::Node(int vertexId, int levelId, Node* parent) : _vertexId(vertexId), _levelId(levelId), _parent(parent), _initialLevel(nullptr), _initialLevelNext(nullptr), _initialLevelPrev(nullptr)
     {
 
     }
@@ -152,18 +151,18 @@ public:
         return _levelId;
     }
 
-    void Node::addToInitialLevel(InitialLevel& initialLevel)
+    void Node::addToInitialLevel(InitialLevel* initialLevel)
     {
-        if(parent)
+        if(_parent != nullptr)
         {
             throw std::runtime_error("Cannot set initial level, this node has a parent.");
         }
-        _maybeInitialLevel = initialLevel;
+        _initialLevel = initialLevel;
     }
 
-    const std::optional<InitialLevel&> Node::getInitialLevel() const
+    const InitialLevel* Node::getInitialLevel() const
     {
-        return _maybeInitialLevel;
+        return _initialLevel;
     }
 
     int Node::vertexId() const
@@ -185,12 +184,11 @@ public:
         }
         else
         {
-            if(!_maybeInitialLevel)
+            if(_initialLevel == nullptr)
             {
                 throw std::runtime_error("This node doesn't have a parent, so its initial level should be set, but isn't.");
             }
-            auto& initialLevel = _maybeInitialLevel.value();
-            initialLevel.remove(this);
+            _initialLevel->remove(this);
         }
     }
 
@@ -276,7 +274,7 @@ public:
     {
         for(auto n : initialLevelNodes)
         {
-            n->addToInitialLevel(initialLevel);
+            n->addToInitialLevel(&_initialLevel);
         }
     }
 
@@ -392,19 +390,14 @@ public:
         return std::tuple{forests,vertexToNode, nextLevelId};
     }
 
-    void addIfEligible(std::vector<int>& vertexIdToLastInitialLevelSize, std::queue<Node*> eligibleNodes, Node* n)
+    void addIfEligible(std::vector<int>& vertexIdToLastInitialLevelSize, std::queue<Node*> eligibleNodes, Node* n, int initialLevelSize)
     {
-        auto maybeInitialLevel = n->getInitialLevel();
-        if (maybeInitialLevel)
+        auto vertexId = n->vertexId();
+        auto previousSize = vertexIdToLastInitialLevelSize[vertexId];
+        if (initialLevelSize <= previousSize / 2)
         {
-            auto initialLevelSize = maybeInitialLevel.value().size();
-            auto vertexId = n->vertexId();
-            auto previousSize = vertexIdToLastInitialLevelSize[vertexId];
-            if (initialLevelSize <= previousSize / 2)
-            {
-                eligibleNodes.push(n);
-                vertexIdToLastInitialLevelSize[vertexId] = initialLevelSize;
-            }
+            eligibleNodes.push(n);
+            vertexIdToLastInitialLevelSize[vertexId] = initialLevelSize;
         }
     }
 
@@ -413,7 +406,6 @@ public:
         auto xVertex = source->vertexId();
         auto xNeighbours = g.neighbours(xVertex);
 
-        auto& sourceInitialLevel = source->getInitialLevel().value(); // This must exist, because 'source' must always be part of an initial level. 
 
         for (auto y : xNeighbours)
         {
@@ -422,19 +414,14 @@ public:
             // Perhaps there is a more efficient way to determine if other nodes are in the same forest as 'source'
             // E.g. Perhaps by maintaining a list of edges per node somehow, and updating it as we move the node to a new forest.
             // Spinrad claims this can be done in O(degree(x)) for a vertex x, but doesn't explain how.
-            auto sameForestAsSource = false;
-            auto p = yNode;
-            while(!p->getInitialLevel())
+            auto n = yNode;
+            while(n->parent() != nullptr)
             {
-                auto& initialLevel = p->getInitialLevel().value();
-                if(initialLevel.levelId() == sourceInitialLevel.levelId())
-                {
-                    sameForestAsSource = true;
-                    break;
-                }
-                p = p->parent();
+                n = n->parent();
             }
-            if(!sameForestAsSource)
+            auto sourceInitialLevel = source->getInitialLevel(); // This must exist, because 'source' must always be part of an initial level.
+            auto sameForestAsSource = sourceInitialLevel->levelId() == n->levelId(); 
+            if (!sameForestAsSource)
             {
                 yNode->mark();
             }
@@ -498,7 +485,7 @@ public:
                 Forest newForest(initialLevel, newInitialLevelNodes); 
                 for(auto n : initialLevel)
                 {
-                    addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n);
+                    addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, initialLevel.size());
                 }
                 ++nextLevelId;
                 allForests.push_back(std::move(newForest));

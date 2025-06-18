@@ -1,9 +1,7 @@
 #pragma once
 
-namespace cg::data_structures
-{
-    class Graph;
-}
+#include "data_structures/graph.h"
+
 
 namespace cg::utils
 {

@@ -17,7 +17,6 @@ namespace cg::data_structures
         std::unordered_map<Vertex, Neighbours> _adj;
 
     public:
-
         int numVertices() const 
         {
             return _adj.size();
