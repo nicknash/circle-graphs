@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <unordered_map>
 #include <unordered_set>
 
@@ -9,7 +11,7 @@ namespace cg::data_structures
     {
     public:
         using Vertex = int;
-        using Neighbours = std::unordered_set<Vertex>;
+        using Neighbours = std::vector<Vertex>;
     
     private:
         std::unordered_map<Vertex, Neighbours> _adj;
@@ -18,7 +20,7 @@ namespace cg::data_structures
 
         int numVertices() const 
         {
-
+            return _adj.size();
         }
 
         const Neighbours &neighbours(Vertex u) const
@@ -33,7 +35,5 @@ namespace cg::data_structures
             auto it = _adj.find(u);
             return it != _adj.end() ? it->second : Neighbours{};
         }
-
-
     };
 }

@@ -14,6 +14,7 @@
 #include "utils/chord_model_utils.h"
 #include "utils/counters.h"
 #include "utils/components.h"
+#include "utils/spinrad_prime.h"
 
 #include "mis/distinct/naive.h"
 #include "mis/distinct/valiente.h"
