@@ -624,6 +624,7 @@ public:
         std::unordered_set<int> sV1(v1.begin(), v1.end());
         std::unordered_set<int> sV2(v2.begin(), v2.end());
         std::unordered_set<int> prevNeighboursInV2;
+        int prevVertex;
         for (auto x : v1)
         {
             std::unordered_set<int> neighboursInV2;
@@ -643,17 +644,18 @@ public:
                     {
                         if (!prevNeighboursInV2.contains(v))
                         {
-                            throw std::runtime_error(std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, x - 1));
+                            throw std::runtime_error(std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, prevVertex));
                         }
                     }
                     for (auto v : prevNeighboursInV2)
                     {
                         if (!neighboursInV2.contains(v))
                         {
-                            throw std::runtime_error(std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x - 1, v, x));
+                            throw std::runtime_error(std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", prevVertex, v, x));
                         }
                     }
                 }
+                prevVertex = x;
                 prevNeighboursInV2 = std::move(neighboursInV2);
             }
         }
