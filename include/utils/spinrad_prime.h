@@ -3,6 +3,7 @@
 #include "data_structures/graph.h"
 #include <vector>
 #include <tuple>
+#include <optional>
 
 namespace cg::utils
 {
