@@ -388,14 +388,7 @@ public:
         std::vector<Forest> forests;
         std::vector<bool> isMarked(g.numVertices(), false);
         std::vector<Node*> vertexToNode(g.numVertices(), nullptr);
-/*
-        vertexToNode[a] = new Node(a, nextLevelId, nullptr);
-        isMarked[a] = true;
-        ++nextLevelId;
-        isMarked[b] = true;
-        vertexToNode[b] = new Node(b, nextLevelId, nullptr);
-        ++nextLevelId;
-  */
+
         for(const auto& roots : rootGroups)
         {
             for (const auto& r : roots)
@@ -452,7 +445,7 @@ public:
         return std::tuple{forests,vertexToNode, nextLevelId};
     }
 
-    void addIfEligible(std::vector<int>& vertexIdToLastInitialLevelSize, std::queue<Node*> eligibleNodes, Node* n, int initialLevelSize)
+    void addIfEligible(std::vector<int>& vertexIdToLastInitialLevelSize, std::queue<Node*>& eligibleNodes, Node* n, int initialLevelSize)
     {
         auto vertexId = n->vertexId();
         auto previousSize = vertexIdToLastInitialLevelSize[vertexId];
@@ -564,47 +557,54 @@ public:
         return allForests;
     }
 
-    bool SpinradPrime::isPrime(const cg::data_structures::Graph& g)
+    std::optional<std::tuple<std::vector<int>,std::vector<int>>> SpinradPrime::trySplit(const cg::data_structures::Graph& g)
     {
-        if(g.numVertices() < 5)
+        if(g.numVertices() < 4)
         {
-            return false;
+            return std::nullopt;
         }
-        auto allForests = getDividedForests(g, 2, 4);
-        
-        std::vector<std::vector<int>> forestVertices;
-        
-        int maxForestIndex = 0;
-        int maxForestSize = 0;
-        for(int i = 0; i < allForests.size(); ++i)
+        int a = 0;
+        int b = 1;
+        int c = 2;
+        // If g has a split, then some pair of any three vertices must appear on the same side of the split
+        std::array<std::tuple<int, int>, 3> vertexPairs = { std::tuple{a, b}, std::tuple{a, c}, std::tuple{b, c}};
+
+        for(auto [x, y] : vertexPairs)
         {
-            auto f = allForests[i];
-            auto vertices = f.getCorrespondingVertices();
-            forestVertices.push_back(vertices);
-        
-            if(vertices.size() > maxForestSize)
+            auto allForests = getDividedForests(g, x, y);
+
+            std::vector<std::vector<int>> forestVertices;
+
+            int maxForestIndex = 0;
+            int maxForestSize = 0;
+            for (int i = 0; i < allForests.size(); ++i)
             {
-                maxForestIndex = i;
-                maxForestSize = vertices.size();
-            }
-        }
-        if(maxForestSize > 1)
-        {
-            auto v2 = forestVertices[maxForestIndex];
-            std::vector<int> v1;
-            for(int i = 0; i < allForests.size(); ++i)
-            {
-                auto v = forestVertices[i];
-                if(i != maxForestIndex)
+                auto f = allForests[i];
+                auto vertices = f.getCorrespondingVertices();
+                forestVertices.push_back(vertices);
+
+                if (vertices.size() > maxForestSize)
                 {
-                    v1.insert(v1.end(), v.begin(), v.end());
+                    maxForestIndex = i;
+                    maxForestSize = vertices.size();
                 }
             }
+
+            if (maxForestSize > 1)
+            {
+                auto v2 = forestVertices[maxForestIndex];
+                std::vector<int> v1;
+                for (int i = 0; i < allForests.size(); ++i)
+                {
+                    auto v = forestVertices[i];
+                    if (i != maxForestIndex)
+                    {
+                        v1.insert(v1.end(), v.begin(), v.end());
+                    }
+                }
+                return std::tuple{v1, v2};
+            }
         }
-        else
-        {
-            // no split with this pair
-        }
-        return true;
+        return std::nullopt;
     }
 }

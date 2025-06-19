@@ -33,6 +33,7 @@
 #include "mis/shared/pruned_output_sensitive.h"
 #include "mis/shared/valiente.h"
 
+#include <unordered_set>
 
 template<typename Range>
 std::string csv_sizes(const Range& r) {
@@ -55,22 +56,23 @@ std::string csv_sizes(const Range& r) {
 
 int main()
 {
-/*    cg::data_structures::Graph g(12);
-
-    g.addEdge(1, 2);
-    g.addEdge(2, 6);
-    g.addEdge(2, 11);
-    g.addEdge(3, 11);
-    g.addEdge(3, 4);
-    g.addEdge(3, 10);
-    g.addEdge(4, 5);
-    g.addEdge(7, 11);
-    g.addEdge(7, 8);
-    g.addEdge(7, 9);
-    g.addEdge(9, 10);
-*/
+    cg::data_structures::Graph g(11);
 
 /*
+    g.addEdge(0, 1);
+    g.addEdge(1, 5);
+    g.addEdge(1, 10);
+    g.addEdge(2, 10);
+    g.addEdge(2, 3);
+    g.addEdge(2, 9);
+    g.addEdge(3, 4);
+    g.addEdge(6, 10);
+    g.addEdge(6, 7);
+    g.addEdge(6, 8);
+    g.addEdge(8, 9);
+*/
+/*
+
     cg::data_structures::Graph g(6);
     g.addEdge(0, 1);
     g.addEdge(1, 2);
@@ -79,7 +81,7 @@ int main()
     g.addEdge(4, 5);
     g.addEdge(5, 0);
 */
-
+/*
     cg::data_structures::Graph g(6);
     g.addEdge(0, 1);
     g.addEdge(0, 2);
@@ -87,10 +89,77 @@ int main()
     g.addEdge(0, 4);
     g.addEdge(0, 5);
 
-
+*/
     cg::utils::SpinradPrime sp;
     
-    sp.isPrime(g);
+    auto ms = sp.trySplit(g);
+    if(ms)
+    {
+        auto [v1, v2] = ms.value();
+        if(v1.size() < 2)
+        {
+            throw std::runtime_error("v1 has less than 2 vertices!");
+        }
+        if(v2.size() < 2)
+        {
+            throw std::runtime_error("v2 has less than 2 vertices!");
+        }
+        std::cout << "checking split" << std::endl;
+        std::unordered_set<int> sV1(v1.begin(), v1.end());
+        std::unordered_set<int> sV2(v2.begin(), v2.end());
+        std::cout << "---- v1: ";
+        for(auto v : v1)
+        {
+            std::cout << v << ", ";
+        }
+        std::cout << std::endl;
+        std::cout << "---- v2: ";
+        for(auto v : v2)
+        {
+            std::cout << v << ", ";
+        }
+        std::cout << std::endl;
+
+        std::unordered_set<int> prevNeighboursInV2;
+        for(auto x : v1)
+        {
+            std::unordered_set<int> neighboursInV2;
+
+            for(auto y : g.neighbours(x))
+            {
+                if(sV2.contains(y))
+                {
+                    neighboursInV2.insert(y);
+                }
+            }
+            if(!neighboursInV2.empty())
+            {
+                if(!prevNeighboursInV2.empty())
+                {
+                    for(auto v : neighboursInV2)
+                    {
+                        if(!prevNeighboursInV2.contains(v))
+                        {
+                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, x - 1) << std::endl;
+                        }
+                    }
+                    for(auto v : prevNeighboursInV2)
+                    {
+                        if(!neighboursInV2.contains(v))
+                        {
+                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x - 1, v, x) << std::endl;
+                        }
+                    }
+                }
+                prevNeighboursInV2 = std::move(neighboursInV2);
+            } 
+        }
+        std::cout << "split check finished" << std::endl;
+    }
+    else
+    {
+        std::cout << "Graph is prime" << std::endl;
+    }
     
     return 0;
 
