@@ -53,11 +53,120 @@ std::string csv_sizes(const Range& r) {
     return oss.str();
 }
 
+void primeTest(int numEndpoints)
+{
+    std::vector<int> connectionSeq;
+    for (int i = 1; i < numEndpoints / 2; i ++)
+    {
+        connectionSeq.push_back(i);
+    }
+
+    auto chordModel = cg::utils::generateChordModel(numEndpoints, connectionSeq);
+    auto intervalModel = chordModel.toDistinctIntervalModel();
+    auto intervals = intervalModel.getAllIntervals();
+    
+    //auto intervals = cg::interval_model_utils::generateRandomIntervals(2500, 0);
+    auto comp = cg::components::getConnectedComponents(intervals);
+    int m = 0;
+    std::vector<cg::data_structures::Interval> largestComp;
+    for(auto x : comp)
+    {
+        if(x.size() > m)
+        {
+            largestComp = x;
+            m = x.size();
+        }
+    }
+    std::cout << std::format("Largest component has size {}, there were {} connected components", largestComp.size(), comp.size()) << std::endl;
+    intervals = largestComp;
+
+    cg::data_structures::Graph g(intervals.size());
+
+    for (int i = 0; i < intervals.size(); ++i)
+    {
+        for (int j = 0; j < intervals.size(); ++j)
+        {
+            if (intervals[i].overlaps(intervals[j]))
+            {
+                g.addEdge(i, j);
+            }
+        }
+    }
+    cg::utils::SpinradPrime sp;
+
+    auto ms = sp.trySplit(g);
+    if (ms)
+    {
+        auto [v1, v2] = ms.value();
+        if (v1.size() < 2)
+        {
+            throw std::runtime_error("v1 has less than 2 vertices!");
+        }
+        if (v2.size() < 2)
+        {
+            throw std::runtime_error("v2 has less than 2 vertices!");
+        }
+        std::cout << "checking split" << std::endl;
+        std::unordered_set<int> sV1(v1.begin(), v1.end());
+        std::unordered_set<int> sV2(v2.begin(), v2.end());
+        std::cout << std::format("---- v1 [{}]: ", v1.size());
+        for (auto v : v1)
+        {
+            std::cout << v << ", ";
+        }
+        std::cout << std::endl;
+        std::cout << std::format("---- v2 [{}]: ", v2.size());
+        for (auto v : v2)
+        {
+            std::cout << v << ", ";
+        }
+        std::cout << std::endl;
+
+        std::unordered_set<int> prevNeighboursInV2;
+        for (auto x : v1)
+        {
+            std::unordered_set<int> neighboursInV2;
+
+            for (auto y : g.neighbours(x))
+            {
+                if (sV2.contains(y))
+                {
+                    neighboursInV2.insert(y);
+                }
+            }
+            if (!neighboursInV2.empty())
+            {
+                if (!prevNeighboursInV2.empty())
+                {
+                    for (auto v : neighboursInV2)
+                    {
+                        if (!prevNeighboursInV2.contains(v))
+                        {
+                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, x - 1) << std::endl;
+                        }
+                    }
+                    for (auto v : prevNeighboursInV2)
+                    {
+                        if (!neighboursInV2.contains(v))
+                        {
+                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x - 1, v, x) << std::endl;
+                        }
+                    }
+                }
+                prevNeighboursInV2 = std::move(neighboursInV2);
+            }
+        }
+        std::cout << "split check finished" << std::endl;
+    }
+    else
+    {
+        std::cout << "Graph is prime" << std::endl;
+    }
+}
 
 int main()
 {
-    cg::data_structures::Graph g(11);
-
+    primeTest(100);
 /*
     g.addEdge(0, 1);
     g.addEdge(1, 5);
@@ -90,76 +199,7 @@ int main()
     g.addEdge(0, 5);
 
 */
-    cg::utils::SpinradPrime sp;
-    
-    auto ms = sp.trySplit(g);
-    if(ms)
-    {
-        auto [v1, v2] = ms.value();
-        if(v1.size() < 2)
-        {
-            throw std::runtime_error("v1 has less than 2 vertices!");
-        }
-        if(v2.size() < 2)
-        {
-            throw std::runtime_error("v2 has less than 2 vertices!");
-        }
-        std::cout << "checking split" << std::endl;
-        std::unordered_set<int> sV1(v1.begin(), v1.end());
-        std::unordered_set<int> sV2(v2.begin(), v2.end());
-        std::cout << "---- v1: ";
-        for(auto v : v1)
-        {
-            std::cout << v << ", ";
-        }
-        std::cout << std::endl;
-        std::cout << "---- v2: ";
-        for(auto v : v2)
-        {
-            std::cout << v << ", ";
-        }
-        std::cout << std::endl;
-
-        std::unordered_set<int> prevNeighboursInV2;
-        for(auto x : v1)
-        {
-            std::unordered_set<int> neighboursInV2;
-
-            for(auto y : g.neighbours(x))
-            {
-                if(sV2.contains(y))
-                {
-                    neighboursInV2.insert(y);
-                }
-            }
-            if(!neighboursInV2.empty())
-            {
-                if(!prevNeighboursInV2.empty())
-                {
-                    for(auto v : neighboursInV2)
-                    {
-                        if(!prevNeighboursInV2.contains(v))
-                        {
-                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, x - 1) << std::endl;
-                        }
-                    }
-                    for(auto v : prevNeighboursInV2)
-                    {
-                        if(!neighboursInV2.contains(v))
-                        {
-                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x - 1, v, x) << std::endl;
-                        }
-                    }
-                }
-                prevNeighboursInV2 = std::move(neighboursInV2);
-            } 
-        }
-        std::cout << "split check finished" << std::endl;
-    }
-    else
-    {
-        std::cout << "Graph is prime" << std::endl;
-    }
+   
     
     return 0;
 

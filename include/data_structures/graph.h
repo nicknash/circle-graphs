@@ -11,36 +11,37 @@ namespace cg::data_structures
     {
     public:
         using Vertex = int;
-        using Neighbours = std::vector<Vertex>;
-    
+        using Neighbours = std::unordered_set<Vertex>;
+
     private:
         std::vector<Neighbours> _vertexToNeighbours;
 
     public:
         Graph(int numVertices) : _vertexToNeighbours(numVertices)
         {
-
         }
 
         void addEdge(Vertex u, Vertex v)
         {
-            _vertexToNeighbours[u].push_back(v);
-            _vertexToNeighbours[v].push_back(u);
+            if (u < 0 || u >= numVertices() || v < 0 || v >= numVertices())
+            {
+                throw std::out_of_range("Vertex index out of range");
+            }
+            _vertexToNeighbours[u].insert(v);
+            _vertexToNeighbours[v].insert(u);
         }
 
-        int numVertices() const 
+        int numVertices() const
         {
-            return _vertexToNeighbours.size();
-        }
-
-        std::vector<std::tuple<int, int>> clean()
-        {
-            // efficiently remove duplicates from each _vertexToNeighbours, (e.g. bucket sort them)
-            // return any duplicates found.
+            return static_cast<int>(_vertexToNeighbours.size());
         }
 
         const Neighbours &neighbours(Vertex v) const
         {
+            if (v < 0 || v >= numVertices())
+            {
+                throw std::out_of_range("Vertex index out of range");
+            }
             return _vertexToNeighbours[v];
         }
     };

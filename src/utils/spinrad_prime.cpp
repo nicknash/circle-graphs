@@ -333,38 +333,43 @@ public:
 
     // return all neighbours of 'a' except 'b' and except those also in neighbours(b)
     // i.e., N(a) - N(b) - {b}
-    cg::data_structures::Graph::Neighbours neighbours_except(const cg::data_structures::Graph &g,
-                                                             const cg::data_structures::Graph::Vertex &a,
-                                                             const cg::data_structures::Graph::Vertex &b)
+    std::vector<cg::data_structures::Graph::Vertex> neighbours_except(
+        const cg::data_structures::Graph &g,
+        const cg::data_structures::Graph::Vertex &a,
+        const cg::data_structures::Graph::Vertex &b)
     {
         const auto &Na = g.neighbours(a);
         const auto &Nb = g.neighbours(b);
 
-        cg::data_structures::Graph::Neighbours result;
+        std::vector<cg::data_structures::Graph::Vertex> result;
         result.reserve(Na.size());
+
         for (auto v : Na)
         {
-            // skip b, and skip any v that appears in Nb
-            if (v != b && std::find(Nb.begin(), Nb.end(), v) == Nb.end())
+            if (v != b && Nb.find(v) == Nb.end())
             {
                 result.push_back(v);
             }
         }
+
         return result;
     }
 
-    cg::data_structures::Graph::Neighbours neighbours_intersection(const cg::data_structures::Graph::Neighbours &Na,
-                                                                   const cg::data_structures::Graph::Neighbours &Nb)
+    std::vector<cg::data_structures::Graph::Vertex> neighbours_intersection(
+        const cg::data_structures::Graph::Neighbours &Na,
+        const cg::data_structures::Graph::Neighbours &Nb)
     {
-        cg::data_structures::Graph::Neighbours result;
+        std::vector<cg::data_structures::Graph::Vertex> result;
         result.reserve(std::min(Na.size(), Nb.size()));
+
         for (auto v : Na)
         {
-            if (std::find(Nb.begin(), Nb.end(), v) != Nb.end())
+            if (Nb.find(v) != Nb.end())
             {
                 result.push_back(v);
             }
         }
+
         return result;
     }
 
@@ -376,9 +381,9 @@ public:
         auto bForestRoots = neighbours_except(g, b, a);
         auto intersectForestRoots = neighbours_intersection(g.neighbours(a), g.neighbours(b));
 
-        std::array<cg::data_structures::Graph::Neighbours, 5> rootGroups{{
-            cg::data_structures::Graph::Neighbours{aForestRoots.begin(), aForestRoots.end()},
-            cg::data_structures::Graph::Neighbours{bForestRoots.begin(), bForestRoots.end()},
+        std::array<std::vector<int>, 5> rootGroups{{
+            aForestRoots,
+            bForestRoots,
             intersectForestRoots,
             {a},
             {b} 
@@ -500,7 +505,7 @@ public:
     {
         auto [allForests, vertexToNode, nextLevelId] = createForests(g, a, b);
 
-        std::vector<std::vector<Node*>> levelIdToExtractedNodes(2 * g.numVertices()); 
+        std::vector<std::vector<Node*>> levelIdToExtractedNodes(g.numVertices() * g.numVertices()); // ugh this should wrap and be linear in size, there are at most g.numVertices() active levels at a given moment.
         std::vector<int> seenLevelIds;
 
         std::vector<int> vertexIdToLastInitialLevelSize(g.numVertices(), std::numeric_limits<int>::max());        
@@ -549,6 +554,10 @@ public:
                     addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, initialLevel->size());
                 }
                 ++nextLevelId;
+                if(nextLevelId >= levelIdToExtractedNodes.size())
+                {
+                    throw std::runtime_error("Huh? nextLevelId is too big!");
+                }
                 allForests.push_back(std::move(newForest));
                 newInitialLevelNodes.clear();
             }
