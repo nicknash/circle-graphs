@@ -98,17 +98,6 @@ void primeTest(int numEndpoints)
     if (ms)
     {
         auto [v1, v2] = ms.value();
-        if (v1.size() < 2)
-        {
-            throw std::runtime_error("v1 has less than 2 vertices!");
-        }
-        if (v2.size() < 2)
-        {
-            throw std::runtime_error("v2 has less than 2 vertices!");
-        }
-        std::cout << "checking split" << std::endl;
-        std::unordered_set<int> sV1(v1.begin(), v1.end());
-        std::unordered_set<int> sV2(v2.begin(), v2.end());
         std::cout << std::format("---- v1 [{}]: ", v1.size());
         for (auto v : v1)
         {
@@ -121,42 +110,7 @@ void primeTest(int numEndpoints)
             std::cout << v << ", ";
         }
         std::cout << std::endl;
-
-        std::unordered_set<int> prevNeighboursInV2;
-        for (auto x : v1)
-        {
-            std::unordered_set<int> neighboursInV2;
-
-            for (auto y : g.neighbours(x))
-            {
-                if (sV2.contains(y))
-                {
-                    neighboursInV2.insert(y);
-                }
-            }
-            if (!neighboursInV2.empty())
-            {
-                if (!prevNeighboursInV2.empty())
-                {
-                    for (auto v : neighboursInV2)
-                    {
-                        if (!prevNeighboursInV2.contains(v))
-                        {
-                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, x - 1) << std::endl;
-                        }
-                    }
-                    for (auto v : prevNeighboursInV2)
-                    {
-                        if (!neighboursInV2.contains(v))
-                        {
-                            std::cout << std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x - 1, v, x) << std::endl;
-                        }
-                    }
-                }
-                prevNeighboursInV2 = std::move(neighboursInV2);
-            }
-        }
-        std::cout << "split check finished" << std::endl;
+        sp.verifySplit(g, v1, v2);
     }
     else
     {
@@ -166,7 +120,7 @@ void primeTest(int numEndpoints)
 
 int main()
 {
-    primeTest(100);
+    primeTest(50);
 /*
     g.addEdge(0, 1);
     g.addEdge(1, 5);

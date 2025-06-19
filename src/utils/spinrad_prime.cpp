@@ -6,6 +6,8 @@
 #include <stack>
 #include <algorithm>
 #include <optional>
+#include <format>
+#include <unordered_map>
 
 #include "data_structures/graph.h"
 #include "utils/spinrad_prime.h"
@@ -505,7 +507,7 @@ public:
     {
         auto [allForests, vertexToNode, nextLevelId] = createForests(g, a, b);
 
-        std::vector<std::vector<Node*>> levelIdToExtractedNodes(g.numVertices() * g.numVertices()); // ugh this should wrap and be linear in size, there are at most g.numVertices() active levels at a given moment.
+        std::unordered_map<int, std::vector<Node*>> levelIdToExtractedNodes; // By treating levelId more carefully (there are only ever a linear number in existence at a given time, we could bucket sort, i.e. just use std::vector<std::vector<Node*>> instead of pay the logarithmic map penalty)
         std::vector<int> seenLevelIds;
 
         std::vector<int> vertexIdToLastInitialLevelSize(g.numVertices(), std::numeric_limits<int>::max());        
@@ -519,9 +521,6 @@ public:
         
             auto tmp = f.getCorrespondingVertices();
         }
-
-        
-
         std::vector<Node*> crossEdgeTargets;
         while(!eligibleNodes.empty())
         {
@@ -535,7 +534,6 @@ public:
                 seenLevelIds.push_back(oldLevelId);
                 yNode->deleteFromForest();
                 levelIdToExtractedNodes[oldLevelId].push_back(yNode);
-
             }
             crossEdgeTargets.clear();
 
@@ -554,10 +552,6 @@ public:
                     addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, initialLevel->size());
                 }
                 ++nextLevelId;
-                if(nextLevelId >= levelIdToExtractedNodes.size())
-                {
-                    throw std::runtime_error("Huh? nextLevelId is too big!");
-                }
                 allForests.push_back(std::move(newForest));
                 newInitialLevelNodes.clear();
             }
@@ -615,5 +609,53 @@ public:
             }
         }
         return std::nullopt;
+    }
+
+    void SpinradPrime::verifySplit(const cg::data_structures::Graph& g, std::vector<int>& v1, std::vector<int>& v2)
+    {
+        if (v1.size() < 2)
+        {
+            throw std::runtime_error("v1 has less than 2 vertices!");
+        }
+        if (v2.size() < 2)
+        {
+            throw std::runtime_error("v2 has less than 2 vertices!");
+        }
+        std::unordered_set<int> sV1(v1.begin(), v1.end());
+        std::unordered_set<int> sV2(v2.begin(), v2.end());
+        std::unordered_set<int> prevNeighboursInV2;
+        for (auto x : v1)
+        {
+            std::unordered_set<int> neighboursInV2;
+
+            for (auto y : g.neighbours(x))
+            {
+                if (sV2.contains(y))
+                {
+                    neighboursInV2.insert(y);
+                }
+            }
+            if (!neighboursInV2.empty())
+            {
+                if (!prevNeighboursInV2.empty())
+                {
+                    for (auto v : neighboursInV2)
+                    {
+                        if (!prevNeighboursInV2.contains(v))
+                        {
+                            throw std::runtime_error(std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x, v, x - 1));
+                        }
+                    }
+                    for (auto v : prevNeighboursInV2)
+                    {
+                        if (!neighboursInV2.contains(v))
+                        {
+                            throw std::runtime_error(std::format("Not a split!: {} has neighbour {} in V2 but {} does not!", x - 1, v, x));
+                        }
+                    }
+                }
+                prevNeighboursInV2 = std::move(neighboursInV2);
+            }
+        }
     }
 }
