@@ -10,6 +10,9 @@
 #include "data_structures/distinct_interval_model.h"
 #include "data_structures/shared_interval_model.h"
 #include "data_structures/chord_model.h"
+#include "data_structures/graph.h"
+
+
 #include "utils/interval_model_utils.h"
 #include "utils/chord_model_utils.h"
 #include "utils/counters.h"
@@ -52,6 +55,45 @@ std::string csv_sizes(const Range& r) {
 
 int main()
 {
+/*    cg::data_structures::Graph g(12);
+
+    g.addEdge(1, 2);
+    g.addEdge(2, 6);
+    g.addEdge(2, 11);
+    g.addEdge(3, 11);
+    g.addEdge(3, 4);
+    g.addEdge(3, 10);
+    g.addEdge(4, 5);
+    g.addEdge(7, 11);
+    g.addEdge(7, 8);
+    g.addEdge(7, 9);
+    g.addEdge(9, 10);
+*/
+
+/*
+    cg::data_structures::Graph g(6);
+    g.addEdge(0, 1);
+    g.addEdge(1, 2);
+    g.addEdge(2, 3);
+    g.addEdge(3, 4);
+    g.addEdge(4, 5);
+    g.addEdge(5, 0);
+*/
+
+    cg::data_structures::Graph g(6);
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(0, 3);
+    g.addEdge(0, 4);
+    g.addEdge(0, 5);
+
+
+    cg::utils::SpinradPrime sp;
+    
+    sp.isPrime(g);
+    
+    return 0;
+
 //5 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 1 1 1 1 0 0 0 0 0
 //5 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 1 1 1 1 0 0 0 0 0 0
 //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5

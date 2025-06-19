@@ -14,25 +14,34 @@ namespace cg::data_structures
         using Neighbours = std::vector<Vertex>;
     
     private:
-        std::unordered_map<Vertex, Neighbours> _adj;
+        std::vector<Neighbours> _vertexToNeighbours;
 
     public:
+        Graph(int numVertices) : _vertexToNeighbours(numVertices)
+        {
+
+        }
+
+        void addEdge(Vertex u, Vertex v)
+        {
+            _vertexToNeighbours[u].push_back(v);
+            _vertexToNeighbours[v].push_back(u);
+        }
+
         int numVertices() const 
         {
-            return _adj.size();
+            return _vertexToNeighbours.size();
         }
 
-        const Neighbours &neighbours(Vertex u) const
+        std::vector<std::tuple<int, int>> clean()
         {
-            static const Neighbours empty;
-            auto it = _adj.find(u);
-            return it != _adj.end() ? it->second : empty;
+            // efficiently remove duplicates from each _vertexToNeighbours, (e.g. bucket sort them)
+            // return any duplicates found.
         }
 
-        Neighbours neighbours_copy(Vertex u) const
+        const Neighbours &neighbours(Vertex v) const
         {
-            auto it = _adj.find(u);
-            return it != _adj.end() ? it->second : Neighbours{};
+            return _vertexToNeighbours[v];
         }
     };
 }

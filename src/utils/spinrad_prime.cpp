@@ -10,6 +10,8 @@
 #include "data_structures/graph.h"
 #include "utils/spinrad_prime.h"
 
+#include <iostream>
+
 namespace cg::utils
 {
     class InitialLevel;
@@ -27,12 +29,15 @@ namespace cg::utils
 
         InitialLevel* _initialLevel;
         bool _mark;
+        int _numDeletedChildren;
     public:
         Node(int vertexId, int levelId, Node* parent);
 
         Node* parent() const;
 
         const std::vector<Node*> copy_children() const;
+
+        int numChildren();
 
         void mark();
 
@@ -90,12 +95,12 @@ namespace cg::utils
 
 class Forest
 {
-    InitialLevel& _initialLevel;
+    InitialLevel* _initialLevel;
 public:
-    Forest(InitialLevel& initialLevel, std::vector<Node*>& initialLevelNodes);
+    Forest(InitialLevel* initialLevel, std::vector<Node*>& initialLevelNodes);
 
-    InitialLevel& initialLevel() const;
-
+    InitialLevel& initialLevel();
+    std::vector<int> getCorrespondingVertices();
 };
 
     // ---------------------------------------------------------------------
@@ -125,6 +130,12 @@ public:
         }
         return alive;
     }
+
+    int Node::numChildren()
+    {
+        return _children.size() - _numDeletedChildren;
+    }
+
 
     void Node::mark()
     {
@@ -158,6 +169,7 @@ public:
             throw std::runtime_error("Cannot set initial level, this node has a parent.");
         }
         _initialLevel = initialLevel;
+        _initialLevel->add(this);
     }
 
     const InitialLevel* Node::getInitialLevel() const
@@ -181,6 +193,8 @@ public:
         if(_parent)
         {
             _parent->_children[_childIdx] = nullptr;
+            ++_parent->_numDeletedChildren;
+            _parent = nullptr;
         }
         else
         {
@@ -270,18 +284,52 @@ public:
     }
 
     // Forest ---------------------------------------------------------------
-    Forest::Forest(InitialLevel& initialLevel, std::vector<Node*>& initialLevelNodes) : _initialLevel(initialLevel)
+    Forest::Forest(InitialLevel* initialLevel, std::vector<Node*>& initialLevelNodes) : _initialLevel(initialLevel)
     {
         for(auto n : initialLevelNodes)
         {
-            n->addToInitialLevel(&_initialLevel);
+            n->addToInitialLevel(_initialLevel);
         }
     }
 
-    InitialLevel& Forest::initialLevel() const
+    InitialLevel& Forest::initialLevel()
     {
-        return _initialLevel;
+        return *_initialLevel;
     }
+
+    std::vector<int> Forest::getCorrespondingVertices()
+    {
+        std::queue<Node*> pending;
+        for(auto n : *_initialLevel)
+        {
+            pending.push(n);
+        }
+        std::vector<Node*> allNodes;
+
+        while(!pending.empty())
+        {
+            auto n = pending.front();
+            allNodes.push_back(n);
+            pending.pop();
+            for(auto child : n->copy_children())
+            {
+                if(!child->isMarked())
+                {
+                    pending.push(child);
+                    child->mark();
+                }
+            }
+        }
+
+        std::vector<int> result;
+        for(auto n : allNodes)
+        {
+            n->unmark();
+            result.push_back(n->vertexId());
+        }
+        return result;
+    }
+
 
     // return all neighbours of 'a' except 'b' and except those also in neighbours(b)
     // i.e., N(a) - N(b) - {b}
@@ -320,7 +368,7 @@ public:
         return result;
     }
 
-    auto createForests(const cg::data_structures::Graph& g, const cg::data_structures::Graph::Vertex& a, const cg::data_structures::Graph::Vertex& b)
+    std::tuple<std::vector<Forest>, std::vector<Node*>, int> createForests(const cg::data_structures::Graph& g, const cg::data_structures::Graph::Vertex& a, const cg::data_structures::Graph::Vertex& b)
     {
         auto nextLevelId = 0; // This counter is globally unique, across all levels in all forests.
 
@@ -328,19 +376,26 @@ public:
         auto bForestRoots = neighbours_except(g, b, a);
         auto intersectForestRoots = neighbours_intersection(g.neighbours(a), g.neighbours(b));
 
-        std::array<cg::data_structures::Graph::Neighbours, 3> rootGroups{{
+        std::array<cg::data_structures::Graph::Neighbours, 5> rootGroups{{
             cg::data_structures::Graph::Neighbours{aForestRoots.begin(), aForestRoots.end()},
             cg::data_structures::Graph::Neighbours{bForestRoots.begin(), bForestRoots.end()},
-            intersectForestRoots 
+            intersectForestRoots,
+            {a},
+            {b} 
         }};
 
 
         std::vector<Forest> forests;
-        std::vector<bool> isMarked(g.numVertices());
-        std::vector<Node*> vertexToNode(g.numVertices());
-
+        std::vector<bool> isMarked(g.numVertices(), false);
+        std::vector<Node*> vertexToNode(g.numVertices(), nullptr);
+/*
+        vertexToNode[a] = new Node(a, nextLevelId, nullptr);
         isMarked[a] = true;
+        ++nextLevelId;
         isMarked[b] = true;
+        vertexToNode[b] = new Node(b, nextLevelId, nullptr);
+        ++nextLevelId;
+  */
         for(const auto& roots : rootGroups)
         {
             for (const auto& r : roots)
@@ -351,6 +406,10 @@ public:
 
         for(const auto& roots : rootGroups)
         {
+            if(roots.size() == 0)
+            {
+                continue;
+            }
             auto forestId = forests.size();
 
             std::vector<Node*> currentLevel;
@@ -361,7 +420,8 @@ public:
                 vertexToNode[r] = v;
                 currentLevel.emplace_back(v);
             }
-            InitialLevel initialLevel(nextLevelId);
+            
+            auto initialLevel = new InitialLevel(nextLevelId);
             Forest f(initialLevel, currentLevel);
             ++nextLevelId;
             forests.push_back(f); 
@@ -375,12 +435,14 @@ public:
                     auto neighbours = g.neighbours(v->vertexId());
                     for(auto w : neighbours)
                     {
-                        auto child = new Node(w, nextLevelId, v);
-                        vertexToNode[w] = child;
-                        isMarked[w] = true;
-
-                        v->addChild(child);
-                        nextLevel.push_back(child);
+                        if(!isMarked[w])
+                        {
+                            auto child = new Node(w, nextLevelId, v);
+                            vertexToNode[w] = child;
+                            isMarked[w] = true;
+                            v->addChild(child);
+                            nextLevel.push_back(child);
+                        }
                     }
                 }
                 ++nextLevelId;
@@ -401,7 +463,7 @@ public:
         }
     }
 
-    void markCrossEdgeTargets(const cg::data_structures::Graph &g, std::vector<Node*>& vertexToNode, Node *source, std::vector<Node*> crossEdgeTargets)
+    void markCrossEdgeTargets(const cg::data_structures::Graph &g, std::vector<Node*>& vertexToNode, Node *source, std::vector<Node*>& crossEdgeTargets)
     {
         auto xVertex = source->vertexId();
         auto xNeighbours = g.neighbours(xVertex);
@@ -410,20 +472,22 @@ public:
         for (auto y : xNeighbours)
         {
             auto yNode = vertexToNode[y];
-        
-            // Perhaps there is a more efficient way to determine if other nodes are in the same forest as 'source'
-            // E.g. Perhaps by maintaining a list of edges per node somehow, and updating it as we move the node to a new forest.
-            // Spinrad claims this can be done in O(degree(x)) for a vertex x, but doesn't explain how.
-            auto n = yNode;
-            while(n->parent() != nullptr)
+            if (yNode->parent() != nullptr || yNode->getInitialLevel()->size() > 1) // There's no need to split a node that is the sole root of a forest (it'd be the identity operation)
             {
-                n = n->parent();
-            }
-            auto sourceInitialLevel = source->getInitialLevel(); // This must exist, because 'source' must always be part of an initial level.
-            auto sameForestAsSource = sourceInitialLevel->levelId() == n->levelId(); 
-            if (!sameForestAsSource)
-            {
-                yNode->mark();
+                // Perhaps there is a more efficient way to determine if other nodes are in the same forest as 'source'
+                // E.g. Perhaps by maintaining a list of edges per node somehow, and updating it as we move the node to a new forest.
+                // Spinrad claims this can be done in O(degree(x)) for a vertex x, but doesn't explain how.
+                auto n = yNode;
+                while (n->parent() != nullptr)
+                {
+                    n = n->parent();
+                }
+                auto sourceInitialLevel = source->getInitialLevel(); // This must exist, because 'source' must always be part of an initial level.
+                auto sameForestAsSource = sourceInitialLevel->levelId() == n->levelId();
+                if (!sameForestAsSource)
+                {
+                    yNode->mark();
+                }
             }
         }
 
@@ -439,7 +503,7 @@ public:
         }
     }
 
-    bool SpinradPrime::areSameSideSplit(const cg::data_structures::Graph& g, const cg::data_structures::Graph::Vertex& a, const cg::data_structures::Graph::Vertex& b)
+    std::vector<Forest> SpinradPrime::getDividedForests(const cg::data_structures::Graph& g, const cg::data_structures::Graph::Vertex& a, const cg::data_structures::Graph::Vertex& b)
     {
         auto [allForests, vertexToNode, nextLevelId] = createForests(g, a, b);
 
@@ -450,11 +514,15 @@ public:
         std::queue<Node*> eligibleNodes; 
         for(auto& f : allForests)
         {
-            for(auto n : f.initialLevel())
+            for(auto n : f.initialLevel()) 
             {
                 eligibleNodes.push(n);
             }
+        
+            auto tmp = f.getCorrespondingVertices();
         }
+
+        
 
         std::vector<Node*> crossEdgeTargets;
         while(!eligibleNodes.empty())
@@ -481,11 +549,11 @@ public:
                 {
                     n->setLevelId(nextLevelId);
                 }
-                InitialLevel initialLevel(nextLevelId);
+                auto initialLevel = new InitialLevel(nextLevelId);
                 Forest newForest(initialLevel, newInitialLevelNodes); 
-                for(auto n : initialLevel)
+                for(auto n : *initialLevel)
                 {
-                    addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, initialLevel.size());
+                    addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, initialLevel->size());
                 }
                 ++nextLevelId;
                 allForests.push_back(std::move(newForest));
@@ -493,6 +561,50 @@ public:
             }
             seenLevelIds.clear();
         }  
+        return allForests;
+    }
+
+    bool SpinradPrime::isPrime(const cg::data_structures::Graph& g)
+    {
+        if(g.numVertices() < 5)
+        {
+            return false;
+        }
+        auto allForests = getDividedForests(g, 2, 4);
+        
+        std::vector<std::vector<int>> forestVertices;
+        
+        int maxForestIndex = 0;
+        int maxForestSize = 0;
+        for(int i = 0; i < allForests.size(); ++i)
+        {
+            auto f = allForests[i];
+            auto vertices = f.getCorrespondingVertices();
+            forestVertices.push_back(vertices);
+        
+            if(vertices.size() > maxForestSize)
+            {
+                maxForestIndex = i;
+                maxForestSize = vertices.size();
+            }
+        }
+        if(maxForestSize > 1)
+        {
+            auto v2 = forestVertices[maxForestIndex];
+            std::vector<int> v1;
+            for(int i = 0; i < allForests.size(); ++i)
+            {
+                auto v = forestVertices[i];
+                if(i != maxForestIndex)
+                {
+                    v1.insert(v1.end(), v.begin(), v.end());
+                }
+            }
+        }
+        else
+        {
+            // no split with this pair
+        }
         return true;
     }
 }
