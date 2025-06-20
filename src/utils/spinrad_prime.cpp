@@ -12,8 +12,6 @@
 #include "data_structures/graph.h"
 #include "utils/spinrad_prime.h"
 
-#include <iostream>
-
 namespace cg::utils
 {
     class InitialLevel;
@@ -471,9 +469,12 @@ public:
         for (auto y : xNeighbours)
         {
             auto yNode = vertexToNode[y];
-            // Perhaps there is a more efficient way to determine if other nodes are in the same forest as 'source'
+            // Perhaps there is a constant time way to determine if other nodes are in the same forest as 'source'
             // E.g. Perhaps by maintaining a list of edges per node somehow, and updating it as we move the node to a new forest.
-            // Spinrad claims this can be done in O(degree(x)) for a vertex x, but doesn't explain how.
+            // Spinrad claims this entire step can be done in O(degree(x)) for a vertex x (which would imply a constant time test for whether two nodes are in the same forest), but doesn't explain how.
+            // It seems the problem to be solved is equivalent to split-find (so could be done in O(inverse-ackerman(n))), but 
+            // perhaps I'm missing something.
+            // Since I don't mind the exact time complexity for now, I'll leave this (perhaps, if I get interested in much larger graphs I'll revisit it)
             auto n = yNode;
             while (n->parent() != nullptr)
             {
