@@ -72,6 +72,7 @@ TEST_CASE("SpinradPrime finds split on complete graphs")
     }
 }
 
+
 TEST_CASE("SpinradPrime does not finds split on join of cycles with one edge missing")
 {
     for (auto n : {5, 10, 15, 20, 25, 50, 100})
@@ -104,3 +105,32 @@ TEST_CASE("SpinradPrime does not finds split on join of cycles with one edge mis
     }
 }
 
+TEST_CASE("SpinradPrime does find split on join of cycles")
+{
+    for (auto n : {5, 10, 15, 20, 25, 50, 100})
+    {
+        // Create two disjoint cycles first
+        cg::data_structures::Graph g(2 * n);
+        for(auto i = 0; i < n - 1; ++i)
+        {
+            g.addEdge(i, i + 1);
+            g.addEdge(n + i, n + i + 1);
+        }
+        g.addEdge(n - 1, 0);
+        g.addEdge(2 * n - 1, n);
+
+        for(auto i = 0; i < n; ++i) // Connect every vertex of the first cycle to every vertex of the second cycle
+        {
+            for(auto j = n; j < 2 * n; ++j)
+            {
+                g.addEdge(i, j);
+            }
+        }
+        
+        cg::utils::SpinradPrime sp;
+        auto res = sp.trySplit(g);
+        CHECK(res.has_value());
+        auto [v1, v2] = *res;
+        CHECK_NOTHROW(sp.verifySplit(g, v1, v2));
+    }
+}
