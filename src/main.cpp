@@ -56,7 +56,7 @@ std::string csv_sizes(const Range& r) {
 void primeTest(int numEndpoints)
 {
     std::vector<int> connectionSeq;
-    for (int i = 1; i < numEndpoints / 2; i ++)
+    for (int i = 1; i < numEndpoints / 2; i++)
     {
         connectionSeq.push_back(i);
     }
@@ -92,35 +92,28 @@ void primeTest(int numEndpoints)
             }
         }
     }
+    std::cout << "starting prime test.." << std::endl;
     cg::utils::SpinradPrime sp;
-
-    auto ms = sp.trySplit(g);
-    if (ms)
+    auto r = sp.trySplit(g);
+    if(r)
     {
-        auto [v1, v2] = ms.value();
-        std::cout << std::format("---- v1 [{}]: ", v1.size());
-        for (auto v : v1)
-        {
-            std::cout << v << ", ";
-        }
-        std::cout << std::endl;
-        std::cout << std::format("---- v2 [{}]: ", v2.size());
-        for (auto v : v2)
-        {
-            std::cout << v << ", ";
-        }
-        std::cout << std::endl;
-        sp.verifySplit(g, v1, v2);
+        std::cout << "found split!";
     }
     else
     {
-        std::cout << "Graph is prime" << std::endl;
+        std::cout << "graph is prime!";
     }
+    std::cout << std::endl;
 }
 
 int main()
 {
-    primeTest(50);
+    primeTest(15);
+
+
+    int n = 5;
+        cg::data_structures::Graph g(n);
+
 /*
     g.addEdge(0, 1);
     g.addEdge(1, 5);
@@ -133,7 +126,8 @@ int main()
     g.addEdge(6, 7);
     g.addEdge(6, 8);
     g.addEdge(8, 9);
-*/
+ */
+
 /*
 
     cg::data_structures::Graph g(6);

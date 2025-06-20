@@ -53,7 +53,7 @@ namespace cg::utils
 
         void addToInitialLevel(InitialLevel* initialLevel);
 
-        const InitialLevel* getInitialLevel() const;
+        InitialLevel* getInitialLevel() const;
 
         [[nodiscard]] int vertexId() const;
 
@@ -174,7 +174,7 @@ public:
         _initialLevel->add(this);
     }
 
-    const InitialLevel* Node::getInitialLevel() const
+    InitialLevel* Node::getInitialLevel() const
     {
         return _initialLevel;
     }
@@ -197,6 +197,7 @@ public:
             _parent->_children[_childIdx] = nullptr;
             ++_parent->_numDeletedChildren;
             _parent = nullptr;
+
         }
         else
         {
@@ -467,39 +468,23 @@ public:
     {
         auto xVertex = source->vertexId();
         auto xNeighbours = g.neighbours(xVertex);
-
-
         for (auto y : xNeighbours)
         {
             auto yNode = vertexToNode[y];
-            if (yNode->parent() != nullptr || yNode->getInitialLevel()->size() > 1) // There's no need to split a node that is the sole root of a forest (it'd be the identity operation)
+            // Perhaps there is a more efficient way to determine if other nodes are in the same forest as 'source'
+            // E.g. Perhaps by maintaining a list of edges per node somehow, and updating it as we move the node to a new forest.
+            // Spinrad claims this can be done in O(degree(x)) for a vertex x, but doesn't explain how.
+            auto n = yNode;
+            while (n->parent() != nullptr)
             {
-                // Perhaps there is a more efficient way to determine if other nodes are in the same forest as 'source'
-                // E.g. Perhaps by maintaining a list of edges per node somehow, and updating it as we move the node to a new forest.
-                // Spinrad claims this can be done in O(degree(x)) for a vertex x, but doesn't explain how.
-                auto n = yNode;
-                while (n->parent() != nullptr)
-                {
-                    n = n->parent();
-                }
-                auto sourceInitialLevel = source->getInitialLevel(); // This must exist, because 'source' must always be part of an initial level.
-                auto sameForestAsSource = sourceInitialLevel->levelId() == n->levelId();
-                if (!sameForestAsSource)
-                {
-                    yNode->mark();
-                }
+                n = n->parent();
             }
-        }
-
-        // Any remaining marked nodes are a neighbour of 'source', but aren't in its forest, and so are targets of cross edges from 'source'
-        for(auto y : xNeighbours)
-        {
-            auto yNode = vertexToNode[y];
-            if(yNode->isMarked())
+            auto sourceInitialLevel = source->getInitialLevel(); // This must exist, because 'source' must always be part of an initial level.
+            auto sameForestAsSource = sourceInitialLevel->levelId() == n->levelId();
+            if (!sameForestAsSource)
             {
-                yNode->unmark();
                 crossEdgeTargets.push_back(yNode);
-            }    
+            }
         }
     }
 
@@ -507,7 +492,7 @@ public:
     {
         auto [allForests, vertexToNode, nextLevelId] = createForests(g, a, b);
 
-        std::unordered_map<int, std::vector<Node*>> levelIdToExtractedNodes; // By treating levelId more carefully (there are only ever a linear number in existence at a given time, we could bucket sort, i.e. just use std::vector<std::vector<Node*>> instead of pay the logarithmic map penalty)
+        std::vector<std::vector<Node*>> levelIdToExtractedNodes(g.numVertices() * 2);
         std::vector<int> seenLevelIds;
 
         std::vector<int> vertexIdToLastInitialLevelSize(g.numVertices(), std::numeric_limits<int>::max());        
@@ -518,8 +503,6 @@ public:
             {
                 eligibleNodes.push(n);
             }
-        
-            auto tmp = f.getCorrespondingVertices();
         }
         std::vector<Node*> crossEdgeTargets;
         while(!eligibleNodes.empty())
@@ -531,28 +514,44 @@ public:
             {
                 // We're grouping nodes by the level they come from here using the globally unique levelIds, so that we can create new initial levels afterward,
                 auto oldLevelId = yNode->levelId();
-                seenLevelIds.push_back(oldLevelId);
-                yNode->deleteFromForest();
-                levelIdToExtractedNodes[oldLevelId].push_back(yNode);
+                auto& thisLevelNodes = levelIdToExtractedNodes[oldLevelId];
+                if(thisLevelNodes.empty())
+                {
+                    seenLevelIds.push_back(oldLevelId);
+                }
+                thisLevelNodes.push_back(yNode);
             }
             crossEdgeTargets.clear();
 
             // Create the new forests
             for(auto levelId : seenLevelIds)
-            {
-                auto& newInitialLevelNodes = levelIdToExtractedNodes[levelId]; 
-                for(auto n : newInitialLevelNodes)
+            {                
+                auto& newInitialLevelNodes = levelIdToExtractedNodes[levelId];
+                auto firstNode = newInitialLevelNodes[0];
+                auto oldInitialLevel = firstNode->getInitialLevel();
+                if (oldInitialLevel == nullptr || newInitialLevelNodes.size() < oldInitialLevel->size())
                 {
-                    n->setLevelId(nextLevelId);
+                    for (auto n : newInitialLevelNodes)
+                    {
+                        n->deleteFromForest();
+                        n->setLevelId(nextLevelId);
+                    }
+                    auto newInitialLevel = new InitialLevel(nextLevelId);
+                    Forest newForest(newInitialLevel, newInitialLevelNodes);
+                    for (auto n : *newInitialLevel)
+                    {
+                        addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, newInitialLevel->size());
+                    }
+                    if (oldInitialLevel != nullptr)
+                    {
+                        for (auto n : *oldInitialLevel)
+                        {
+                            addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, oldInitialLevel->size());
+                        }
+                    }
+                    ++nextLevelId;
+                    allForests.push_back(std::move(newForest));
                 }
-                auto initialLevel = new InitialLevel(nextLevelId);
-                Forest newForest(initialLevel, newInitialLevelNodes); 
-                for(auto n : *initialLevel)
-                {
-                    addIfEligible(vertexIdToLastInitialLevelSize, eligibleNodes, n, initialLevel->size());
-                }
-                ++nextLevelId;
-                allForests.push_back(std::move(newForest));
                 newInitialLevelNodes.clear();
             }
             seenLevelIds.clear();

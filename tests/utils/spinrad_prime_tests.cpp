@@ -54,7 +54,7 @@ TEST_CASE("SpinradPrime finds split on stars")
 
 TEST_CASE("SpinradPrime finds split on complete graphs")
 {
-    for (auto n : {5, 10, 15, 20, 25})
+    for (auto n : {5, 10, 15, 20, 25, 50, 100})
     {
         cg::data_structures::Graph g(n);
         for(auto i = 0; i < n; ++i)
@@ -74,7 +74,7 @@ TEST_CASE("SpinradPrime finds split on complete graphs")
 
 TEST_CASE("SpinradPrime does not finds split on join of cycles with one edge missing")
 {
-    for (auto n : {5})//, 10, 15, 20, 25})
+    for (auto n : {5, 10, 15, 20, 25, 50, 100})
     {
         // Create two disjoint cycles first
         cg::data_structures::Graph g(2 * n);
@@ -100,21 +100,7 @@ TEST_CASE("SpinradPrime does not finds split on join of cycles with one edge mis
 
         cg::utils::SpinradPrime sp;
         auto res = sp.trySplit(g);
-        auto [v1, v2] = res.value();
-        std::cout << "-----------------" << std::endl;
-        for(auto q : v1)
-        {
-            std::cout << q << " ";
-        }
-               std::cout << "-----------------" << std::endl;
-
-        for(auto q : v2)
-        {
-            std::cout << q << " ";
-        }
-                CHECK_NOTHROW(sp.verifySplit(g, v1, v2));
-
-       // CHECK_FALSE(sp.trySplit(g).has_value());
+        CHECK_FALSE(sp.trySplit(g).has_value());
     }
 }
 
