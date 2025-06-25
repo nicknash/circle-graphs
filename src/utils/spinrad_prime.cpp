@@ -12,6 +12,8 @@
 #include "data_structures/graph.h"
 #include "utils/spinrad_prime.h"
 
+#include <iostream>
+
 namespace cg::utils
 {
     class InitialLevel;
@@ -465,7 +467,7 @@ public:
     void markCrossEdgeTargets(const cg::data_structures::Graph &g, std::vector<Node*>& vertexToNode, Node *source, std::vector<Node*>& crossEdgeTargets)
     {
         auto xVertex = source->vertexId();
-        auto xNeighbours = g.neighbours(xVertex);
+        const auto& xNeighbours = g.neighbours(xVertex);
         for (auto y : xNeighbours)
         {
             auto yNode = vertexToNode[y];
@@ -560,12 +562,55 @@ public:
         return allForests;
     }
 
+    std::optional<std::tuple<std::vector<int>,std::vector<int>>> getSplitIfNotConnected(const cg::data_structures::Graph& g)
+    {
+        std::vector<bool> visited(g.numVertices(), false);
+        std::stack<int> pending;
+        pending.push(0);
+        while(!pending.empty())
+        {
+            auto v = pending.top();
+            visited[v] = true;
+            pending.pop();
+            for(auto w : g.neighbours(v))
+            {
+                if(!visited[w])
+                {
+                    pending.push(w);
+                }
+            }
+        }
+        for(int i = 0; i < visited.size(); ++i)
+        {
+            if(!visited[i])
+            {
+                auto v1 = std::vector<int> {i, (i + 1) % g.numVertices()};
+                std::vector<int> v2;
+                for(int j = 0; j < g.numVertices(); j++)
+                {
+                    if(j != v1[0] && j != v1[1])
+                    {
+                        v2.push_back(j);
+                    }
+                }
+                return std::tuple{v1, v2};
+            }
+        }
+        return std::nullopt;
+    }
+
     std::optional<std::tuple<std::vector<int>,std::vector<int>>> SpinradPrime::trySplit(const cg::data_structures::Graph& g)
     {
         if(g.numVertices() < 4)
         {
             return std::nullopt;
         }
+        auto maybeSplit = getSplitIfNotConnected(g);
+        if(maybeSplit)
+        {
+            return maybeSplit;
+        }
+     
         int a = 0;
         int b = 1;
         int c = 2;
@@ -628,14 +673,16 @@ public:
         for (auto x : v1)
         {
             std::unordered_set<int> neighboursInV2;
-
+            //std::cout << "Neigbhours of " << x << " are ";
             for (auto y : g.neighbours(x))
             {
                 if (sV2.contains(y))
                 {
+              //      std::cout << y << " ";
                     neighboursInV2.insert(y);
                 }
             }
+            //std::cout << std::endl;
             if (!neighboursInV2.empty())
             {
                 if (!prevNeighboursInV2.empty())
