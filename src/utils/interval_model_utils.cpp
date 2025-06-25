@@ -11,6 +11,7 @@
 #include <map>
 #include <stack>
 #include <set>
+#include <unordered_set>
 
     #include <iostream>
 
@@ -203,6 +204,34 @@
             result.emplace_back(leftEndpoint, rightEndpoint, i, weight);
         }
         return result;
+    }
+
+    std::vector<cg::data_structures::Interval> generatePrimeLaminarIntervals(int numLaminar, int numOther)
+    {
+        std::vector<cg::data_structures::Interval> intervals;
+        int intervalIdx = 0;
+        int left = numLaminar - 1, right = left + 3;
+        for (int i = 0; i < numLaminar; ++i)
+        {
+            intervals.emplace_back(left, right, intervalIdx++, 1);
+            --left;
+            right += 2;
+        }
+        // Add the central interval (intersects all laminar, and no others)
+        auto p = numLaminar;
+        auto q = 2 * (numLaminar + numOther) - 1;
+        intervals.emplace_back(p, q, intervalIdx++, 1);
+      
+        // Add the clique intervals (intersect decreasing number of laminars, and all of each other, and not the central interval)
+        left = numLaminar + 1;
+        right = 3 * numLaminar + 1;
+        for (int i = 0; i < numOther - 1; ++i)
+        {
+            intervals.emplace_back(left, right, intervalIdx++, 1);
+            left += 2;
+            ++right;
+        }
+        return intervals;
     }
 
     // Note that these correspond to the interval graphs studied in:
