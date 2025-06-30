@@ -13,9 +13,6 @@
 #include <set>
 #include <unordered_set>
 
-    #include <iostream>
-
-
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_model.h"
 
@@ -206,7 +203,7 @@
         return result;
     }
 
-    std::vector<cg::data_structures::Interval> generatePrimeLaminarIntervals(int numLaminar, int numOther)
+    std::vector<cg::data_structures::Interval> generatePrimeLaminarIntervals(int numLaminar)
     {
         std::vector<cg::data_structures::Interval> intervals;
         int intervalIdx = 0;
@@ -217,6 +214,7 @@
             --left;
             right += 2;
         }
+        auto numOther = numLaminar + 1;
         // Add the central interval (intersects all laminar, and no others)
         auto p = numLaminar;
         auto q = 2 * (numLaminar + numOther) - 1;

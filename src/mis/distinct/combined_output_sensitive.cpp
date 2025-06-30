@@ -44,7 +44,7 @@ namespace cg::mis::distinct
 
             if(newMisValue <= MIS[updatedIndex])
             {
-                std::cout << std::format("HOW !!! {}, {}", newMisValue, MIS[updatedIndex]) << std::endl;
+                //std::cout << std::format("HOW !!! {}, {}", newMisValue, MIS[updatedIndex]) << std::endl;
             }
             MIS[updatedIndex] = newMisValue;
             changed.push_back(updatedIndex);
@@ -98,11 +98,12 @@ namespace cg::mis::distinct
                 }
             }
         }
-        for(auto c : changed)
+        /*for(auto c : changed)
         {
             std::cout << c << " "; 
         }
         std::cout << std::endl;
+        */
         return true;
     }
 
@@ -133,7 +134,7 @@ namespace cg::mis::distinct
                 //std::cout << std::format("CMIS[{}] = {}", interval, CMIS[interval.Index]) << std::endl;
             }
         }
-        std::cout << " --- FINAL PENDING --- " << std::endl;
+        //std::cout << " --- FINAL PENDING --- " << std::endl;
 
         if (!tryUpdate(intervals, 0, pendingUpdates, independentSet, MIS, CMIS, maxAllowedMIS, counts))
         {

@@ -1,8 +1,14 @@
 #include "doctest/doctest.h"
 #include "utils/spinrad_prime.h"
 #include "data_structures/graph.h"
+#include "data_structures/interval.h"
+#include "utils/interval_model_utils.h"
+#include "data_structures/distinct_interval_model.h"
+#include "mis/distinct/combined_output_sensitive.h"
+#include "utils/counters.h"
 
 #include <iostream>
+#include <format>
 
 TEST_CASE("SpinradPrime reports no split on cycles")
 {
@@ -133,4 +139,26 @@ TEST_CASE("SpinradPrime does find split on join of cycles")
         auto [v1, v2] = *res;
         CHECK_NOTHROW(sp.verifySplit(g, v1, v2));
     }
+}
+
+TEST_CASE("SpinradPrime finds laminar prime intervals are indeed prime")
+{
+    auto intervals = cg::interval_model_utils::generatePrimeLaminarIntervals(50);
+    cg::data_structures::Graph g(intervals.size());
+
+    for (int r = 0; r < intervals.size(); ++r)
+    {
+        auto &p = intervals[r];
+        for (int j = r + 1; j < intervals.size(); ++j)
+        {
+            if (p.overlaps(intervals[j]))
+            {
+                g.addEdge(r, j);
+            }
+        }
+    }
+
+    cg::utils::SpinradPrime sp;
+    auto res = sp.trySplit(g);
+    CHECK_FALSE(sp.trySplit(g).has_value());
 }
