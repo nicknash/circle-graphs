@@ -9,6 +9,7 @@
 #include <tuple>
 #include <limits>
 #include <map>
+#include <list>
 #include <stack>
 #include <set>
 #include <unordered_set>
@@ -231,6 +232,98 @@
         }
         return intervals;
     }
+
+    std::vector<cg::data_structures::Interval> generateLayeredHardCaseNonPrime(int numLayers)
+    {
+        std::vector<cg::data_structures::Interval> intervals;
+        int numIntervalsAcordingToLayers = numLayers * 2;
+        int intervalIdx = 0;
+        for(int layer = 0; layer < numLayers; ++layer)
+        {
+            int e = 2 * numIntervalsAcordingToLayers - 1 - 3 * layer;
+            int s = layer;
+            intervals.push_back(cg::data_structures::Interval(s, e - 2, intervalIdx, 1));
+            intervals.push_back(cg::data_structures::Interval(e - 1, e, intervalIdx + 1, 1));
+            intervalIdx += 2;
+        }
+        return intervals;
+    }
+
+    std::vector<cg::data_structures::Interval> generateLayeredHardCasePrime(int numLayers)
+    {
+        struct Endpoint
+        {
+            bool isLeft;
+            bool isShort;
+            int intervalIdx;
+        };
+
+        std::list<Endpoint> eps;
+        auto intervalIdx = 0;
+        for(auto i = 0; i < numLayers; ++i)
+        {
+            auto longIdx = intervalIdx;
+            eps.push_front({true, i == 0, intervalIdx});
+            eps.push_back({false, i == 0, intervalIdx});
+            ++intervalIdx;
+            eps.push_back({true, true, intervalIdx});
+            eps.push_back({false, true, intervalIdx});
+            ++intervalIdx;
+        }
+
+        std::optional<std::list<Endpoint>::iterator> prevShort = std::nullopt;
+        for (auto it = eps.begin(); it != eps.end(); ++it)
+        {
+            if (it->isShort && !it->isLeft)
+            {
+                eps.insert(it, {true, false, intervalIdx});
+                eps.push_back({false, false, intervalIdx});
+                ++intervalIdx;
+
+                if (prevShort)
+                {
+                    auto p = prevShort.value();
+                    eps.insert(p, {true, false, intervalIdx});
+                    eps.insert(it, {false, false, intervalIdx});
+                    ++intervalIdx;
+                    prevShort = std::prev(it);
+                }
+                else
+                {
+                    prevShort = it;
+                }
+            }
+        }
+
+        std::vector<int> intervalIndexToRight;
+        intervalIndexToRight.resize(intervalIdx);
+        int endpoint = 0;
+        for(auto it = eps.begin(); it != eps.end(); ++it)        
+        {
+            const auto& ep = *it;
+            if(!ep.isLeft)
+            {
+                intervalIndexToRight[ep.intervalIdx] = endpoint;
+            }
+            ++endpoint;
+        }
+        std::vector<cg::data_structures::Interval> distinctIntervals;
+        endpoint = 0;
+        for(auto it = eps.begin(); it != eps.end(); ++it)        
+        {
+            const auto& ep = *it;
+            if(ep.isLeft)
+            {
+                int right = intervalIndexToRight[ep.intervalIdx];
+                cg::data_structures::Interval interval(endpoint, right, ep.intervalIdx, 1);
+                distinctIntervals.push_back(interval);
+            }
+            ++endpoint;
+        }
+        return distinctIntervals; // Intervals with Index 0, .. 2*numLayers - 1 are the ''hard'' laminar family. The rest are the intervals to make the circle graph prime.
+    }
+
+
 
     // Note that these correspond to the interval graphs studied in:
     // S CHEINERMAN, E. R. 1990. An evolution of interval graphs. Discrete Math. 82, 3, 287–302.
