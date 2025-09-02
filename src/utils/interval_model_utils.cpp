@@ -295,6 +295,7 @@
             }
         }
 
+        // TOOO move this to a utilty and share with ChordModel function that does the same (over a vector rather than list)
         std::vector<int> intervalIndexToRight;
         intervalIndexToRight.resize(intervalIdx);
         int endpoint = 0;
@@ -323,7 +324,46 @@
         return distinctIntervals; // Intervals with Index 0, .. 2*numLayers - 1 are the ''hard'' laminar family. The rest are the intervals to make the circle graph prime.
     }
 
+    // The return value here is D such that D[i] = v1, .., vk means vertex i has a directed edge (indicating direct containment) from 
+    // if interval number i to v1, ..., vk. Note that "interval number" is different to interval index. An artificial interval 
+    // containing all intervals is interval number 0 in the supplied intervalModel. So D[1] is interval index 0 in the intervalModel, etc.
+    std::vector<std::vector<int>> createContainmentDag(const cg::data_structures::DistinctIntervalModel& intervalModel)
+    {   
+        //  ...........
+        // ...............
+        //   .......
+        //
+        // ......................
+        //  ........................
+        //      ........................
+        //         ...........
+        //
+        // ...................................
+        //   ....................................
+        //    ......................................
+        //        .....................  
+        //     ......................... 
+        //      .......................................
+        //               .............
 
+        // Directly contained means, contained in I, but not contained in any other interval contained in I
+        // The correct counting argument must be: if q is directly contained in k other intervals, then none of those k contain each
+        // other.
+
+        // opened before it.
+        // Also, when an interval closes, it cannot contain any interval that is currently open.
+        //
+        // We could:
+        //   From left to right,
+        //      If interval opens, add it to open 
+        //      If interval closes:
+        //           remove it from open
+        //           get interval z with smallest REP in open
+        //           add edge from z to interval
+        //           
+        //      Find smallest LEP of an interval with REP great
+
+    }
 
     // Note that these correspond to the interval graphs studied in:
     // S CHEINERMAN, E. R. 1990. An evolution of interval graphs. Discrete Math. 82, 3, 287–302.

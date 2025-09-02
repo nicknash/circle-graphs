@@ -8,6 +8,8 @@ namespace cg::mif
 {
     static void computeMif(std::span<const cg::data_structures::Interval> intervals)
     {
+        // No, we actually want the containment DAG here.
+        
         // sort intervals by length.
         auto levelEndIndex = 123; // index one past end of shortest intervals
 

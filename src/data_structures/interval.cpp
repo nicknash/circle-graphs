@@ -26,4 +26,14 @@ namespace cg::data_structures
                (Left <= other.Left && other.Left <= Right && Right <= other.Right ||
                other.Left <= Left && Left <= other.Right && other.Right <= Right);
     }
+    
+    [[nodiscard]] bool Interval::contains(const Interval& other) const
+    {
+        return Left < other.Left && other.Right < Right;
+    }
+
+    [[nodiscard]] bool Interval::intersects(const Interval& other) const
+    {
+        return overlaps(other) && !contains(other); 
+    }
 }

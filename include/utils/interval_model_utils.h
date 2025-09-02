@@ -20,7 +20,7 @@ namespace cg::interval_model_utils
     std::vector<cg::data_structures::Interval> generatePrimeLaminarIntervals(int numLaminar);
     std::vector<cg::data_structures::Interval> generateLayeredHardCaseNonPrime(int numLayers);
     std::vector<cg::data_structures::Interval> generateLayeredHardCasePrime(int numLayers);
-
+    std::vector<std::vector<int>> createContainmentDag(const cg::data_structures::DistinctIntervalModel& intervalModel);
     std::vector<cg::data_structures::Interval> generateRandomIntervalsShared(int numIntervals, int maxPerEndpoint, int maxLength, int seed);
     int getMaxRightEndpoint(std::span<const cg::data_structures::Interval> intervals);
     long sumWeights(std::span<cg::data_structures::Interval> intervals);

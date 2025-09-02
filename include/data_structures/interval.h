@@ -14,6 +14,8 @@ namespace cg::data_structures
         int Weight;
         Interval(int left, int right, int index, int weight);
         [[nodiscard]] bool overlaps(const Interval& other) const;
+        [[nodiscard]] bool intersects(const Interval& other) const;
+        [[nodiscard]] bool contains(const Interval& other) const;
         [[nodiscard]] int length() const;
     };
 }

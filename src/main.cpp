@@ -56,7 +56,62 @@ std::string csv_sizes(const Range& r) {
 
 int main()
 {
+    auto numLayers = 5;
+    auto zz = cg::interval_model_utils::generateLayeredHardCasePrime(numLayers);
+    for(auto i : zz)
+    {
+        std::cout << std::format("{}", i) << std::endl;
+    }
+        cg::data_structures::Graph g(zz.size());
 
+    int numEdges = 0;
+    int totalL = 0;
+    int T = 0;
+    for (int r = 0; r < zz.size(); ++r)
+    {
+        auto &p = zz[r];
+        totalL += p.length();
+        for (int j = r + 1; j < zz.size(); ++j)
+        {
+            if (p.overlaps(zz[j]))
+            {
+                g.addEdge(r, j);
+                ++numEdges;
+            }
+        }
+    }
+    for (int r = 0; r < zz.size(); ++r)
+    {
+        auto &p = zz[r];
+        for (int j = 0; j < zz.size(); ++j)
+        {
+            auto &q = zz[j];
+            if (p.contains(q))
+            {
+                ++T;
+            }
+        }
+    }
+
+
+
+    cg::utils::SpinradPrime sp;
+    auto res = sp.trySplit(g);
+    if(res)
+    {
+        std::cout << "SPLIT!";
+    }
+    else
+    {
+        std::cout << "PRIME!";
+    }
+
+
+
+    std::cout << std::format("numVertices={}, numEdges={}, totalL={}, totalLInterior={}, T={}", zz.size(), numEdges, totalL, totalL - zz.size(), T) << std::endl;
+    std::cout << (totalL - zz.size()) / 2 - T << std::endl;
+    std::cout << std::endl;
+    return 0;
 //5 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 1 1 1 1 0 0 0 0 0
 //5 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 1 1 1 1 0 0 0 0 0 0
 //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
@@ -346,7 +401,7 @@ int main()
         std::cout << "SEED = " << seed2 << std::endl;
         //auto intervals = cg::interval_model_utils::generateRandomIntervals(15000, seed2);
         
-    
+        auto intervals = cg::interval_model_utils::generateLayeredHardCasePrime(1000);
 
         //std::vector<cg::data_structures::Interval> intervals;
         /*int numLayers = 10;
@@ -361,7 +416,7 @@ int main()
             intervalIdx += 2;
         }*/
    
-        //auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
+        auto intervalModel = cg::data_structures::DistinctIntervalModel(intervals);
 
         auto numIntervals = 10;
         for(int x = 0; x < numIntervals; ++x)
@@ -374,6 +429,8 @@ int main()
         //   intervals.push_back(cg::data_structures::Interval(2 * x, 2 * x + 1, x, 1)); // disjoint units
             //intervals.push_back(cg::data_structures::Interval(x, x + numIntervals, x, 1)); // clique
         }
+
+        /*
         int numEndpoints = 400;
         std::vector<int> connectionSeq;
         for(int i = 1; i < numEndpoints/2; i+=13)
@@ -384,7 +441,7 @@ int main()
         auto chordModel = cg::utils::generateChordModel(numEndpoints, connectionSeq);
         auto intervalModel = chordModel.toDistinctIntervalModel();
         auto intervals = intervalModel.getAllIntervals();
-        
+        */
         
         const auto& components = cg::components::getConnectedComponents(intervals);
         std::cout << std::format("There are {} connected components of sizes: {}", components.size(), csv_sizes(components)) << std::endl;
@@ -420,7 +477,11 @@ int main()
         cg::utils::Counters<cg::mis::distinct::SimpleImplicitOutputSensitive::Counts> siosCounts;
         auto mis5 = cg::mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), siosCounts).value();
         std::cout << std::format("Simple Implicit output sensitive {}", mis5.size()) << std::endl;
-        
+             cg::utils::Counters<cg::mis::distinct::CombinedOutputSensitive::Counts> cosCounts;
+
+        auto mis6 = cg::mis::distinct::CombinedOutputSensitive::tryComputeMIS(intervalModel, intervals.size(), cosCounts).value();
+
+        std::cout << std::format("Combined output sensitive {}", mis6.size()) << std::endl;
         long totalIntervalLength = 0;
         long totalChordLength = 0;
 

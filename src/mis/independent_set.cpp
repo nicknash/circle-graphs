@@ -29,6 +29,8 @@ namespace cg::mis
     //
     // This requires, for all the k intervals only O(k) space. The reason is that for any interval, it can only be directly contained in at most 2 other intervals (because, if there was a third
     // interval containing any interval, it would have to contain one of the other two, violating direct containment)
+
+    // WTF FIX THIS COMMENT!!!!
     void IndependentSet::assembleContainedIndependentSet(const cg::data_structures::Interval &interval)
     {
         std::optional<cg::data_structures::Interval> maybeNext = _endpointToInterval[interval.Left + 1];

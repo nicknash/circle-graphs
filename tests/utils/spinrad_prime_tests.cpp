@@ -162,3 +162,41 @@ TEST_CASE("SpinradPrime finds laminar prime intervals are indeed prime")
     auto res = sp.trySplit(g);
     CHECK_FALSE(sp.trySplit(g).has_value());
 }
+
+TEST_CASE("SpinradPrime expt")
+{
+    cg::data_structures::Graph g(9);
+
+    g.addEdge(0, 4);
+    g.addEdge(0, 7);
+
+    g.addEdge(1, 7);
+    g.addEdge(1, 5);
+    
+    g.addEdge(2, 4);
+    g.addEdge(2, 5);
+    g.addEdge(2, 8);
+
+    g.addEdge(3, 6);
+    g.addEdge(3, 8);
+
+    g.addEdge(4, 5);
+    g.addEdge(4, 6);
+
+    g.addEdge(5, 6);
+
+    g.addEdge(7, 8);
+    g.addEdge(1, 8);
+    g.addEdge(5, 7);
+    g.addEdge(5, 8);
+
+    cg::utils::SpinradPrime sp;
+    auto res = sp.trySplit(g);
+    /*    auto [v1, v2] = *res;
+    for(auto v : v1)
+    {
+        std::cout << v << std::endl;
+    }*/
+    
+    CHECK_FALSE(sp.trySplit(g).has_value());
+}
