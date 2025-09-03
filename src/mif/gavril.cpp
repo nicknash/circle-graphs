@@ -2,6 +2,8 @@
 #include "data_structures/distinct_interval_model.h"
 #include "data_structures/interval.h"
 
+#include "utils/interval_model_utils.h"
+
 #include "mif/gavril.h"
 
 namespace cg::mif
@@ -9,7 +11,7 @@ namespace cg::mif
     static void computeMif(std::span<const cg::data_structures::Interval> intervals)
     {
         // No, we actually want the containment DAG here.
-        
+
         // sort intervals by length.
         auto levelEndIndex = 123; // index one past end of shortest intervals
 

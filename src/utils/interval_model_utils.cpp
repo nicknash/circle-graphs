@@ -18,6 +18,7 @@
 #include "data_structures/distinct_interval_model.h"
 
 #include "utils/interval_model_utils.h"
+#include "utils/fenwick_max.h"
  
  namespace cg::interval_model_utils
  {
@@ -324,45 +325,67 @@
         return distinctIntervals; // Intervals with Index 0, .. 2*numLayers - 1 are the ''hard'' laminar family. The rest are the intervals to make the circle graph prime.
     }
 
+    // The containment DAG of an interval model is the transitive reduction of the 'exhaustive-contains' DAG for that interval model.
+    //
+    // For two intervals, x and z, an edge in the containment DAG from v(x) to interval v(z) can only exist, if there is no interval 
+    // y contained in x that also contains z.
+    //
+    // Consider an interval x, and the sequence of intervals, O_1, .., O_k, in increasing order of left end-point that contain it.
+    // There must be an edge in the containment DAG from O_k to x, because O_k cannot contain any other interval that contains x because
+    // O_k is the most recently opened interval. 
+    // Other intervals that may generate an  
+    // edge are those with left-endpoints between the left end-point of O_k and the left end-point of x.
+    //
+    //
     // The return value here is D such that D[i] = v1, .., vk means vertex i has a directed edge (indicating direct containment) from 
     // if interval number i to v1, ..., vk. Note that "interval number" is different to interval index. An artificial interval 
     // containing all intervals is interval number 0 in the supplied intervalModel. So D[1] is interval index 0 in the intervalModel, etc.
     std::vector<std::vector<int>> createContainmentDag(const cg::data_structures::DistinctIntervalModel& intervalModel)
     {   
-        //  ...........
-        // ...............
-        //   .......
-        //
-        // ......................
-        //  ........................
-        //      ........................
-        //         ...........
-        //
-        // ...................................
-        //   ....................................
-        //    ......................................
-        //        .....................  
-        //     ......................... 
-        //      .......................................
-        //               .............
+        
+    }
 
-        // Directly contained means, contained in I, but not contained in any other interval contained in I
-        // The correct counting argument must be: if q is directly contained in k other intervals, then none of those k contain each
-        // other.
-
-        // opened before it.
-        // Also, when an interval closes, it cannot contain any interval that is currently open.
-        //
-        // We could:
-        //   From left to right,
-        //      If interval opens, add it to open 
-        //      If interval closes:
-        //           remove it from open
-        //           get interval z with smallest REP in open
-        //           add edge from z to interval
-        //           
-        //      Find smallest LEP of an interval with REP great
-
+    // Returns a vector V such that V[k] is all intervals that contain no other intervals having removed the intervals V[0] U ... U V[k - 1]
+    // So, V[0] is the intervals containing no others, V[1] is those containing no others after removing all intervals in V[0], etc
+    //
+    // This works in O(n \log n) time by a Fenwick-tree accelerated evaluation of this recurrence:
+    //
+    // depth(i) = max{1 + depth(j)}, for all intervals j contained in interval i
+    // depth(i) = 0 if there are no intervals contained in i.
+    //
+    // Now, if we consider intervals in decreasing order of left end-point, we can evalute the depths of the intervals
+    // by defining d(r) fo all right end-points r:
+    //
+    // d(r) = 1 + max(d(k)) for k < r
+    //
+    //  
+    // Because we consider intervals in decreasing order of left-end point, but update d at their right end-points
+    // we will always have updated all depths interior to an interval when we reach its left end-point.
+    //
+    // Now depth(i) = d(right(i))
+    //
+    // And d(.) itself is implemented as a fenwick max tree, which allows querying max(d[1..q]) in logarithmic time, and updating
+    // d[q] also in logarithmic time.
+    std::vector<std::vector<cg::data_structures::Interval>> createLayers(const cg::data_structures::DistinctIntervalModel& intervalModel)
+    {
+        cg::utils::FenwickMax depth(intervalModel.end, 0);
+        std::vector<std::vector<cg::data_structures::Interval>> layers;
+        for (int q = static_cast<int>(intervalModel.end); q-- > 0; )
+        {
+            const auto& maybeInterval = intervalModel.tryGetIntervalByLeftEndpoint(q); 
+            if(maybeInterval)
+            {
+                const auto& interval = maybeInterval.value();
+                auto depthOfThisInterval = depth.prefixMaxInclusive(interval.Right - 1);
+                if(depthOfThisInterval >= layers.size())
+                {
+                    layers.resize(depthOfThisInterval + 1);
+                }
+                layers[depthOfThisInterval].push_back(interval);
+                depth.setIdx(interval.Right, 1 + depthOfThisInterval);
+            }
+        }
+        return layers;
     }
 
     // Note that these correspond to the interval graphs studied in:
