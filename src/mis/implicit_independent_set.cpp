@@ -3,7 +3,8 @@
 
 #include "mis/implicit_independent_set.h"
 
-#include <iostream>
+#include <format>
+#include <stdexcept>
 
 namespace cg::mis
 {
@@ -39,8 +40,7 @@ namespace cg::mis
 
             //   PPPPP
             // LLLLLL
-                        throw std::runtime_error("SURPRISING");
-//            std::cout << "surprising" << std::endl; 
+            throw std::runtime_error("SURPRISING");
 
         }*/
 
@@ -62,9 +62,7 @@ namespace cg::mis
         {
             // NNNNN
             // RRRRRRR
-  //          std::cout << "surprising2" << std::endl; 
-                      throw std::runtime_error("SURPRISING2");
-//
+            throw std::runtime_error("SURPRISING2");
         }
 
 
@@ -134,12 +132,7 @@ namespace cg::mis
             }
             maybeInterval = _endpointToRange.upper_bound(interval.Right);
         }
-        if(intervalsInMis.size() != expectedCardinality)
-        {
-            //throw std::runtime_error(std::format("Constructed independent set has cardinality {} but a maximum independent set is expected to have cardinality {}", intervalsInMis.size(), expectedCardinality));
-            
-            std::cout << std::format("ERROR ERROR !!!! Constructed independent set has cardinality {} but a maximum independent set is expected to have cardinality {}", intervalsInMis.size(), expectedCardinality) << std::endl;
-        }
+        (void)expectedCardinality;
         cg::interval_model_utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;
     }
