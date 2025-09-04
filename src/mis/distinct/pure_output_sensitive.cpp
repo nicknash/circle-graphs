@@ -22,21 +22,13 @@ namespace cg::mis::distinct
 
     bool PureOutputSensitive::tryUpdate(const cg::data_structures::DistinctIntervalModel &intervals, std::stack<int> &pendingUpdates, IndependentSet& independentSet, const cg::data_structures::Interval &newInterval, std::vector<int> &MIS, std::vector<int> &CMIS, int maxAllowedMIS, cg::utils::Counters<Counts>& counts)
     {
-        std::map<int, int, std::greater<int>> changed;
-        changed.emplace(newInterval.Left, newInterval.Left);
-                auto old = MIS[newInterval.Left];
-
-
         updateAt(pendingUpdates, MIS, newInterval.Left, newInterval.Weight + CMIS[newInterval.Index]);
         independentSet.setNewNextInterval(newInterval.Left, newInterval);
-        //while (!pendingUpdates.empty())
-        while (!changed.empty())
+        while (!pendingUpdates.empty())
         {
             counts.Increment(Counts::StackOuterLoop);
-            //auto updatedIndex = pendingUpdates.top();
-            //pendingUpdates.pop();
-            auto updatedIndex = changed.begin()->first;
-            changed.erase(updatedIndex);
+            auto updatedIndex = pendingUpdates.top();
+            pendingUpdates.pop();
 
             auto leftNeighbour = updatedIndex - 1;
             if(leftNeighbour < 0)
@@ -45,7 +37,6 @@ namespace cg::mis::distinct
             }
             if (MIS[updatedIndex] > MIS[leftNeighbour])
             {
-                changed.emplace(leftNeighbour, leftNeighbour);
                 updateAt(pendingUpdates, MIS, leftNeighbour, MIS[updatedIndex]);
                 independentSet.setSameNextInterval(leftNeighbour);
             }
@@ -62,18 +53,11 @@ namespace cg::mis::distinct
                 }
                 if (candidate > MIS[interval.Left])
                 {
-                    changed.emplace(interval.Left, interval.Left);
                     updateAt(pendingUpdates, MIS, interval.Left, candidate);
                     independentSet.setNewNextInterval(interval.Left, interval);
                 }
             }
         }
-
-        for(auto c : changed)
-        {
-            (void)c;
-        }
-        while(!pendingUpdates.empty()) pendingUpdates.pop();
         return true;
     }
 
@@ -99,9 +83,6 @@ namespace cg::mis::distinct
                     return std::nullopt;
                 }
             }
-            //independentSet.tempDump(i);
-
-
         }
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
 
