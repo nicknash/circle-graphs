@@ -1,6 +1,8 @@
 #include <vector>
 #include <stack>
 #include <list>
+#include <format>
+#include <stdexcept>
 
 #include "data_structures/shared_interval_model.h"
 #include "data_structures/interval.h"
@@ -9,8 +11,6 @@
 #include "mis/shared/pure_output_sensitive.h"
 
 #include "utils/counters.h"
-
-#include <iostream>
 
 
 namespace cg::mis::shared

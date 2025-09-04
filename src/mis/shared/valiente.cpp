@@ -9,8 +9,6 @@
 
 #include "mis/shared/valiente.h"
 
-#include <iostream>
-
 namespace cg::mis::shared
 {
     std::optional<cg::data_structures::Interval> Valiente::getMaxInterval(std::span<const cg::data_structures::Interval> intervals, int maxRightEndpoint, std::vector<int> &MIS, std::vector<int>& CMIS, cg::utils::Counters<Counts>& counts)

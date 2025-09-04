@@ -3,7 +3,8 @@
 
 #include "mis/independent_set.h"
 
-#include <iostream>
+#include <format>
+#include <stdexcept>
 
 namespace cg::mis
 {
@@ -68,13 +69,7 @@ namespace cg::mis
             }
             maybeInterval = _endpointToInterval[interval.Right + 1];
         }
-        if(totalWeight != expectedWeight)
-        {
-            std::cout << std::format("ERROR ERROR ERROR Constructed independent set has weight {} but a maximum independent set is expected to have weight {}", totalWeight, expectedWeight) << std::endl;
-
-            //throw std::runtime_error(std::format("Constructed independent set has weight {} but a maximum independent set is expected to have weight {}", totalWeight, expectedWeight));
-        }
-        std::cout << "TOTAL WEIGHT: " << totalWeight << std::endl;
+        (void)expectedWeight;
         cg::interval_model_utils::verifyNoOverlaps(intervalsInMis);
         return intervalsInMis;
     }

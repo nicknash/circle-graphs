@@ -11,15 +11,12 @@
 
 #include "mis/distinct/pure_output_sensitive.h"
 
-#include <iostream>
-
 namespace cg::mis::distinct
 {
     void PureOutputSensitive::updateAt(std::stack<int> &pendingUpdates, std::vector<int> &MIS, int indexToUpdate, int newMisValue)
     {
         auto old = MIS[indexToUpdate];
         MIS[indexToUpdate] = newMisValue;  
-        //std::cout << std::format("MIS[{}] <- {} (was: {})", indexToUpdate, newMisValue, old);
         pendingUpdates.push(indexToUpdate);
     }
 
@@ -29,7 +26,6 @@ namespace cg::mis::distinct
         changed.emplace(newInterval.Left, newInterval.Left);
                 auto old = MIS[newInterval.Left];
 
-        //std::cout << std::format("MIS[{}] <- {} (was: {}), newInterval={}", newInterval.Left, newInterval.Weight + CMIS[newInterval.Index], old, newInterval) << std::endl;
 
         updateAt(pendingUpdates, MIS, newInterval.Left, newInterval.Weight + CMIS[newInterval.Index]);
         independentSet.setNewNextInterval(newInterval.Left, newInterval);
@@ -40,7 +36,6 @@ namespace cg::mis::distinct
             //auto updatedIndex = pendingUpdates.top();
             //pendingUpdates.pop();
             auto updatedIndex = changed.begin()->first;
-            //std::cout << updatedIndex << std::format("({}) ", MIS[updatedIndex]); 
             changed.erase(updatedIndex);
 
             auto leftNeighbour = updatedIndex - 1;
@@ -73,17 +68,11 @@ namespace cg::mis::distinct
                 }
             }
         }
-                //std::cout << std::endl;
 
-        /*for(int i = newInterval.Left; i >= 0; --i)
-        {
-            std::cout << MIS[i] << " ";
-        }*/
         for(auto c : changed)
         {
-            //std::cout << c.first << " "; 
+            (void)c;
         }
-        //std::cout << std::endl;
         while(!pendingUpdates.empty()) pendingUpdates.pop();
         return true;
     }
@@ -112,26 +101,9 @@ namespace cg::mis::distinct
             }
             //independentSet.tempDump(i);
 
-            // std::cout << i << " :: ";
 
-            // for(auto x = 0; x < i; ++x)
-            // {
-            //     std::cout << MIS[x] << " ";
-            // }
-            // std::cout << std::endl;
         }
         const auto& intervalsInMis = independentSet.buildIndependentSet(MIS[0]);
-        auto alpha = intervalsInMis.size();
-
-        std::cout << "IntervalOuter = " << counts.Get(Counts::IntervalOuterLoop) << std::endl;
-        std::cout << "StackOuter = " << counts.Get(Counts::StackOuterLoop) << std::endl;
-        std::cout << "StackInner = " << counts.Get(Counts::StackInnerLoop) << std::endl;
-        std::cout << "StackOuter / (alpha*n) = " << counts.Get(Counts::StackOuterLoop) / (float) (alpha * intervals.size) << std::endl;
-        std::cout << "StackOuter / (alpha*alpha) = " << counts.Get(Counts::StackOuterLoop) / (float) (alpha * alpha) << std::endl;
-        std::cout << "StackOuter / (n^1.5) = " << counts.Get(Counts::StackOuterLoop) / (float) (intervals.size * std::sqrt(intervals.size)) << std::endl;
-        std::cout << "StackInner / (alpha*n) = " << counts.Get(Counts::StackInnerLoop) / (float) (alpha * intervals.size) << std::endl;
-        std::cout << "StackInner / (alpha*alpha) = " << counts.Get(Counts::StackInnerLoop) / (float) (alpha * alpha) << std::endl;
-        std::cout << "StackInner / (n^1.5) = " << counts.Get(Counts::StackInnerLoop) / (float) (intervals.size * std::sqrt(intervals.size)) << std::endl;
 
         return intervalsInMis;
     }

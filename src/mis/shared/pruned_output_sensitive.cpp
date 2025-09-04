@@ -2,6 +2,8 @@
 #include <stack>
 #include <list>
 #include <ranges>
+#include <format>
+#include <stdexcept>
 
 #include "data_structures/shared_interval_model.h"
 #include "data_structures/interval.h"
