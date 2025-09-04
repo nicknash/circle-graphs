@@ -61,7 +61,8 @@ namespace cg::mis::shared
     {
         std::vector<int> MIS(1 + intervals.end, 0);
         std::vector<int> CMIS(intervals.size, 0);
-        std::vector<cg::data_structures::Interval> indexToLastWinner(intervals.size, cg::data_structures::Interval(0, 1, 0, -1));
+        std::vector<cg::data_structures::Interval> indexToLastWinner(intervals.end + 1,
+                                                                      cg::data_structures::Interval(0, 1, 0, -1));
         cg::mis::IndependentSet independentSet(intervals.size);
 
         for(auto right = 1; right < intervals.end + 1; ++right)
