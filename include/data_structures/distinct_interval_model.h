@@ -5,7 +5,6 @@
 #include <vector>
 #include <ranges>
 
-#include "interval.h"
 
 namespace cg::data_structures
 {

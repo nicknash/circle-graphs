@@ -1,9 +1,9 @@
+#include "data_structures/interval.h"
 #include "data_structures/distinct_interval_model.h"
 #include "mis/distinct/valiente.h"
 #include "mis/distinct/pure_output_sensitive.h"
 #include "utils/interval_model_utils.h"
 #include "utils/counters.h"
-#include "data_structures/interval.h"
 
 
 #include "mis/distinct/switching.h"

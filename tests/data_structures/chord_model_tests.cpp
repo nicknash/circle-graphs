@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 #include "data_structures/chord.h"
 #include "data_structures/chord_model.h"
-#include "data_structures/distinct_interval_model.h"
 #include "data_structures/interval.h"
+#include "data_structures/distinct_interval_model.h"
 
 #include <vector>
 #include <iostream>
