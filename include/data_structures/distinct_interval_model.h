@@ -16,6 +16,7 @@ namespace cg::data_structures
         std::vector<Interval> _indexToInterval;
         std::vector<Interval> _intervalsByIncreasingRightEndpoint;
         std::vector<Interval> _intervalsByIncreasingLeftEndpoint;
+        std::vector<Interval> _intervalsByDecreasingRightEndpoint;
     public:
         const int end; 
         const int size;
@@ -35,6 +36,7 @@ namespace cg::data_structures
         [[nodiscard]] Interval getIntervalByIndex(int intervalIndex) const;
 
         [[nodiscard]] std::vector<Interval> getAllIntervals() const;
+        [[nodiscard]] std::vector<Interval> getAllIntervalsByDecreasingRightEndpoint() const;
 
         [[nodiscard]] auto rightEndpoints() const;
         [[nodiscard]] auto rightEndpointsDescending() const;

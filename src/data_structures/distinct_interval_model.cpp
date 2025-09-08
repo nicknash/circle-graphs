@@ -35,7 +35,11 @@ namespace cg::data_structures
           [](const Interval& a, const Interval& b) {
               return a.Left < b.Left;
           });
-
+          _intervalsByDecreasingRightEndpoint = std::vector<Interval>(intervals.begin(), intervals.end());
+            std::sort(_intervalsByDecreasingRightEndpoint.begin(), _intervalsByDecreasingRightEndpoint.end(),
+          [](const Interval& a, const Interval& b) {
+              return a.Right > b.Right;
+          });  
     }
 
     [[nodiscard]] std::optional<Interval> DistinctIntervalModel::tryGetIntervalByRightEndpoint(int maybeRightEndpoint) const
@@ -114,6 +118,11 @@ namespace cg::data_structures
     [[nodiscard]] std::vector<Interval> DistinctIntervalModel::getAllIntervals() const
     {
         return _intervalsByIncreasingLeftEndpoint;
+    }
+
+    [[nodiscard]] std::vector<Interval> DistinctIntervalModel::getAllIntervalsByDescendingRightEndpoint() const
+    {
+        return _intervalsByDecreasingRightEndpoint;
     }
 
 }

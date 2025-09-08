@@ -5,6 +5,8 @@
 
 #include "mif/gavril.h"
 
+#include <algorithm>
+
 namespace cg::mif
 {
     template <class T>
@@ -26,10 +28,15 @@ namespace cg::mif
     class Node // think about correct definition here! read paper to check
     {
         std::vector<Node *> _children;
-
+        int _intervalId;
     public:
+        Node(int intervalId) : _intervalId(intervalId)
+        {
+
+        }
         int intervalId()
         {
+            return _intervalId;
         }
         void addChild(Node *child)
         {
@@ -37,6 +44,7 @@ namespace cg::mif
             {
                 return;
             }
+            //TODONICK
         }
         int numDescendants()
         {
@@ -72,55 +80,47 @@ namespace cg::mif
         array4<Node*> FR(intervalModel.size);
 
         // The base case for FR_{w, 0}[x, y]:
-        // Scan right to left
-
-        for (int i = intervalModel.end - 1; i-- > 0;)
+        for (auto interval : intervalModel.getAllIntervalsByDecreasingRightEndpoint()) // 'interval' is 'w' in Gavril's notation
         {
-            const auto &maybeInterval = intervalModel.tryGetIntervalByRightEndpoint(i);
-            if (maybeInterval)
-            {
-                const auto &interval = maybeInterval.value(); // 'interval' is vertex 'w' in Gavril's notation
-                int xIdx = 0;
-                while (xIdx < firstLayerEndpoints.size() && firstLayerEndpoints[xIdx] < interval.Left)
-                {
-                    ++xIdx;
-                }
+            int xIdxBegin = int(std::upper_bound(firstLayerEndpoints.begin(), firstLayerEndpoints.end(), interval.Left) - firstLayerEndpoints.begin());   // index of first end-point > interval.Left
+            int xIdxEnd  = int(std::lower_bound(firstLayerEndpoints.begin(), firstLayerEndpoints.end(), interval.Right) - firstLayerEndpoints.begin());  // index of interval.Right
 
-                for (; xIdx < firstLayerEndpoints.size(); ++xIdx)
+            for (int xIdx = xIdxBegin; xIdx <= xIdxEnd; ++xIdx) // All end-points x such that: interval.Left < x <= interval.Right
+            {
+                int x = firstLayerEndpoints[xIdx];
+                for (int yIdx = xIdxEnd; yIdx < firstLayerEndpoints.size(); yIdx++) // All end-points y such that: interval.Right <= y <= last endpoint at layer 0 
                 {
-                    int x = firstLayerEndpoints[xIdx];
-                    int yIdx = 0;
-                    while (yIdx < firstLayerEndpoints.size() && firstLayerEndpoints[yIdx] < interval.Right)
+                    int y = firstLayerEndpoints[yIdx];
+                    Node *maxRoot = nullptr;
+                    int maxForestSize = 0;
+                    for (const auto &potentialRightChild : firstLayer)
                     {
-                        ++yIdx;
-                    }
-                    for (; yIdx < firstLayerEndpoints.size(); yIdx++)
-                    {
-                        int y = firstLayerEndpoints[yIdx];
-                        Node *maxRoot = nullptr;
-                        int maxForestSize = 0;
-                        for (const auto &potentialRightChild : firstLayer)
+                        auto isChild = potentialRightChild.Left < interval.Right && interval.Right < potentialRightChild.Right;
+                        auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
+                        if (isChild && isWithinRange)
                         {
-                            // TODONICK: Account for 'dummy' sons?
-                            auto isChild = potentialRightChild.Left < interval.Right && interval.Right < potentialRightChild.Right;
-                            auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
-                            if (isChild && isWithinRange)
+                            const auto &rightChild = potentialRightChild; // 'rightChild' is 'v' in Gavril's notation
+                            const auto forestHere = FR(x, y, rightChild.Index, 0);
+                            if (forestHere != nullptr && forestHere->numDescendants() > maxForestSize)
                             {
-                                const auto &rightChild = potentialRightChild;
-                                const auto forestHere = FR(x, y, rightChild.Index, 0);
-                                if (forestHere != nullptr && forestHere->numDescendants() > maxForestSize)
-                                {
-                                    maxRoot = forestHere;
-                                    maxForestSize = forestHere->numDescendants();
-                                }
+                                maxRoot = forestHere;
+                                maxForestSize = forestHere->numDescendants();
                             }
                         }
-                        Node* newRoot = new Node();
-                        newRoot->addChild(maxRoot); 
-                        FR(x, y, interval.Index, 0) = newRoot;
                     }
+                    Node *newRoot = new Node(interval.Index);
+                    newRoot->addChild(maxRoot);
+                    FR(x, y, interval.Index, 0) = newRoot;
                 }
             }
+            // Now the Gavril's so called 'dummy son' cases, i.e., intervals contained in (interval.Right, max-end-point-at-layer-0]:
+            for(int yDummyIdx = xIdxEnd + 1; yDummyIdx < firstLayerEndpoints.size(); ++yDummyIdx)
+            {
+                int y = firstLayerEndpoints[yDummyIdx];
+                // TODONICK: 
+                // Inspect all intervals contained in (interval.Right, y] pick the one with largest sized forest at FR(v.Left, y, v.Index, 0)
+                // and take it as FR_{w, i}(interval.Right, y) (note, we don't attach the nodes!)
+            }    
         }
 
         auto layersSoFar = layers[0];
