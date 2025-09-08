@@ -9,9 +9,9 @@
 #include "utils/chord_model_utils.h"
 #include "data_structures/chord_model.h"
 #include "data_structures/chord.h"
+#include "data_structures/interval.h"
 #include "data_structures/distinct_interval_model.h"
 #include "data_structures/shared_interval_model.h"
-#include "data_structures/interval.h"
 
 namespace cg::data_structures
 {
