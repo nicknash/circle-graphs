@@ -3,6 +3,9 @@
 #include <optional>
 #include <span>
 #include <vector>
+#include <ranges>
+
+#include "interval.h"
 
 namespace cg::data_structures
 {
@@ -34,5 +37,37 @@ namespace cg::data_structures
 
         [[nodiscard]] std::vector<Interval> getAllIntervals() const;
 
+        [[nodiscard]] auto rightEndpoints() const;
+        [[nodiscard]] auto rightEndpointsDescending() const;
+        [[nodiscard]] auto leftEndpoints() const;
+        [[nodiscard]] auto leftEndpointsDescending() const;
+
     };
+
+    [[nodiscard]] inline auto DistinctIntervalModel::rightEndpoints() const
+    {
+        return _intervalsByIncreasingRightEndpoint
+               | std::views::transform([](const Interval &i) { return i.Right; });
+    }
+
+    [[nodiscard]] inline auto DistinctIntervalModel::rightEndpointsDescending() const
+    {
+        return _intervalsByIncreasingRightEndpoint
+               | std::views::reverse
+               | std::views::transform([](const Interval &i) { return i.Right; });
+    }
+
+    [[nodiscard]] inline auto DistinctIntervalModel::leftEndpoints() const
+    {
+        return _intervalsByIncreasingLeftEndpoint
+               | std::views::transform([](const Interval &i) { return i.Left; });
+    }
+
+    [[nodiscard]] inline auto DistinctIntervalModel::leftEndpointsDescending() const
+    {
+        return _intervalsByIncreasingLeftEndpoint
+               | std::views::reverse
+               | std::views::transform([](const Interval &i) { return i.Left; });
+    }
+
 }
