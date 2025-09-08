@@ -347,6 +347,7 @@
 
     // Returns a vector V such that V[k] is all intervals that contain no other intervals having removed the intervals V[0] U ... U V[k - 1]
     // So, V[0] is the intervals containing no others, V[1] is those containing no others after removing all intervals in V[0], etc
+    // The intervals V[k] are ordered by increasing left end-point.
     //
     // This works in O(n \log n) time by a Fenwick-tree accelerated evaluation of this recurrence:
     //
@@ -384,6 +385,13 @@
                 layers[depthOfThisInterval].push_back(interval);
                 depth.setIdx(interval.Right, 1 + depthOfThisInterval);
             }
+        }
+        // We add intervals to a layer above in decreasing order of left end-point, 
+        // but we want to return them in increasing order of left end-point, so reverse
+        // the layers
+        for (auto& L : layers)
+        {
+            std::reverse(L.begin(), L.end())
         }
         return layers;
     }
