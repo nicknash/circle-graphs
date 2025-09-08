@@ -1,5 +1,5 @@
-#include "data_structures/distinct_interval_model.h"
 #include "data_structures/interval.h"
+#include "data_structures/distinct_interval_model.h"
 
 #include "utils/interval_model_utils.h"
 

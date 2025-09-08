@@ -391,7 +391,7 @@
         // the layers
         for (auto& L : layers)
         {
-            std::reverse(L.begin(), L.end())
+            std::reverse(L.begin(), L.end());
         }
         return layers;
     }
