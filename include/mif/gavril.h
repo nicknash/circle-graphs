@@ -35,7 +35,7 @@ template <class T>
     {
         std::size_t n;
         std::vector<T> data;
-        explicit array3(std::size_t n) : n(n), data(n * n * n * n,T{}) {}
+        explicit array3(std::size_t n) : n(n), data(n * n * n,T{}) {}
         T &operator()(std::size_t i, std::size_t j, std::size_t k)
         {
             return data[(i * n + j) * n + k];

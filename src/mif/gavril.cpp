@@ -70,7 +70,7 @@ namespace cg::mif
                             }
                         }
                     }
-                    const auto dummySize = y > interval.Right ? dummyRightForestSizes(y, interval.Index, 0) : 0; // We only fill dummyRightForestSizes when y > interval.Right
+                    const auto dummySize = dummyRightForestSizes(y, interval.Index, 0); // We only fill dummyRightForestSizes when y > interval.Right, so if y == interval.Right we get the pre-filled zero here, which is fine.
                     rightForestSizes(x, y, interval.Index, 0) = 1 + std::max(maxForestSizeFromRealChild, dummySize);
                 }
             }
