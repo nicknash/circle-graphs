@@ -120,7 +120,7 @@ namespace cg::data_structures
         return _intervalsByIncreasingLeftEndpoint;
     }
 
-    [[nodiscard]] std::vector<Interval> DistinctIntervalModel::getAllIntervalsByDescendingRightEndpoint() const
+    [[nodiscard]] std::vector<Interval> DistinctIntervalModel::getAllIntervalsByDecreasingRightEndpoint() const
     {
         return _intervalsByDecreasingRightEndpoint;
     }
