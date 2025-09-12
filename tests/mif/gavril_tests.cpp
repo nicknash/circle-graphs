@@ -429,3 +429,79 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions exist, only 
     CHECK(FL(2,4,B.Index,0) == 1);
 }
 
+TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions, nested inside two outers") {
+    using cg::data_structures::Interval;
+
+    // Inner A0 intervals (endpoints 2..7):
+    // A'=[2,5] (Index=0), B'=[4,7] (Index=1), C'=[3,6] (Index=2).
+    Interval A(2, 5, 0, 1);
+    Interval B(4, 7, 1, 1);
+    Interval C(3, 6, 2, 1);
+
+    // Two outer intervals (not in A0): E=[1,8], D=[0,9]
+    Interval E(1, 8, 3, 1);
+    Interval D(0, 9, 4, 1);
+
+    std::vector<Interval> intervals = {A, B, C, E, D};
+    cg::data_structures::DistinctIntervalModel m(intervals);
+
+    // Build layers; A0 should contain exactly A,B,C
+    auto layers = cg::interval_model_utils::createLayers(m);
+    REQUIRE(!layers.empty());
+    auto& A0 = layers[0];
+
+    auto EP0 = collect_first_layer_endpoints(A0);
+    REQUIRE(EP0.size() == 6);
+    CHECK(std::is_sorted(EP0.begin(), EP0.end()));
+    // EP0 should be {2,3,4,5,6,7}
+
+    cg::mif::array4<int> FL(m.end); // if m.end is max endpoint, use m.end+1
+
+    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL);
+
+    auto in_domain = [](const Interval& w, int z, int q){
+        return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
+    };
+
+    auto expect_zeros_outside = [&](const Interval& w){
+        for (int z : EP0) for (int q : EP0) {
+            if (!in_domain(w,z,q)) {
+                CHECK_MESSAGE(FL(z,q,w.Index,0) == 0,
+                              "FL not zero outside domain for w=", w.Index,
+                              " z=", z, " q=", q);
+            }
+        }
+    };
+    expect_zeros_outside(A);
+    expect_zeros_outside(B);
+    expect_zeros_outside(C);
+
+    // A'=[2,5]: no real left children. Domain: z=2, q∈{2,3,4} → all 1.
+    CHECK(FL(2,2,A.Index,0) == 1);
+    CHECK(FL(2,3,A.Index,0) == 1);
+    CHECK(FL(2,4,A.Index,0) == 1);
+
+    // C'=[3,6]: left child is A' only; needs z<=2 and q>=5 → only (z=2,q=5) uses A' → value 2.
+    CHECK(FL(2,3,C.Index,0) == 1);
+    CHECK(FL(2,4,C.Index,0) == 1);
+    CHECK(FL(2,5,C.Index,0) == 2);
+    CHECK(FL(3,3,C.Index,0) == 1);
+    CHECK(FL(3,4,C.Index,0) == 1);
+    CHECK(FL(3,5,C.Index,0) == 1);
+
+    // B'=[4,7]: left children are A' and C'.
+    // z=2: q=4→1; q=5→2 (via A'); q=6→3 (via C' which yields 2)
+    CHECK(FL(2,4,B.Index,0) == 1);
+    CHECK(FL(2,5,B.Index,0) == 2);
+    CHECK(FL(2,6,B.Index,0) == 3);
+    // z=3: q=4→1; q=5→1; q=6→2 (via C' only)
+    CHECK(FL(3,4,B.Index,0) == 1);
+    CHECK(FL(3,5,B.Index,0) == 1);
+    CHECK(FL(3,6,B.Index,0) == 2);
+    // z=4: no v satisfies z <= l_v (l_v∈{2,3}) → always 1
+    CHECK(FL(4,4,B.Index,0) == 1);
+    CHECK(FL(4,5,B.Index,0) == 1);
+    CHECK(FL(4,6,B.Index,0) == 1);
+}
+
+

@@ -46,6 +46,8 @@ template <class T>
         }
     };
 
+    // This is Gavril's algorithm for the maximum induced forest of a circle graph:
+    // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
     class Gavril
     {
     public:

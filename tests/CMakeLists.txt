@@ -40,7 +40,7 @@ include("${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake")
 
 # Register EACH TEST_CASE so VS Code can run/debug them individually
 doctest_discover_tests(unit_tests
-  TEST_PREFIX "unit."
+  TEST_PREFIX ""
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   DISCOVERY_MODE POST_BUILD   # discover immediately after the binary is built
 )
