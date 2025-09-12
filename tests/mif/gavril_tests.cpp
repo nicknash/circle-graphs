@@ -6,10 +6,8 @@
 
 #include <algorithm>
 
-#include <iostream>
 #include <format>
 #include <map>
-
 
 static std::vector<int>
 collect_first_layer_endpoints(const std::vector<cg::data_structures::Interval>& firstLayer) {
@@ -57,7 +55,7 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
     cg::mif::array3<int> FRDummy(m.end);  // FRDummy[y,w,0]
 
     // Call base case
-    cg::mif::Gavril::computeRightForestBaseCase(A0_eps, A0, FR, FRDummy);
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy);
 
     const auto& W0 = A0[0]; // [0,1], index 0
     const auto& W1 = A0[1]; // [2,3], index 1
@@ -128,3 +126,306 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
         }
     }
 }
+
+TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, but only one layer") {
+    using cg::data_structures::Interval;
+
+    // Intervals (endpoints 0..5):
+    // A=[0,3] (Index=0), B=[2,5] (Index=1), C=[1,4] (Index=2).
+    Interval A(0, 3, 0, 1);
+    Interval B(2, 5, 1, 1);
+    Interval C(1, 4, 2, 1);
+    std::vector<Interval> intervals = {A, B, C};
+    cg::data_structures::DistinctIntervalModel m(intervals);
+
+    // Build layers and take A0
+    auto layers = cg::interval_model_utils::createLayers(m);
+    REQUIRE(!layers.empty());
+    auto& A0 = layers[0];
+
+    // Sort by increasing Right (to match production)
+    std::sort(A0.begin(), A0.end(),
+              [](const Interval& a, const Interval& b){ return a.Right < b.Right; });
+
+    // Endpoints for A0 (use your helper; replace with local impl if needed)
+    auto A0_eps = collect_first_layer_endpoints(A0);
+    REQUIRE(A0_eps.size() == 6);
+    CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
+
+    // Tables sized by endpoint *count* (0..5 inclusive ⇒ m.end must be 6; if m.end is max endpoint, use m.end+1)
+    cg::mif::array4<int> FR(m.end);
+    cg::mif::array3<int> FRDummy(m.end);
+
+    // Compute base case
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy);
+
+  
+    auto in_domain = [](const Interval& w, int x, int y){
+        return (w.Left < x) && (x <= w.Right) && (w.Right <= y);
+    };
+
+    // 1) Zeros outside i=0 domain
+    auto expect_zeros_outside = [&](const Interval& w){
+        for (int x : A0_eps) for (int y : A0_eps)
+            if (!in_domain(w,x,y))
+                CHECK_MESSAGE(FR(x,y,w.Index,0) == 0,
+                              "FR not zero outside domain for w=", w.Index, " x=", x, " y=", y);
+    };
+    expect_zeros_outside(A);
+    expect_zeros_outside(B);
+    expect_zeros_outside(C);
+
+    // 2) Dummy tables: none exist in this configuration
+    for (int y : A0_eps) {
+        CHECK(FRDummy(y, A.Index, 0) == 0);
+        CHECK(FRDummy(y, B.Index, 0) == 0);
+        CHECK(FRDummy(y, C.Index, 0) == 0);
+    }
+
+    // 3) Expected FR with real-child contributions
+    // B=[2,5]: no real children; only y=5 in domain
+    CHECK(FR(3,5,B.Index,0) == 1);
+    CHECK(FR(4,5,B.Index,0) == 1);
+    CHECK(FR(5,5,B.Index,0) == 1);
+
+    // C=[1,4]: real child is B (2<4<5). Only x=2 and y=5 allow B; else 1.
+    CHECK(FR(2,4,C.Index,0) == 1);
+    CHECK(FR(2,5,C.Index,0) == 2); // 1 + FR_B(3,5)=2
+    CHECK(FR(3,4,C.Index,0) == 1);
+    CHECK(FR(3,5,C.Index,0) == 1);
+    CHECK(FR(4,4,C.Index,0) == 1);
+    CHECK(FR(4,5,C.Index,0) == 1);
+
+    // A=[0,3]: real children are C and B.
+    CHECK(FR(1,3,A.Index,0) == 1);
+    CHECK(FR(1,4,A.Index,0) == 2); // via C: 1 + FR_C(2,4)=2
+    CHECK(FR(1,5,A.Index,0) == 3); // via max(C->2, B->1) + 1
+    CHECK(FR(2,3,A.Index,0) == 1);
+    CHECK(FR(2,4,A.Index,0) == 1);
+    CHECK(FR(2,5,A.Index,0) == 2); // via B: 1 + FR_B(3,5)=2
+    CHECK(FR(3,3,A.Index,0) == 1);
+    CHECK(FR(3,4,A.Index,0) == 1);
+    CHECK(FR(3,5,A.Index,0) == 1);
+}
+
+TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, nested inside two outers") {
+    using cg::data_structures::Interval;
+
+    // Inner A0 intervals (endpoints 2..7):
+    // A=[2,5] (Index=0), B=[4,7] (Index=1), C=[3,6] (Index=2).
+    Interval A(2, 5, 0, 1);
+    Interval B(4, 7, 1, 1);
+    Interval C(3, 6, 2, 1);
+
+    // Two outers that contain all three inners (do not belong to A0):
+    Interval E(1, 8, 3, 1);
+    Interval D(0, 9, 4, 1);
+
+    std::vector<Interval> intervals = {A, B, C, E, D};
+    cg::data_structures::DistinctIntervalModel m(intervals);
+
+    // Build layers and take A0
+    auto layers = cg::interval_model_utils::createLayers(m);
+    REQUIRE(!layers.empty());
+    auto& A0 = layers[0];
+
+    // Sort by increasing Right to match production code
+    std::sort(A0.begin(), A0.end(),
+              [](const Interval& a, const Interval& b){ return a.Right < b.Right; });
+
+    // Endpoints for A0 only (expected {2,3,4,5,6,7})
+    auto A0_eps = collect_first_layer_endpoints(A0);
+    REQUIRE(A0_eps.size() == 6);
+    CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
+
+    // DP tables keyed by endpoint values; if m.end is "max endpoint", use m.end+1
+    cg::mif::array4<int> FR(m.end);
+    cg::mif::array3<int> FRDummy(m.end);
+
+    // Compute base case over A0
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy);
+
+    auto in_domain = [](const Interval& w, int x, int y){
+        return (w.Left < x) && (x <= w.Right) && (w.Right <= y);
+    };
+
+    // --- 1) Zeros outside i=0 domain ---
+    auto expect_zeros_outside = [&](const Interval& w){
+        for (int x : A0_eps) for (int y : A0_eps) {
+            if (!in_domain(w,x,y)) {
+                CHECK_MESSAGE(FR(x,y,w.Index,0) == 0,
+                              "FR not zero outside domain for w=", w.Index,
+                              " x=", x, " y=", y);
+            }
+        }
+    };
+    expect_zeros_outside(A);
+    expect_zeros_outside(B);
+    expect_zeros_outside(C);
+
+    // --- 2) Dummy tables: none among A0 in this configuration ---
+    for (int y : A0_eps) {
+        CHECK(FRDummy(y, A.Index, 0) == 0);
+        CHECK(FRDummy(y, B.Index, 0) == 0);
+        CHECK(FRDummy(y, C.Index, 0) == 0);
+    }
+
+    // --- 3) Expected FR with real-child contributions on endpoints {2,3,4,5,6,7} ---
+
+    // B=[4,7]: no real children; only (x in {5,6,7}, y=7) are in-domain → value 1
+    CHECK(FR(5,7,B.Index,0) == 1);
+    CHECK(FR(6,7,B.Index,0) == 1);
+    CHECK(FR(7,7,B.Index,0) == 1);
+
+    // C=[3,6]: real child is B (4<6<7). Only (x=4, y=7) allows B; else 1.
+    CHECK(FR(4,6,C.Index,0) == 1);
+    CHECK(FR(4,7,C.Index,0) == 2); // 1 + FR_B(l_B+1=5, 7)=2
+    CHECK(FR(5,6,C.Index,0) == 1);
+    CHECK(FR(5,7,C.Index,0) == 1);
+    CHECK(FR(6,6,C.Index,0) == 1);
+    CHECK(FR(6,7,C.Index,0) == 1);
+
+    // A=[2,5]: real children are C and B.
+    // x=3: y=5 -> 1; y=6 -> 1 + FR_C(4,6)=2; y=7 -> 1 + max(FR_C(4,7)=2, FR_B(5,7)=1)=3
+    CHECK(FR(3,5,A.Index,0) == 1);
+    CHECK(FR(3,6,A.Index,0) == 2);
+    CHECK(FR(3,7,A.Index,0) == 3);
+    // x=4: only B fits when y=7 (x>l_C excludes C); y=5,6 -> 1; y=7 -> 1 + FR_B(5,7)=2
+    CHECK(FR(4,5,A.Index,0) == 1);
+    CHECK(FR(4,6,A.Index,0) == 1);
+    CHECK(FR(4,7,A.Index,0) == 2);
+    // x=5: no real child fits → always 1 on domain
+    CHECK(FR(5,5,A.Index,0) == 1);
+    CHECK(FR(5,6,A.Index,0) == 1);
+    CHECK(FR(5,7,A.Index,0) == 1);
+}
+
+TEST_CASE("Gavril::computeLeftForestBaseCase: 3 disjoint intervals (all ones in-domain, zeros elsewhere)") {
+    using cg::data_structures::Interval;
+
+    // Intervals: [0,1], [2,3], [4,5] — all in A0, pairwise disjoint.
+    Interval a(0, 1, 0, 1);
+    Interval b(2, 3, 1, 1);
+    Interval c(4, 5, 2, 1);
+    std::vector<Interval> intervals = {a, b, c};
+    cg::data_structures::DistinctIntervalModel m(intervals);
+
+    // Build layers and take A0
+    auto layers = cg::interval_model_utils::createLayers(m);
+    REQUIRE(!layers.empty());
+    auto& A0 = layers[0];
+
+    // Endpoints for A0 (expected {0,1,2,3,4,5})
+    auto EP0 = collect_first_layer_endpoints(A0);
+    REQUIRE(EP0.size() == 6);
+    CHECK(std::is_sorted(EP0.begin(), EP0.end()));
+
+    // FL table keyed by endpoint values.
+    // If m.end is "max endpoint" (e.g., 5), size as m.end+1 instead.
+    cg::mif::array4<int> FL(m.end);
+
+    // Compute base case
+    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL);
+
+    auto in_domain = [](const Interval& w, int z, int q){
+        // FL base-case domain: z ≤ l_w ≤ q < r_w
+        return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
+    };
+
+    auto expect_all = [&](const Interval& w){
+        for (int z : EP0) for (int q : EP0) {
+            const bool dom = in_domain(w, z, q);
+            if (dom) {
+                // Disjoint ⇒ no real left-children; no left dummies at i=0 ⇒ value must be 1
+                CHECK_MESSAGE(FL(z, q, w.Index, 0) == 1,
+                    "FL should be 1 in-domain for w=", w.Index, " z=", z, " q=", q);
+            } else {
+                CHECK_MESSAGE(FL(z, q, w.Index, 0) == 0,
+                    "FL should be 0 outside domain for w=", w.Index, " z=", z, " q=", q);
+            }
+        }
+    };
+
+    expect_all(a); // w = [0,1]
+    expect_all(b); // w = [2,3]
+    expect_all(c); // w = [4,5]
+}
+
+
+TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions exist, only one layer") {
+    using cg::data_structures::Interval;
+
+    // Intervals (endpoints 0..5):
+    // A=[0,3] (Index=0), B=[2,5] (Index=1), C=[1,4] (Index=2).
+    Interval A(0, 3, 0, 1);
+    Interval B(2, 5, 1, 1);
+    Interval C(1, 4, 2, 1);
+    std::vector<Interval> intervals = {A, B, C};
+    cg::data_structures::DistinctIntervalModel m(intervals);
+
+    // Build layers and take A0
+    auto layers = cg::interval_model_utils::createLayers(m);
+    REQUIRE(!layers.empty());
+    auto& A0 = layers[0];
+
+    // (Order doesn't matter for this test, but keep consistent)
+    auto EP0 = collect_first_layer_endpoints(A0);
+    REQUIRE(EP0.size() == 6);
+    CHECK(std::is_sorted(EP0.begin(), EP0.end()));
+
+    // FL table (keyed by endpoint values). If m.end is "max endpoint", use m.end+1.
+    cg::mif::array4<int> FL(m.end);
+
+    // Compute base case
+    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL);
+
+    auto in_domain = [](const Interval& w, int z, int q){
+        return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
+    };
+
+    // 1) Zeros outside i=0 domain
+    auto expect_zeros_outside = [&](const Interval& w){
+        for (int z : EP0) for (int q : EP0) {
+            if (!in_domain(w,z,q)) {
+                CHECK_MESSAGE(FL(z,q,w.Index,0) == 0,
+                              "FL not zero outside domain for w=", w.Index,
+                              " z=", z, " q=", q);
+            }
+        }
+    };
+    expect_zeros_outside(A);
+    expect_zeros_outside(B);
+    expect_zeros_outside(C);
+
+    // 2) Expected FL values (derived manually)
+
+    // A=[0,3]: no real left children. Domain: z=0, q∈{0,1,2} → all 1.
+    CHECK(FL(0,0,A.Index,0) == 1);
+    CHECK(FL(0,1,A.Index,0) == 1);
+    CHECK(FL(0,2,A.Index,0) == 1);
+
+    // C=[1,4]: real left child is A. Needs z<=0 and q>=3 to include A.
+    // z=0: q=1→1, q=2→1, q=3→2 (via A with q' = min(3, 3-1=2) => FL_A(0,2)=1)
+    CHECK(FL(0,1,C.Index,0) == 1);
+    CHECK(FL(0,2,C.Index,0) == 1);
+    CHECK(FL(0,3,C.Index,0) == 2);
+    // z=1: cannot include A → all 1
+    CHECK(FL(1,1,C.Index,0) == 1);
+    CHECK(FL(1,2,C.Index,0) == 1);
+    CHECK(FL(1,3,C.Index,0) == 1);
+
+    // B=[2,5]: real left children are A and C.
+    // z=0: q=2→1; q=3→2 (via A); q=4→3 (via C which gives 2)
+    CHECK(FL(0,2,B.Index,0) == 1);
+    CHECK(FL(0,3,B.Index,0) == 2);
+    CHECK(FL(0,4,B.Index,0) == 3);
+    // z=1: q=2→1; q=3→1; q=4→2 (via C only; A excluded by z>0)
+    CHECK(FL(1,2,B.Index,0) == 1);
+    CHECK(FL(1,3,B.Index,0) == 1);
+    CHECK(FL(1,4,B.Index,0) == 2);
+    // z=2: no v can satisfy z <= l_v (since l_v ∈ {0,1}) → always 1
+    CHECK(FL(2,2,B.Index,0) == 1);
+    CHECK(FL(2,3,B.Index,0) == 1);
+    CHECK(FL(2,4,B.Index,0) == 1);
+}
+

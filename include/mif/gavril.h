@@ -50,6 +50,7 @@ template <class T>
     {
     public:
         static void computeMif(std::span<const cg::data_structures::Interval> intervals);
-        static void computeRightForestBaseCase(const std::vector<int>& firstLayerEndpoints, const std::vector<cg::data_structures::Interval> firstLayer, array4<int>& rightForestSizes, array3<int>& dummyRightForestSizes);
+        static void computeRightForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& rightForestSizes, array3<int>& dummyRightForestSizes);
+        static void computeLeftForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& leftForestSizes);
     };
 }
