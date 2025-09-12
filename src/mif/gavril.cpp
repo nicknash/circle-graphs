@@ -162,29 +162,71 @@ namespace cg::mif
             allEndpoints.push_back(interval.Left);
             allEndpoints.push_back(interval.Right);
         }
-        for(const auto& interval : newIntervalsAtThisLayer)
-        {
-            allEndpoints.push_back(interval.Left);
-            allEndpoints.push_back(interval.Right);
-        }
         std::sort(allEndpoints.begin(), allEndpoints.end());
+        const auto previousLayerIdx = layerIdx - 1;
         for(const auto& newInterval : newIntervalsAtThisLayer) // This is w \in V_i - V_{i-1} in Gavril's notation
         {
+            // First fill in FR_{w, i}(r_w, y] for i = layerIdx - 1
+            for(auto y : allEndpoints)
+            {
+                if(y <= newInterval.Right)
+                {
+                    continue;
+                }
+                int maxDummyForestSize = 0;
+                for (const auto &potentialDummyChild : allIntervalsBeforeThisLayer) // Now find the dummy child with largest FR_{v, i}[l_v, y]
+                {
+                    auto isWithinRange = potentialDummyChild.Right <= y; 
+                    auto isDummyChild = potentialDummyChild.Left > newInterval.Right;
+                    if (isWithinRange && isDummyChild) // Check that the dummy is within (r_w, y], i.e. within (interval.Right, y]
+                    {
+                        const auto& dummyChild = potentialDummyChild;
+                        const auto dummyForestSizeHere = forests.rightForestSizes(dummyChild.Left + 1, y, dummyChild.Index, previousLayerIdx);
+                        if(dummyForestSizeHere > maxDummyForestSize)
+                        {
+                            maxDummyForestSize = dummyForestSizeHere;
+                        }
+                    }
+                }
+                forests.dummyRightForestSizes(y, newInterval.Index, previousLayerIdx) = maxDummyForestSize;
+            }
+
             for(auto x : allEndpoints)
             {
+                if(x <= newInterval.Left)
+                {
+                    continue;
+                }
+                if(x > newInterval.Right)
+                {
+                    break;
+                }
                 for(auto y : allEndpoints)
                 {
-                    if(y < x)
+                    if(y < newInterval.Right)
                     {
                         continue;
                     }
-                    // How do I combine the dummies in here with the q' and x' split..?
-                    // also I'll need 'innerMWIS' soon, or whatever the correct representation is
-                    // Collect the 
                     for(const auto& earlierInterval : allIntervalsBeforeThisLayer)
                     {
                         auto isWithinRange = x <= earlierInterval.Left && earlierInterval.Right <= y;
                         auto isRightChild = earlierInterval.Left < newInterval.Right && newInterval.Right < earlierInterval.Right;
+                        // Now try all [q', x'] that enclose the right end-point of newInterval
+                        for(auto qPrime = earlierInterval.Left; qPrime < newInterval.Right; ++qPrime)
+                        {
+                            for(auto xPrime = newInterval.Right + 1; xPrime <= earlierInterval.Right; ++xPrime)
+                            {
+                                int innerSize = 0;
+                                if(previousLayerIdx > 0)
+                                {
+                                    // look up innerSize(qPrime, xPrime, previousLayerIdx - 1)
+                                }
+                                auto maxSizeHere = forests.leftForestSizes(x, qPrime, earlierInterval.Index, previousLayerIdx); // + forests. TODO!
+                            }
+
+                        }
+                        
+
                     }
                 }
             }
