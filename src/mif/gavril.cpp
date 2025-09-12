@@ -152,6 +152,44 @@ namespace cg::mif
         }
     }
 
+    void Gavril::computeNewIntervalRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& newIntervalsAtThisLayer, const std::vector<cg::data_structures::Interval>& allIntervalsBeforeThisLayer, 
+        Gavril::Forests& forests)
+    {
+        // Collect all end-points, in increasing order.
+        std::vector<int> allEndpoints; // EP_i in Gavril's notation (with layerIdx the same as Gavril's i)
+        for(const auto& interval : allIntervalsBeforeThisLayer)
+        {
+            allEndpoints.push_back(interval.Left);
+            allEndpoints.push_back(interval.Right);
+        }
+        for(const auto& interval : newIntervalsAtThisLayer)
+        {
+            allEndpoints.push_back(interval.Left);
+            allEndpoints.push_back(interval.Right);
+        }
+        std::sort(allEndpoints.begin(), allEndpoints.end());
+        for(const auto& newInterval : newIntervalsAtThisLayer) // This is w \in V_i - V_{i-1} in Gavril's notation
+        {
+            for(auto x : allEndpoints)
+            {
+                for(auto y : allEndpoints)
+                {
+                    if(y < x)
+                    {
+                        continue;
+                    }
+                    // How do I combine the dummies in here with the q' and x' split..?
+                    // also I'll need 'innerMWIS' soon, or whatever the correct representation is
+                    // Collect the 
+                    for(const auto& earlierInterval : allIntervalsBeforeThisLayer)
+                    {
+                        auto isWithinRange = x <= earlierInterval.Left && earlierInterval.Right <= y;
+                        auto isRightChild = earlierInterval.Left < newInterval.Right && newInterval.Right < earlierInterval.Right;
+                    }
+                }
+            }
+        }
+    }
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
     // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
     void Gavril::computeMif(std::span<const cg::data_structures::Interval> intervals)
@@ -163,26 +201,35 @@ namespace cg::mif
         array4<int> rightForestSizes(intervalModel.end); // 'FR_{w, i}[x, y]' in Gavril's notation.
         array3<int> dummyRightForestSizes(intervalModel.end); // 'FR_{w, i}(r_w, y]' in Gavril's notation.
 
-        computeRightForestBaseCase(intervalsAtLayer[0], rightForestSizes, dummyRightForestSizes);
+        const auto& firstLayerIntervals = intervalsAtLayer[0];
+
+        computeRightForestBaseCase(firstLayerIntervals, rightForestSizes, dummyRightForestSizes);
 
         array4<int> leftForestSizes(intervalModel.end); // 'FL_{w, i}[z, q]' in Gavril's notation.
 
-        computeLeftForestBaseCase(intervalsAtLayer[0], leftForestSizes);
+        computeLeftForestBaseCase(firstLayerIntervals, leftForestSizes);
 
         array3<int> dummyLeftForestSizes(intervalModel.end); // 'FL_{w, i}(l_w, q]' in Gavril's notation.
 
-        auto layersSoFar = intervalsAtLayer[0];
+        Forests forests{leftForestSizes,dummyLeftForestSizes,rightForestSizes,dummyRightForestSizes};
+
+        std::vector<cg::data_structures::Interval> cumulativeIntervals; // This is V_i in Gavril's notation. At a given iteration, we set V_i = A_0 U ... A_i
+        cumulativeIntervals.insert(cumulativeIntervals.begin(), firstLayerIntervals.begin(), firstLayerIntervals.end());
+
         // The 'layerIdx' is 'i' from Gavril's paper, that the induction of Theorem 5 is on,
         // and what FR_{w, i}, HR_{w, i}, etc are defined on.
         for (int layerIdx = 1; layerIdx < intervalsAtLayer.size(); ++layerIdx)
         {
-            // 'currentLayer' is V_k in Gavril's notation, and is the concatenation of this and all previous layers
-            const auto &newLayer = intervalsAtLayer[layerIdx];
+            const auto &newLayerIntervals = intervalsAtLayer[layerIdx];
 
             // Evaluate FL, FR for intervals in newLayer
+            computeNewIntervalRightForests(layerIdx, newLayerIntervals, cumulativeIntervals, forests);
+            
             // Do the right-to-left scan for all intervals in currentLayer
             // Do the left-to-right scan
             // Calculate the MWIS representative
+ 
+            cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
         }
     }
 }

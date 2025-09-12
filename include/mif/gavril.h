@@ -51,6 +51,17 @@ template <class T>
     class Gavril
     {
     public:
+        struct Forests
+        {
+            array4<int> leftForestSizes;
+            array3<int> dummyLeftForestSizes;
+            array4<int> rightForestSizes;
+            array3<int> dummyRightForestSizes;
+        };
+
+        static void Gavril::computeNewIntervalRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& newIntervalsAtThisLayer, const std::vector<cg::data_structures::Interval>& allIntervalsBeforeThisLayer, 
+        Gavril::Forests& forests);
+
         static void computeMif(std::span<const cg::data_structures::Interval> intervals);
         static void computeRightForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& rightForestSizes, array3<int>& dummyRightForestSizes);
         static void computeLeftForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& leftForestSizes);
