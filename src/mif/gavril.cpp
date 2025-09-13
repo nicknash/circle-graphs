@@ -102,7 +102,7 @@ namespace cg::mif
             firstLayerEndpoints.push_back(interval.Right);
         }
         std::sort(firstLayerEndpoints.begin(), firstLayerEndpoints.end());
-        // Collect all intervals, ordered by decreasing right-endpoint.
+        // Collect all intervals, ordered by increasing right-endpoint.
         std::vector<cg::data_structures::Interval> firstLayerIntervalsByIncreasingLeft(firstLayerIntervals);
         std::sort(firstLayerIntervalsByIncreasingLeft.begin(), firstLayerIntervalsByIncreasingLeft.end(),
           [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
@@ -166,7 +166,7 @@ namespace cg::mif
         const auto previousLayerIdx = layerIdx - 1;
         for(const auto& newInterval : newIntervalsAtThisLayer) // This is w \in V_i - V_{i-1} in Gavril's notation
         {
-            // First fill in FR_{w, i}(r_w, y] for i = layerIdx - 1
+            // First fill in FR_{w, i-1}(r_w, y] for i = layerIdx
             for(auto y : allEndpoints)
             {
                 if(y <= newInterval.Right)
@@ -174,7 +174,7 @@ namespace cg::mif
                     continue;
                 }
                 int maxDummyForestSize = 0;
-                for (const auto &potentialDummyChild : allIntervalsBeforeThisLayer) // Now find the dummy child with largest FR_{v, i}[l_v, y]
+                for (const auto &potentialDummyChild : allIntervalsBeforeThisLayer) // Now find the dummy child with largest FR_{v, i-1}[l_v, y]
                 {
                     auto isWithinRange = potentialDummyChild.Right <= y; 
                     auto isDummyChild = potentialDummyChild.Left > newInterval.Right;
@@ -216,23 +216,48 @@ namespace cg::mif
                         {
                             continue;
                         }
-                        // Now try all [q', x'] that enclose the right end-point of newInterval
-                        for(auto qPrime = earlierInterval.Left; qPrime < newInterval.Right; ++qPrime)
+                        // Now try all end-points [q', x'] that enclose the right end-point of newInterval
+                        for(auto qPrime : allEndpoints)
                         {
-                            for(auto xPrime = newInterval.Right + 1; xPrime <= earlierInterval.Right; ++xPrime)
+                            if(qPrime < earlierInterval.Left)
                             {
-                                int innerSize = 0;
-                                int leftForestSizeHere = 0;
+                                continue;
+                            }
+                            if(qPrime >= newInterval.Right)
+                            {
+                                break;
+                            }
+                            for(auto xPrime : allEndpoints)
+                            {
+                                if(xPrime <= newInterval.Right)
+                                {
+                                    continue;
+                                }
+                                if(xPrime > earlierInterval.Right)
+                                {
+                                    break;
+                                }
+                                auto rightForestSizeHere = forests.rightForestSizes(xPrime, y, earlierInterval.Index, previousLayerIdx);
+                                int sizeHere = 0; 
                                 if(previousLayerIdx > 0)
                                 {
-                                    leftForestSizeHere = forests.leftForestSizes(x, qPrime, earlierInterval.Index, previousLayerIdx - 1);
-                                    // look up innerSize(qPrime, xPrime, previousLayerIdx - 1)
+                                    auto leftForestSizeHere = forests.leftForestSizes(x, qPrime, earlierInterval.Index, previousLayerIdx - 1);
+                                    // Note leftForestSizeHere and rightForestSizeHere both count 'earlierInterval'
+                                    // (i.e, FR_{i,v}[x, y] includes v and FL_{i, v}[x, y] includes v) so the '- 1'
+                                    // avoids counting 'earlierInterval'  twice.
+
+                                    // TODONICK: look up innerSize(qPrime, xPrime, previousLayerIdx - 1)
+                                    auto innerSize = 0;
+                                    sizeHere = leftForestSizeHere + rightForestSizeHere + innerSize - 1;
                                 }
-                                auto rightForestSizeHere = forests.rightForestSizes(xPrime, y, earlierInterval.Index, previousLayerIdx); 
-                                // Note leftForestSizeHere and rightForestSizeHere both count 'earlierInterval' 
-                                // (i.e, FR_{i,v}[x, y] includes v and FL_{i, v}[x, y] includes v) so the '- 1'
-                                // avoids counting 'earlierInterval'  twice.
-                                auto maxSizeHere = leftForestSizeHere + rightForestSizeHere + innerSize - 1;
+                                else
+                                {
+                                    sizeHere = rightForestSizeHere; 
+                                }
+                                if(sizeHere > maxRealChildForestSize)
+                                {
+                                    maxRealChildForestSize = sizeHere;
+                                }
                             }
                         }
                     }
@@ -242,7 +267,122 @@ namespace cg::mif
             }
         }
     }
+    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Gavril::Forests& forests)
+    {
+        // Collect all end-points, in increasing order.
+        std::vector<int> endpoints;
+        for(const auto& interval : allIntervals)
+        {
+            endpoints.push_back(interval.Left);
+            endpoints.push_back(interval.Right);
+        }
+        std::sort(endpoints.begin(), endpoints.end());
+        // Collect all intervals, ordered by decreasing right-endpoint.
+        std::vector<cg::data_structures::Interval> intervalsByDecreasingRight(allIntervals);
+        std::sort(intervalsByDecreasingRight.begin(), intervalsByDecreasingRight.end(),
+          [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
+              return b.Right < a.Right;
+          });  
 
+        // We iterate in decreasing order of right end-point 
+        for(auto interval : intervalsByDecreasingRight) // 'interval' is 'w' in Gavril's notation
+        {
+            for(auto y : endpoints) // All end-points y such that: interval.Right < y <= last endpoint at layer 0  
+            {
+                if(y <= interval.Right)
+                {
+                    continue;
+                }
+                int maxDummyForestSize = 0;
+                for (const auto &potentialDummyChild : intervalsByDecreasingRight) // Now find the dummy child with largest FR_{v, i}[l_v, y]
+                {
+                    auto isWithinRange = potentialDummyChild.Right <= y; 
+                    auto isDummyChild = potentialDummyChild.Left > interval.Right;
+                    if (isWithinRange && isDummyChild) // Check that the dummy is within (r_w, y], i.e. within (interval.Right, y]
+                    {
+                        const auto& dummyChild = potentialDummyChild;
+                        const auto dummyForestSizeHere = forests.rightForestSizes(dummyChild.Left + 1, y, dummyChild.Index, 0);
+                        if(dummyForestSizeHere > maxDummyForestSize)
+                        {
+                            maxDummyForestSize = dummyForestSizeHere;
+                        }
+                    }
+                }
+                forests.dummyRightForestSizes(y, interval.Index, 0) = maxDummyForestSize;
+            }
+            for(auto x : endpoints) // All end-points x such that: interval.Left < x <= interval.Right
+            {
+                if(x <= interval.Left)
+                {
+                    continue;
+                }
+                if(x > interval.Right)
+                {
+                    break;
+                }
+                for(auto y : endpoints) // All end-points y such that: interval.Right <= y <= last endpoint at layer 0
+                {
+                    if(y < interval.Right)
+                    {
+                        continue;
+                    }
+                    for (const auto &potentialRightChild : intervalsByDecreasingRight)
+                    {
+                        auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
+                        auto isRealChild = potentialRightChild.Left < interval.Right && interval.Right < potentialRightChild.Right;
+                        if(!isWithinRange || !isRealChild)
+                        {
+                            continue;
+                        }
+                        const auto &rightChild = potentialRightChild; // 'rightChild' is 'v' in Gavril's notation
+
+                        for(auto qPrime : endpoints)
+                        {
+                            if(qPrime < rightChild.Left)
+                            {
+                                continue;
+                            }
+                            if(qPrime >= interval.Right)
+                            {
+                                break;
+                            }
+                            for(auto xPrime : endpoints)
+                            {
+                                if(xPrime <= interval.Right)
+                                {
+                                    continue;
+                                }
+                                if(xPrime > rightChild.Right)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    int maxForestSizeFromRealChild = 0;
+                    for (const auto &potentialRightChild : intervalsByDecreasingRight)
+                    {
+                        auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
+                        auto isRealChild = potentialRightChild.Left < interval.Right && interval.Right < potentialRightChild.Right;
+                        if (isWithinRange && isRealChild)
+                        {
+                            const auto &rightChild = potentialRightChild; // 'rightChild' is 'v' in Gavril's notation
+                            auto xPrime = rightChild.Left + 1;
+                            const auto forestSizeHere = rightForestSizes(xPrime, y, rightChild.Index, 0);
+                            if (forestSizeHere > maxForestSizeFromRealChild)
+                            {
+                                maxForestSizeFromRealChild = forestSizeHere;
+                            }
+                        }
+                    }
+                    const auto dummySize = dummyRightForestSizes(y, interval.Index, 0); // We only fill dummyRightForestSizes when y > interval.Right, so if y == interval.Right we get the pre-filled zero here, which is fine.
+                    rightForestSizes(x, y, interval.Index, 0) = 1 + std::max(maxForestSizeFromRealChild, dummySize);
+                }
+            }
+        }
+
+    }
 
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
     // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
@@ -281,6 +421,7 @@ namespace cg::mif
             
             cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
 
+            computeRightForests(layerIdx, cumulativeIntervals, forests);
             // Do the right-to-left scan for all intervals in currentLayer
             // Do the left-to-right scan
             // Calculate the MWIS representative
