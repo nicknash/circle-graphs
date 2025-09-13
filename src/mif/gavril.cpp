@@ -156,7 +156,7 @@ namespace cg::mif
         Gavril::Forests& forests)
     {
         // Collect all end-points, in increasing order.
-        std::vector<int> allEndpoints; // EP_i in Gavril's notation (with layerIdx the same as Gavril's i)
+        std::vector<int> allEndpoints; // EP_i in Gavril's notation (with layerIdx the same as Gavril's i - 1 here.)
         for(const auto& interval : allIntervalsBeforeThisLayer)
         {
             allEndpoints.push_back(interval.Left);
@@ -207,31 +207,43 @@ namespace cg::mif
                     {
                         continue;
                     }
+                    auto maxRealChildForestSize = 0;
                     for(const auto& earlierInterval : allIntervalsBeforeThisLayer)
                     {
                         auto isWithinRange = x <= earlierInterval.Left && earlierInterval.Right <= y;
                         auto isRightChild = earlierInterval.Left < newInterval.Right && newInterval.Right < earlierInterval.Right;
+                        if(!isWithinRange || !isRightChild)
+                        {
+                            continue;
+                        }
                         // Now try all [q', x'] that enclose the right end-point of newInterval
                         for(auto qPrime = earlierInterval.Left; qPrime < newInterval.Right; ++qPrime)
                         {
                             for(auto xPrime = newInterval.Right + 1; xPrime <= earlierInterval.Right; ++xPrime)
                             {
                                 int innerSize = 0;
+                                int leftForestSizeHere = 0;
                                 if(previousLayerIdx > 0)
                                 {
+                                    leftForestSizeHere = forests.leftForestSizes(x, qPrime, earlierInterval.Index, previousLayerIdx - 1);
                                     // look up innerSize(qPrime, xPrime, previousLayerIdx - 1)
                                 }
-                                auto maxSizeHere = forests.leftForestSizes(x, qPrime, earlierInterval.Index, previousLayerIdx); // + forests. TODO!
+                                auto rightForestSizeHere = forests.rightForestSizes(xPrime, y, earlierInterval.Index, previousLayerIdx); 
+                                // Note leftForestSizeHere and rightForestSizeHere both count 'earlierInterval' 
+                                // (i.e, FR_{i,v}[x, y] includes v and FL_{i, v}[x, y] includes v) so the '- 1'
+                                // avoids counting 'earlierInterval'  twice.
+                                auto maxSizeHere = leftForestSizeHere + rightForestSizeHere + innerSize - 1;
                             }
-
                         }
-                        
-
                     }
+                    auto maxDummyForestSize = forests.dummyRightForestSizes(y, newInterval.Index, previousLayerIdx);
+                    forests.rightForestSizes(x, y, newInterval.Index, previousLayerIdx) = 1 + std::max(maxRealChildForestSize, maxDummyForestSize);
                 }
             }
         }
     }
+
+
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
     // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
     void Gavril::computeMif(std::span<const cg::data_structures::Interval> intervals)
@@ -267,11 +279,12 @@ namespace cg::mif
             // Evaluate FL, FR for intervals in newLayer
             computeNewIntervalRightForests(layerIdx, newLayerIntervals, cumulativeIntervals, forests);
             
+            cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
+
             // Do the right-to-left scan for all intervals in currentLayer
             // Do the left-to-right scan
             // Calculate the MWIS representative
  
-            cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
         }
     }
 }
