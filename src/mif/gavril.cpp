@@ -267,6 +267,7 @@ namespace cg::mif
             }
         }
     }
+
     void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Gavril::Forests& forests)
     {
         // Collect all end-points, in increasing order.
@@ -301,14 +302,14 @@ namespace cg::mif
                     if (isWithinRange && isDummyChild) // Check that the dummy is within (r_w, y], i.e. within (interval.Right, y]
                     {
                         const auto& dummyChild = potentialDummyChild;
-                        const auto dummyForestSizeHere = forests.rightForestSizes(dummyChild.Left + 1, y, dummyChild.Index, 0);
+                        const auto dummyForestSizeHere = forests.rightForestSizes(dummyChild.Left + 1, y, dummyChild.Index, layerIdx);
                         if(dummyForestSizeHere > maxDummyForestSize)
                         {
                             maxDummyForestSize = dummyForestSizeHere;
                         }
                     }
                 }
-                forests.dummyRightForestSizes(y, interval.Index, 0) = maxDummyForestSize;
+                forests.dummyRightForestSizes(y, interval.Index, layerIdx) = maxDummyForestSize;
             }
             for(auto x : endpoints) // All end-points x such that: interval.Left < x <= interval.Right
             {
@@ -326,6 +327,8 @@ namespace cg::mif
                     {
                         continue;
                     }
+                    int maxRealChildForestSize = 0;
+                    int maxDummyForestSize = forests.dummyRightForestSizes(y, interval.Index, layerIdx);
                     for (const auto &potentialRightChild : intervalsByDecreasingRight)
                     {
                         auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
@@ -356,32 +359,21 @@ namespace cg::mif
                                 {
                                     break;
                                 }
+                                int inner = 0; // TODONICK
+                                auto leftForestSize = forests.leftForestSizes(x, qPrime, rightChild.Index, layerIdx - 1);
+                                auto rightForestSize = forests.rightForestSizes(xPrime, y, rightChild.Index, layerIdx); 
+                                int sizeHere = inner + leftForestSize + rightForestSize - 1;
+                                if(sizeHere > maxRealChildForestSize)
+                                {
+                                    maxRealChildForestSize = sizeHere;
+                                }
                             }
                         }
                     }
-                    
-                    int maxForestSizeFromRealChild = 0;
-                    for (const auto &potentialRightChild : intervalsByDecreasingRight)
-                    {
-                        auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
-                        auto isRealChild = potentialRightChild.Left < interval.Right && interval.Right < potentialRightChild.Right;
-                        if (isWithinRange && isRealChild)
-                        {
-                            const auto &rightChild = potentialRightChild; // 'rightChild' is 'v' in Gavril's notation
-                            auto xPrime = rightChild.Left + 1;
-                            const auto forestSizeHere = rightForestSizes(xPrime, y, rightChild.Index, 0);
-                            if (forestSizeHere > maxForestSizeFromRealChild)
-                            {
-                                maxForestSizeFromRealChild = forestSizeHere;
-                            }
-                        }
-                    }
-                    const auto dummySize = dummyRightForestSizes(y, interval.Index, 0); // We only fill dummyRightForestSizes when y > interval.Right, so if y == interval.Right we get the pre-filled zero here, which is fine.
-                    rightForestSizes(x, y, interval.Index, 0) = 1 + std::max(maxForestSizeFromRealChild, dummySize);
+                    forests.rightForestSizes(x, y, interval.Index, layerIdx) = 1 + std::max(maxRealChildForestSize, maxDummyForestSize);
                 }
             }
         }
-
     }
 
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
@@ -422,10 +414,8 @@ namespace cg::mif
             cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
 
             computeRightForests(layerIdx, cumulativeIntervals, forests);
-            // Do the right-to-left scan for all intervals in currentLayer
-            // Do the left-to-right scan
+            computeLeftForests(layerIdx, cumulativeIntervals, forests);
             // Calculate the MWIS representative
- 
         }
     }
 }

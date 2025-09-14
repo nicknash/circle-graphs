@@ -59,12 +59,11 @@ template <class T>
             array3<int> dummyRightForestSizes;
         };
 
-        static void computeNewIntervalRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& newIntervalsAtThisLayer, const std::vector<cg::data_structures::Interval>& allIntervalsBeforeThisLayer, 
-        Gavril::Forests& forests);
-        static void computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Gavril::Forests& forests);
         static void computeRightForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& rightForestSizes, array3<int>& dummyRightForestSizes);
         static void computeLeftForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& leftForestSizes);
+        static void computeNewIntervalRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& newIntervalsAtThisLayer, const std::vector<cg::data_structures::Interval>& allIntervalsBeforeThisLayer, Gavril::Forests& forests);
+        static void computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Gavril::Forests& forests);
+        static void computeLeftForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Gavril::Forests& forests);
         static void computeMif(std::span<const cg::data_structures::Interval> intervals);
-
     };
 }
