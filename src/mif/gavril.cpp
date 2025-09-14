@@ -6,6 +6,7 @@
 #include "mif/gavril.h"
 
 #include <algorithm>
+#include <stack>
 
 namespace cg::mif
 {
@@ -268,7 +269,7 @@ namespace cg::mif
         }
     }
 
-    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Gavril::Forests& forests)
+    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests)
     {
         // Collect all end-points, in increasing order.
         std::vector<int> endpoints;
@@ -376,6 +377,100 @@ namespace cg::mif
         }
     }
 
+    void Gavril::constructMif(const cg::data_structures::DistinctIntervalModel intervalModel, int numLayers, const Forests2& forests, const InnerChoices& innerChoices)
+    {
+        const auto &allIntervals = intervalModel.getAllIntervals();
+
+        std::vector<int> endpoints;
+        for (const auto &interval : allIntervals)
+        {
+            endpoints.push_back(interval.Left);
+            endpoints.push_back(interval.Right);
+        }
+        std::sort(endpoints.begin(), endpoints.end());
+
+        std::vector<int> mifIntervalIdxs;
+
+        int topLayer = numLayers - 1; 
+        int bestScore = 0;
+        int bestSplit = -1;
+        int bestIntervalIndex = -1;
+        int z = 0;
+        int y = intervalModel.end - 1;
+        for (const auto &w : allIntervals)
+        {
+            for (auto split = w.Left; split < w.Right; ++split)
+            {
+                auto scoreHere = forests.leftForestChoices(z, split, w.Index, topLayer).score +
+                                 forests.rightForestChoices(split + 1, y, w.Index, topLayer).score - 1;
+                if (scoreHere > bestScore)
+                {
+                    bestScore = scoreHere;
+                    bestSplit = split;
+                    bestIntervalIndex = w.Index;
+                }
+            }
+        }
+        mifIntervalIdxs.push_back(bestIntervalIndex);
+        struct ForestToBuild
+        {
+            bool isLeft;
+            int parentIdx;
+            int layerIdx;
+            int start;
+            int end;
+        };
+        std::stack<ForestToBuild> pending;
+        pending.push(ForestToBuild{true,bestIntervalIndex,topLayer,z,bestSplit});
+        pending.push(ForestToBuild{false,bestIntervalIndex,topLayer,bestSplit+1,y});
+        while(!pending.empty())
+        {
+            auto f = pending.top();
+            pending.pop();
+            if(f.isLeft)
+            {
+                auto choice = forests.leftForestChoices(f.start, f.end, f.parentIdx, f.layerIdx);
+                if(choice.childType == ChildType::Dummy)
+                {
+                    // todo
+                }
+                else if(choice.childType == ChildType::Real)
+                {
+                    auto childChoice = innerChoices.leftInnerChoices(f.start, f.end, f.parentIdx, f.layerIdx);
+                    auto start = f.start;
+                    auto end = f.end;
+                    int layerIdx = f.layerIdx;
+                    do
+                    {
+                        childChoice = innerChoices.leftInnerChoices(start, end, f.parentIdx, layerIdx);
+                        mifIntervalIdxs.push_back(childChoice.innerIntervalIdx);
+                        pending.push(ForestToBuild{true,f.parentIdx,f.layerIdx-1,start,childChoice.qPrime});
+                        pending.push(ForestToBuild{false,f.parentIdx,f.layerIdx-1,childChoice.xPrime,end});
+                        start = childChoice.qPrime;
+                        end = childChoice.xPrime;
+                        --layerIdx;
+                    } while(childChoice.hasNext);
+                } 
+            }
+            else
+            {
+                auto choice = forests.rightForestChoices(f.start, f.end, f.parentIdx, f.layerIdx);
+                // todo
+            }
+        }
+
+                                      // Now add the intervals chosen by:
+                                      //        bestSplit
+                                      //        forests.leftForestSizes(z, q, w.Index, layerIdx)
+                                      //        forests.rightForestSizes(x, y, w.Index, layerIdx)
+                                      // Then enqueue (ensuring we handle dummies correctly)
+                                      // Now we need to do the [z, q] problem
+                                      // The [x, y] problem
+                                      // And the [q, x] problem
+                                      // i.e. pending.push(...) for the relevant subproblems.
+
+    }
+
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
     // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
     void Gavril::computeMif(std::span<const cg::data_structures::Interval> intervals)
@@ -399,6 +494,8 @@ namespace cg::mif
 
         Forests forests{leftForestSizes,dummyLeftForestSizes,rightForestSizes,dummyRightForestSizes};
 
+        array4<InnerChoice> innerChoices;
+
         std::vector<cg::data_structures::Interval> cumulativeIntervals; // This is V_i in Gavril's notation. At a given iteration, we set V_i = A_0 U ... A_i
         cumulativeIntervals.insert(cumulativeIntervals.begin(), firstLayerIntervals.begin(), firstLayerIntervals.end());
 
@@ -415,6 +512,8 @@ namespace cg::mif
 
             computeRightForests(layerIdx, cumulativeIntervals, forests);
             computeLeftForests(layerIdx, cumulativeIntervals, forests);
+
+            computeRightInnerChoices(); // I guess do this next to clarify my mental model of it.
             // Calculate the MWIS representative
         }
     }
