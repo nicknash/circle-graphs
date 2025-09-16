@@ -269,7 +269,7 @@ namespace cg::mif
         }
     }
 
-    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests2& forests, array4<ChildChoice>& rightInnerChoices)
+    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests2& forests, array4<ChildChoice>& rightChildChoices)
     {
         // Collect all end-points, in increasing order.
         std::vector<int> endpoints;
@@ -296,6 +296,7 @@ namespace cg::mif
                     continue;
                 }
                 int maxDummyForestSize = 0;
+                int bestDummyIntervalIdx = -1;
                 for (const auto &potentialDummyChild : intervalsByDecreasingRight) // Now find the dummy child with largest FR_{v, i}[l_v, y]
                 {
                     auto isWithinRange = potentialDummyChild.Right <= y; 
@@ -303,15 +304,19 @@ namespace cg::mif
                     if (isWithinRange && isDummyChild) // Check that the dummy is within (r_w, y], i.e. within (interval.Right, y]
                     {
                         const auto& dummyChild = potentialDummyChild;
-                        const auto dummyForestSizeHere = forests.rightForestChoices(dummyChild.Left + 1, y, dummyChild.Index, layerIdx).score;
+                        const auto dummyForestSizeHere = forests.rightForestScores(dummyChild.Left + 1, y, dummyChild.Index, layerIdx).score;
                         if(dummyForestSizeHere > maxDummyForestSize)
                         {
                             maxDummyForestSize = dummyForestSizeHere;
+                            bestDummyIntervalIdx = potentialDummyChild.Index;
                         }
                     }
                 }
-                // HERE NEXT!
-                forests.dummyRightForestChoices(y, interval.Index, layerIdx) = maxDummyForestSize;
+                DummyForestScore dummyScore {
+                    .score = maxDummyForestSize,
+                    .childIntervalIdx = bestDummyIntervalIdx
+                };
+                forests.dummyRightForestChoices(y, interval.Index, layerIdx) = dummyScore;
             }
             for(auto x : endpoints) // All end-points x such that: interval.Left < x <= interval.Right
             {
@@ -331,9 +336,7 @@ namespace cg::mif
                     }
                     int maxRealChildForestSize = 0;
                     int bestChildIntervalIdx = -1;
-                    int bestQPrime = -1;
-                    int bestXPrime = -1;
-                    int maxDummyForestSize = forests.dummyRightForestChoices(y, interval.Index, layerIdx).score;
+                    auto dummyScore = forests.dummyRightForestChoices(y, interval.Index, layerIdx);
                     for (const auto &potentialRightChild : intervalsByDecreasingRight)
                     {
                         auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
@@ -364,36 +367,38 @@ namespace cg::mif
                                 {
                                     break;
                                 }
-                                auto innerSize = rightInnerChoices(qPrime, xPrime, interval.Index, layerIdx - 1).score;
+                                auto innerSize = rightChildChoices(qPrime, xPrime, interval.Index, layerIdx - 1).score;
                                 auto leftForestSize = forests.leftForestChoices(x, qPrime, rightChild.Index, layerIdx - 1).score;
-                                auto rightForestSize = forests.rightForestChoices(xPrime, y, rightChild.Index, layerIdx).score; 
+                                auto rightForestSize = forests.rightForestScores(xPrime, y, rightChild.Index, layerIdx).score; 
                                 int sizeHere = innerSize + leftForestSize + rightForestSize - 1;
                                 if(sizeHere > maxRealChildForestSize)
                                 {
                                     maxRealChildForestSize = sizeHere;
                                     bestChildIntervalIdx = rightChild.Index;
-                                    bestQPrime = qPrime;
-                                    bestXPrime = xPrime;
                                 }
                             }
                         }
                     }
-                    if(maxDummyForestSize > maxRealChildForestSize)
+                    ForestScore score;
+                    if(dummyScore.score > maxRealChildForestSize)
                     {
-                        // TODO
+                        score = ForestScore
+                        {
+                            .childType = ChildType::Dummy,
+                            .score = 1 + dummyScore.score,
+                            .childIntervalIdx = dummyScore.childIntervalIdx
+                        };
                     }
                     else
                     {
-                        RightChoice choice 
+                        score = ForestScore  
                         {
                             .childType = ChildType::Real,
                             .score = 1 + maxRealChildForestSize,
-                            .childIntervalIdx = bestChildIntervalIdx,
-                            .qPrime = bestQPrime,
-                            .xPrime = bestXPrime,
+                            .childIntervalIdx = bestChildIntervalIdx
                         };
-                        forests.rightForestChoices(x, y, interval.Index, layerIdx) = choice;
                     }
+                    forests.rightForestScores(x, y, interval.Index, layerIdx) = score;
                 }
             }
         }
@@ -423,48 +428,58 @@ namespace cg::mif
             {
                 for (auto y : endpoints)
                 {
-
-                    for (const auto &child : cumulativeIntervals)
+                    int bestChildScore = 0;
+                    int bestChildIntervalIndex = -1;
+                    int bestZPrime = -1;
+                    int bestQPrime = -1;
+                    auto rightScore = forests.rightForestScores(x, y, interval.Index, layerIdx);
+                    auto childType = rightScore.childType;
+                    if (childType == ChildType::Dummy)
                     {
-                        int bestChildScore = 0;
-                        int bestChildIntervalIndex = -1;
-                        int bestZPrime = -1;
-                        int bestQPrime = -1;
-                        for (auto zPrime : endpointsOneBehind)
+                        bestChildScore = rightScore.score;
+                        bestChildIntervalIndex = rightScore.childIntervalIdx;
+                    }
+                    else
+                    {
+                        for (const auto &child : cumulativeIntervals)
                         {
-                            for (auto qPrime : endpointsOneBehind)
+                            for (auto zPrime : endpointsOneBehind)
                             {
-                                auto isValidInner = interval.Left < x &&
-                                                    x <= child.Left &&
-                                                    child.Left <= zPrime &&
-                                                    zPrime < interval.Right &&
-                                                    qPrime <= child.Right &&
-                                                    child.Right < y;
-                                if (!isValidInner)
+                                for (auto qPrime : endpointsOneBehind)
                                 {
-                                    continue;
-                                }
-                                int scoreHere = forests.leftForestChoices(x, zPrime, child.Index, layerIdx).score +
-                                                forests.rightForestChoices(qPrime, y, child.Index, layerIdx).score +
-                                                rightChildChoices(zPrime, qPrime, interval.Index, layerIdx - 1).score - 1;
-                                if (scoreHere > bestChildScore)
-                                {
-                                    bestChildScore = scoreHere;
-                                    bestChildIntervalIndex = child.Index;
-                                    bestQPrime = qPrime;
-                                    bestZPrime = zPrime;
+                                    auto isValidInner = interval.Left < x &&
+                                                        x <= child.Left &&
+                                                        child.Left <= zPrime &&
+                                                        zPrime < interval.Right &&
+                                                        qPrime <= child.Right &&
+                                                        child.Right < y;
+                                    if (!isValidInner)
+                                    {
+                                        continue;
+                                    }
+                                    int scoreHere = forests.leftForestChoices(x, zPrime, child.Index, layerIdx).score +
+                                                    forests.rightForestScores(qPrime, y, child.Index, layerIdx).score +
+                                                    rightChildChoices(zPrime, qPrime, interval.Index, layerIdx - 1).score - 1;
+                                    if (scoreHere > bestChildScore)
+                                    {
+                                        bestChildScore = scoreHere;
+                                        bestChildIntervalIndex = child.Index;
+                                        bestQPrime = qPrime;
+                                        bestZPrime = zPrime;
+                                    }
                                 }
                             }
                         }
-                        ChildChoice childChoice
-                        {
-                            .score = bestChildScore,
-                            .qPrime = bestQPrime,
-                            .xPrime = bestZPrime,
-                            .childIntervalIdx = bestChildIntervalIndex,
-                        };
-                        rightChildChoices(x, y, interval.Index, layerIdx) = childChoice;
                     }
+                    ChildChoice childChoice
+                    {
+                        .childType = childType,
+                        .score = bestChildScore,
+                        .qPrime = bestZPrime,
+                        .xPrime = bestQPrime,
+                        .childIntervalIdx = bestChildIntervalIndex,
+                    };
+                    rightChildChoices(x, y, interval.Index, layerIdx) = childChoice;
                 }
             }
         }
@@ -495,7 +510,7 @@ namespace cg::mif
             for (auto split = w.Left; split < w.Right; ++split)
             {
                 auto scoreHere = forests.leftForestChoices(z, split, w.Index, topLayer).score +
-                                 forests.rightForestChoices(split + 1, y, w.Index, topLayer).score - 1;
+                                 forests.rightForestScores(split + 1, y, w.Index, topLayer).score - 1;
                 if (scoreHere > bestScore)
                 {
                     bestScore = scoreHere;

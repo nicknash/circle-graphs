@@ -57,37 +57,18 @@ template <class T>
             Real,
             Dummy
         };
-        struct Choice
+        struct ForestScore
         {
             ChildType childType;
             int score;
             int childIntervalIdx;
-            int qPrime;
-            int xPrime;
         };
-        struct RightChoice
+        struct DummyForestScore
         {
-            ChildType childType;
             int score;
             int childIntervalIdx;
-            int qPrime;
-            int xPrime;
         };
-        struct DummyChoice
-        {
-            int score;
-            int yPrime;
-        };
-        struct InnerChoice
-        {
-            ChildType childType;
-            int score;
-            int bestQPrime;
-            int bestXPrime;
-            int bestChildIntervalIdx;
-            
-            bool hasNext;
-        };
+        
         struct ChildChoice
         {
             ChildType childType;
@@ -104,14 +85,12 @@ template <class T>
             array4<int> rightForestSizes;
             array3<int> dummyRightForestSizes;
         };
-
-
         struct Forests2
         {
-            array4<Choice> leftForestChoices;
-            array3<DummyChoice> dummyLeftForestChoices;
-            array4<RightChoice> rightForestChoices;
-            array3<DummyChoice> dummyRightForestChoices;
+            array4<ForestScore> leftForestChoices;
+            array3<DummyForestScore> dummyLeftForestChoices;
+            array4<ForestScore> rightForestScores;
+            array3<DummyForestScore> dummyRightForestChoices;
         };
         struct ChildChoices
         {
@@ -123,7 +102,7 @@ template <class T>
         static void computeLeftForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<int>& leftForestSizes);
         static void computeNewIntervalRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& newIntervalsAtThisLayer, const std::vector<cg::data_structures::Interval>& allIntervalsBeforeThisLayer, Gavril::Forests& forests);
         static void computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests);
-        static void computeLeftForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests);c`
+        static void computeLeftForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests);
         static void computeRightChildChoices(const Forests2 &forests, const std::vector<cg::data_structures::Interval> allIntervals, const std::vector<cg::data_structures::Interval> &cumulativeIntervals, const std::vector<cg::data_structures::Interval> &cumulativeIntervalsOneBehind, array4<ChildChoice> &rightChildChoices, int layerIdx);
 
         static void constructMif(const cg::data_structures::DistinctIntervalModel intervalModel, int numLayers, const Forests2& forests, const ChildChoices& innerChoices);
