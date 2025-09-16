@@ -269,7 +269,7 @@ namespace cg::mif
         }
     }
 
-    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests)
+    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests2& forests, array4<ChildChoice>& rightInnerChoices)
     {
         // Collect all end-points, in increasing order.
         std::vector<int> endpoints;
@@ -303,14 +303,15 @@ namespace cg::mif
                     if (isWithinRange && isDummyChild) // Check that the dummy is within (r_w, y], i.e. within (interval.Right, y]
                     {
                         const auto& dummyChild = potentialDummyChild;
-                        const auto dummyForestSizeHere = forests.rightForestSizes(dummyChild.Left + 1, y, dummyChild.Index, layerIdx);
+                        const auto dummyForestSizeHere = forests.rightForestChoices(dummyChild.Left + 1, y, dummyChild.Index, layerIdx).score;
                         if(dummyForestSizeHere > maxDummyForestSize)
                         {
                             maxDummyForestSize = dummyForestSizeHere;
                         }
                     }
                 }
-                forests.dummyRightForestSizes(y, interval.Index, layerIdx) = maxDummyForestSize;
+                // HERE NEXT!
+                forests.dummyRightForestChoices(y, interval.Index, layerIdx) = maxDummyForestSize;
             }
             for(auto x : endpoints) // All end-points x such that: interval.Left < x <= interval.Right
             {
@@ -329,7 +330,10 @@ namespace cg::mif
                         continue;
                     }
                     int maxRealChildForestSize = 0;
-                    int maxDummyForestSize = forests.dummyRightForestSizes(y, interval.Index, layerIdx);
+                    int bestChildIntervalIdx = -1;
+                    int bestQPrime = -1;
+                    int bestXPrime = -1;
+                    int maxDummyForestSize = forests.dummyRightForestChoices(y, interval.Index, layerIdx).score;
                     for (const auto &potentialRightChild : intervalsByDecreasingRight)
                     {
                         auto isWithinRange = x <= potentialRightChild.Left && potentialRightChild.Right <= y;
@@ -360,24 +364,113 @@ namespace cg::mif
                                 {
                                     break;
                                 }
-                                int inner = 0; // TODONICK
-                                auto leftForestSize = forests.leftForestSizes(x, qPrime, rightChild.Index, layerIdx - 1);
-                                auto rightForestSize = forests.rightForestSizes(xPrime, y, rightChild.Index, layerIdx); 
-                                int sizeHere = inner + leftForestSize + rightForestSize - 1;
+                                auto innerSize = rightInnerChoices(qPrime, xPrime, interval.Index, layerIdx - 1).score;
+                                auto leftForestSize = forests.leftForestChoices(x, qPrime, rightChild.Index, layerIdx - 1).score;
+                                auto rightForestSize = forests.rightForestChoices(xPrime, y, rightChild.Index, layerIdx).score; 
+                                int sizeHere = innerSize + leftForestSize + rightForestSize - 1;
                                 if(sizeHere > maxRealChildForestSize)
                                 {
                                     maxRealChildForestSize = sizeHere;
+                                    bestChildIntervalIdx = rightChild.Index;
+                                    bestQPrime = qPrime;
+                                    bestXPrime = xPrime;
                                 }
                             }
                         }
                     }
-                    forests.rightForestSizes(x, y, interval.Index, layerIdx) = 1 + std::max(maxRealChildForestSize, maxDummyForestSize);
+                    if(maxDummyForestSize > maxRealChildForestSize)
+                    {
+                        // TODO
+                    }
+                    else
+                    {
+                        RightChoice choice 
+                        {
+                            .childType = ChildType::Real,
+                            .score = 1 + maxRealChildForestSize,
+                            .childIntervalIdx = bestChildIntervalIdx,
+                            .qPrime = bestQPrime,
+                            .xPrime = bestXPrime,
+                        };
+                        forests.rightForestChoices(x, y, interval.Index, layerIdx) = choice;
+                    }
                 }
             }
         }
     }
 
-    void Gavril::constructMif(const cg::data_structures::DistinctIntervalModel intervalModel, int numLayers, const Forests2& forests, const InnerChoices& innerChoices)
+    void Gavril::computeRightChildChoices(const Forests2 &forests, const std::vector<cg::data_structures::Interval> allIntervals, const std::vector<cg::data_structures::Interval> &cumulativeIntervals, const std::vector<cg::data_structures::Interval> &cumulativeIntervalsOneBehind, array4<ChildChoice> &rightChildChoices, int layerIdx)
+    {
+        std::vector<int> endpoints;
+        for (const auto &interval : cumulativeIntervals)
+        {
+            endpoints.push_back(interval.Left);
+            endpoints.push_back(interval.Right);
+        }
+        std::sort(endpoints.begin(), endpoints.end());
+
+        std::vector<int> endpointsOneBehind;
+        for (const auto &interval : cumulativeIntervalsOneBehind)
+        {
+            endpointsOneBehind.push_back(interval.Left);
+            endpointsOneBehind.push_back(interval.Right);
+        }
+        std::sort(endpointsOneBehind.begin(), endpointsOneBehind.end());
+
+        for (const auto &interval : allIntervals)
+        {
+            for (auto x : endpoints)
+            {
+                for (auto y : endpoints)
+                {
+
+                    for (const auto &child : cumulativeIntervals)
+                    {
+                        int bestChildScore = 0;
+                        int bestChildIntervalIndex = -1;
+                        int bestZPrime = -1;
+                        int bestQPrime = -1;
+                        for (auto zPrime : endpointsOneBehind)
+                        {
+                            for (auto qPrime : endpointsOneBehind)
+                            {
+                                auto isValidInner = interval.Left < x &&
+                                                    x <= child.Left &&
+                                                    child.Left <= zPrime &&
+                                                    zPrime < interval.Right &&
+                                                    qPrime <= child.Right &&
+                                                    child.Right < y;
+                                if (!isValidInner)
+                                {
+                                    continue;
+                                }
+                                int scoreHere = forests.leftForestChoices(x, zPrime, child.Index, layerIdx).score +
+                                                forests.rightForestChoices(qPrime, y, child.Index, layerIdx).score +
+                                                rightChildChoices(zPrime, qPrime, interval.Index, layerIdx - 1).score - 1;
+                                if (scoreHere > bestChildScore)
+                                {
+                                    bestChildScore = scoreHere;
+                                    bestChildIntervalIndex = child.Index;
+                                    bestQPrime = qPrime;
+                                    bestZPrime = zPrime;
+                                }
+                            }
+                        }
+                        ChildChoice childChoice
+                        {
+                            .score = bestChildScore,
+                            .qPrime = bestQPrime,
+                            .xPrime = bestZPrime,
+                            .childIntervalIdx = bestChildIntervalIndex,
+                        };
+                        rightChildChoices(x, y, interval.Index, layerIdx) = childChoice;
+                    }
+                }
+            }
+        }
+    }
+
+    void Gavril::constructMif(const cg::data_structures::DistinctIntervalModel intervalModel, int numLayers, const Forests2& forests, const ChildChoices& childChoices)
     {
         const auto &allIntervals = intervalModel.getAllIntervals();
 
@@ -415,60 +508,117 @@ namespace cg::mif
         struct ForestToBuild
         {
             bool isLeft;
-            int parentIdx;
+            int rootIdx;
             int layerIdx;
             int start;
             int end;
         };
         std::stack<ForestToBuild> pending;
-        pending.push(ForestToBuild{true,bestIntervalIndex,topLayer,z,bestSplit});
-        pending.push(ForestToBuild{false,bestIntervalIndex,topLayer,bestSplit+1,y});
+        pending.push(ForestToBuild
+            {
+                .isLeft = true,
+                .rootIdx = bestIntervalIndex,
+                .layerIdx = topLayer,
+                .start = z,
+                .end = bestSplit
+            });
+        pending.push(ForestToBuild
+            {
+                .isLeft = false,
+                .rootIdx = bestIntervalIndex,
+                .layerIdx = topLayer,
+                .start = bestSplit + 1,
+                .end = y
+            });
         while(!pending.empty())
         {
             auto f = pending.top();
             pending.pop();
             if(f.isLeft)
             {
-                auto choice = forests.leftForestChoices(f.start, f.end, f.parentIdx, f.layerIdx);
-                if(choice.childType == ChildType::Dummy)
+                auto childChoice = childChoices.leftChildChoices(f.start, f.end, f.rootIdx, f.layerIdx);
+                auto start = f.start;
+                auto end = f.end;
+                auto layerIdx = f.layerIdx;
+                while (childChoice.childType == ChildType::Real)
                 {
-                    // todo
-                }
-                else if(choice.childType == ChildType::Real)
-                {
-                    auto childChoice = innerChoices.leftInnerChoices(f.start, f.end, f.parentIdx, f.layerIdx);
-                    auto start = f.start;
-                    auto end = f.end;
-                    int layerIdx = f.layerIdx;
-                    do
+                    mifIntervalIdxs.push_back(childChoice.childIntervalIdx);
+                    pending.push(ForestToBuild{
+                        .isLeft = true,
+                        .rootIdx = childChoice.childIntervalIdx,
+                        .layerIdx = layerIdx,
+                        .start = start,
+                        .end = childChoice.qPrime});
+                    if (layerIdx > 0)
                     {
-                        childChoice = innerChoices.leftInnerChoices(start, end, f.parentIdx, layerIdx);
-                        mifIntervalIdxs.push_back(childChoice.innerIntervalIdx);
-                        pending.push(ForestToBuild{true,f.parentIdx,f.layerIdx-1,start,childChoice.qPrime});
-                        pending.push(ForestToBuild{false,f.parentIdx,f.layerIdx-1,childChoice.xPrime,end});
-                        start = childChoice.qPrime;
-                        end = childChoice.xPrime;
-                        --layerIdx;
-                    } while(childChoice.hasNext);
+                        pending.push(ForestToBuild{
+                            .isLeft = false,
+                            .rootIdx = childChoice.childIntervalIdx,
+                            .layerIdx = layerIdx - 1,
+                            .start = childChoice.xPrime,
+                            .end = end});
+                    }
+                    start = childChoice.qPrime;
+                    end = childChoice.xPrime;
+                    --layerIdx;
+                    childChoice = childChoices.leftChildChoices(start, end, f.rootIdx, layerIdx);
+                }
+                if(childChoice.childType == ChildType::Dummy)
+                {
+                    mifIntervalIdxs.push_back(childChoice.childIntervalIdx);
+                    const auto& dummyRoot = intervalModel.getIntervalByIndex(childChoice.childIntervalIdx);    
+                    pending.push(ForestToBuild{
+                        .isLeft = true,
+                        .rootIdx = childChoice.childIntervalIdx,
+                        .layerIdx = layerIdx - 1,
+                        .start = start,
+                        .end = dummyRoot.Right - 1
+                    });
                 } 
             }
             else
             {
-                auto choice = forests.rightForestChoices(f.start, f.end, f.parentIdx, f.layerIdx);
-                // todo
+                auto childChoice = childChoices.rightChildChoices(f.start, f.end, f.rootIdx, f.layerIdx);
+                auto start = f.start;
+                auto end = f.end;
+                auto layerIdx = f.layerIdx;
+                while (childChoice.childType == ChildType::Real)
+                {
+                    mifIntervalIdxs.push_back(childChoice.childIntervalIdx);
+                    pending.push(ForestToBuild{
+                        .isLeft = false,
+                        .rootIdx = childChoice.childIntervalIdx,
+                        .layerIdx = layerIdx,
+                        .start = childChoice.xPrime,
+                        .end = end});
+                    if (layerIdx > 0)
+                    {
+                        pending.push(ForestToBuild{
+                            .isLeft = true,
+                            .rootIdx = childChoice.childIntervalIdx,
+                            .layerIdx = layerIdx - 1,
+                            .start = start,
+                            .end = childChoice.qPrime});
+                    }
+                    start = childChoice.qPrime;
+                    end = childChoice.xPrime;
+                    --layerIdx;
+                    childChoice = childChoices.rightChildChoices(start, end, f.rootIdx, layerIdx);
+                }
+                if(childChoice.childType == ChildType::Dummy)
+                {                
+                    mifIntervalIdxs.push_back(childChoice.childIntervalIdx);
+                    const auto& dummyRoot = intervalModel.getIntervalByIndex(childChoice.childIntervalIdx);    
+                    pending.push(ForestToBuild{
+                        .isLeft = false,
+                        .rootIdx = childChoice.childIntervalIdx,
+                        .layerIdx = layerIdx,
+                        .start = dummyRoot.Left + 1,
+                        .end = end
+                    });
+                }
             }
         }
-
-                                      // Now add the intervals chosen by:
-                                      //        bestSplit
-                                      //        forests.leftForestSizes(z, q, w.Index, layerIdx)
-                                      //        forests.rightForestSizes(x, y, w.Index, layerIdx)
-                                      // Then enqueue (ensuring we handle dummies correctly)
-                                      // Now we need to do the [z, q] problem
-                                      // The [x, y] problem
-                                      // And the [q, x] problem
-                                      // i.e. pending.push(...) for the relevant subproblems.
-
     }
 
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
@@ -476,6 +626,7 @@ namespace cg::mif
     void Gavril::computeMif(std::span<const cg::data_structures::Interval> intervals)
     {
         const cg::data_structures::DistinctIntervalModel intervalModel(intervals);
+        const auto& allIntervals = intervalModel.getAllIntervals();
         // The 'layers' are what Gavril calls A_0, ..., A_k at the start of page 5.
         auto intervalsAtLayer = cg::interval_model_utils::createLayers(intervalModel);
 
@@ -494,27 +645,28 @@ namespace cg::mif
 
         Forests forests{leftForestSizes,dummyLeftForestSizes,rightForestSizes,dummyRightForestSizes};
 
-        array4<InnerChoice> innerChoices;
+        ChildChoices childChoices;
 
         std::vector<cg::data_structures::Interval> cumulativeIntervals; // This is V_i in Gavril's notation. At a given iteration, we set V_i = A_0 U ... A_i
         cumulativeIntervals.insert(cumulativeIntervals.begin(), firstLayerIntervals.begin(), firstLayerIntervals.end());
+
+        std::vector<cg::data_structures::Interval> cumulativeIntervalsOneBehind; // This is V_{i-1} in Gavril's notation.
 
         // The 'layerIdx' is 'i' from Gavril's paper, that the induction of Theorem 5 is on,
         // and what FR_{w, i}, HR_{w, i}, etc are defined on.
         for (int layerIdx = 1; layerIdx < intervalsAtLayer.size(); ++layerIdx)
         {
             const auto &newLayerIntervals = intervalsAtLayer[layerIdx];
-
-            // Evaluate FL, FR for intervals in newLayer
-            computeNewIntervalRightForests(layerIdx, newLayerIntervals, cumulativeIntervals, forests);
-            
+            cumulativeIntervalsOneBehind.insert(cumulativeIntervalsOneBehind.begin(), intervalsAtLayer[layerIdx - 1].begin(), intervalsAtLayer[layerIdx - 1].end());
             cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
 
+            // Evaluate FL, FR for intervals in newLayer
+            computeNewIntervalRightForests(layerIdx, newLayerIntervals, cumulativeIntervalsOneBehind, forests);
             computeRightForests(layerIdx, cumulativeIntervals, forests);
             computeLeftForests(layerIdx, cumulativeIntervals, forests);
 
-            computeRightInnerChoices(); // I guess do this next to clarify my mental model of it.
-            // Calculate the MWIS representative
+            computeRightChildChoices(forests, allIntervals, cumulativeIntervals, cumulativeIntervalsOneBehind, childChoices.rightChildChoices, layerIdx); 
+
         }
     }
 }
