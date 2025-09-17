@@ -125,7 +125,7 @@ namespace cg::mif
     }
 
 
-    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests, array4<ChildChoice>& rightChildChoices)
+    void Gavril::computeRightForests(int layerIdx, const std::vector<cg::data_structures::Interval>& cumulativeIntervals, Forests& forests, array4<ChildChoice>& rightChildChoices)
     {
         if(layerIdx <= 0)
         {
@@ -133,14 +133,14 @@ namespace cg::mif
         }
         // Collect all end-points, in increasing order.
         std::vector<int> endpoints;
-        for(const auto& interval : allIntervals)
+        for(const auto& interval : cumulativeIntervals)
         {
             endpoints.push_back(interval.Left);
             endpoints.push_back(interval.Right);
         }
         std::sort(endpoints.begin(), endpoints.end());
         // Collect all intervals, ordered by decreasing right-endpoint.
-        std::vector<cg::data_structures::Interval> intervalsByDecreasingRight(allIntervals);
+        std::vector<cg::data_structures::Interval> intervalsByDecreasingRight(cumulativeIntervals);
         std::sort(intervalsByDecreasingRight.begin(), intervalsByDecreasingRight.end(),
           [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
               return b.Right < a.Right;
@@ -587,7 +587,7 @@ namespace cg::mif
         }
     }
 
-    void Gavril::computeLeftForests(int layerIdx, const std::vector<cg::data_structures::Interval>& allIntervals, Forests& forests, array4<ChildChoice>& leftChildChoices)
+    void Gavril::computeLeftForests(int layerIdx, const std::vector<cg::data_structures::Interval>& cumulativeIntervals, Forests& forests, array4<ChildChoice>& leftChildChoices)
     {
 
     }
