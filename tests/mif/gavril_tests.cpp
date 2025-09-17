@@ -9,7 +9,23 @@
 #include <format>
 #include <map>
 
-static std::vector<int>
+namespace {
+
+using ForestScore      = cg::mif::Gavril::ForestScore;
+using DummyForestScore = cg::mif::Gavril::DummyForestScore;
+using ChildChoice      = cg::mif::Gavril::ChildChoice;
+
+constexpr ForestScore kZeroForestScore{0, cg::mif::Gavril::Invalid};
+constexpr DummyForestScore kZeroDummyForestScore{0, cg::mif::Gavril::Invalid};
+constexpr ChildChoice kUnsetChildChoice{
+    cg::mif::ChildType::Undefined,
+    0,
+    cg::mif::Gavril::Invalid,
+    cg::mif::Gavril::Invalid,
+    cg::mif::Gavril::Invalid
+};
+
+std::vector<int>
 collect_first_layer_endpoints(const std::vector<cg::data_structures::Interval>& firstLayer) {
     std::vector<int> eps;
     eps.reserve(2 * firstLayer.size());
@@ -21,7 +37,7 @@ collect_first_layer_endpoints(const std::vector<cg::data_structures::Interval>& 
     return eps;
 }
 
-static int expected_count_in_span(const std::vector<cg::data_structures::Interval>& firstLayer, int x, int y) 
+[[maybe_unused]] int expected_count_in_span(const std::vector<cg::data_structures::Interval>& firstLayer, int x, int y)
 {
     if (x >= y) return 0;
     int cnt = 0;
@@ -30,6 +46,28 @@ static int expected_count_in_span(const std::vector<cg::data_structures::Interva
     }
     return cnt;
 }
+
+int forest_score(const cg::mif::array4<ForestScore>& table, int x, int y, int intervalIndex, int layer = 0)
+{
+    return table(x, y, intervalIndex, layer).score;
+}
+
+int forest_score(const cg::mif::array4<ForestScore>& table, int x, int y, const cg::data_structures::Interval& interval, int layer = 0)
+{
+    return forest_score(table, x, y, interval.Index, layer);
+}
+
+int dummy_score(const cg::mif::array3<DummyForestScore>& table, int y, int intervalIndex, int layer = 0)
+{
+    return table(y, intervalIndex, layer).score;
+}
+
+int dummy_score(const cg::mif::array3<DummyForestScore>& table, int y, const cg::data_structures::Interval& interval, int layer = 0)
+{
+    return dummy_score(table, y, interval.Index, layer);
+}
+
+} // namespace
 TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
     using cg::data_structures::Interval;
 
@@ -51,11 +89,12 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
     CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
 
     // Tables sized by endpoint universe (endpoint values used as indices)
-    cg::mif::array4<int> FR(m.end);       // FR[x,y,w,0]
-    cg::mif::array3<int> FRDummy(m.end);  // FRDummy[y,w,0]
+    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);       // FR[x,y,w,0]
+    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore);  // FRDummy[y,w,0]
+    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
 
     // Call base case
-    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy);
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
 
     const auto& W0 = A0[0]; // [0,1], index 0
     const auto& W1 = A0[1]; // [2,3], index 1
@@ -66,7 +105,7 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
         for (int x : A0_eps) for (int y : A0_eps) {
             bool in_domain = (w.Left < x) && (x <= w.Right) && (w.Right <= y);
             if (!in_domain) {
-                CHECK_MESSAGE(FR(x,y,w.Index,0) == 0,
+                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
                               "Expected FR to be 0 outside domain for w=", w.Index,
                               " x=", x, " y=", y);
             }
@@ -82,7 +121,7 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
         std::map<int,int> y2v = {{1,1},{2,1},{3,2},{4,2},{5,3}};
         for (int y : A0_eps) {
             int expected = (y2v.count(y) ? y2v[y] : 0);
-            CHECK_MESSAGE(FR(1,y,0,0) == expected, "FR(1,", y, ", w=0, i=0) mismatch");
+            CHECK_MESSAGE(forest_score(FR, 1, y, 0) == expected, "FR(1,", y, ", w=0, i=0) mismatch");
         }
     }
     // w=1: x=3; FR(3,y) for y=3..5: 1,1,2
@@ -90,14 +129,14 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
         std::map<int,int> y2v = {{3,1},{4,1},{5,2}};
         for (int y : A0_eps) {
             int expected = (y2v.count(y) ? y2v[y] : 0);
-            CHECK_MESSAGE(FR(3,y,1,0) == expected, "FR(3,", y, ", w=1, i=0) mismatch");
+            CHECK_MESSAGE(forest_score(FR, 3, y, 1) == expected, "FR(3,", y, ", w=1, i=0) mismatch");
         }
     }
     // w=2: x=5; FR(5,5)=1
     {
         for (int y : A0_eps) {
             int expected = (y == 5 ? 1 : 0);
-            CHECK_MESSAGE(FR(5,y,2,0) == expected, "FR(5,", y, ", w=2, i=0) mismatch");
+            CHECK_MESSAGE(forest_score(FR, 5, y, 2) == expected, "FR(5,", y, ", w=2, i=0) mismatch");
         }
     }
 
@@ -107,7 +146,7 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
         std::map<int,int> y2d = {{1,0},{2,0},{3,1},{4,1},{5,2}};
         for (int y : A0_eps) {
             int expected = (y2d.count(y) ? y2d[y] : 0);
-            CHECK_MESSAGE(FRDummy(y,0,0) == expected, "FRDummy(y=", y, ", w=0) mismatch");
+            CHECK_MESSAGE(dummy_score(FRDummy, y, 0) == expected, "FRDummy(y=", y, ", w=0) mismatch");
         }
     }
     // For w=1 (r_w=3): y=4->0, 5->1 (y<=3 -> 0)
@@ -115,14 +154,14 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
         std::map<int,int> y2d = {{3,0},{4,0},{5,1}};
         for (int y : A0_eps) {
             int expected = (y2d.count(y) ? y2d[y] : 0);
-            CHECK_MESSAGE(FRDummy(y,1,0) == expected, "FRDummy(y=", y, ", w=1) mismatch");
+            CHECK_MESSAGE(dummy_score(FRDummy, y, 1) == expected, "FRDummy(y=", y, ", w=1) mismatch");
         }
     }
     // For w=2 (r_w=5): only boundary y=5 -> 0
     {
         for (int y : A0_eps) {
             int expected = (y == 5 ? 0 : 0);
-            CHECK_MESSAGE(FRDummy(y,2,0) == expected, "FRDummy(y=", y, ", w=2) mismatch");
+            CHECK_MESSAGE(dummy_score(FRDummy, y, 2) == expected, "FRDummy(y=", y, ", w=2) mismatch");
         }
     }
 }
@@ -153,11 +192,12 @@ TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, but
     CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
 
     // Tables sized by endpoint *count* (0..5 inclusive ⇒ m.end must be 6; if m.end is max endpoint, use m.end+1)
-    cg::mif::array4<int> FR(m.end);
-    cg::mif::array3<int> FRDummy(m.end);
+    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);
+    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore);
+    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
 
     // Compute base case
-    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy);
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
 
   
     auto in_domain = [](const Interval& w, int x, int y){
@@ -168,7 +208,7 @@ TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, but
     auto expect_zeros_outside = [&](const Interval& w){
         for (int x : A0_eps) for (int y : A0_eps)
             if (!in_domain(w,x,y))
-                CHECK_MESSAGE(FR(x,y,w.Index,0) == 0,
+                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
                               "FR not zero outside domain for w=", w.Index, " x=", x, " y=", y);
     };
     expect_zeros_outside(A);
@@ -177,35 +217,35 @@ TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, but
 
     // 2) Dummy tables: none exist in this configuration
     for (int y : A0_eps) {
-        CHECK(FRDummy(y, A.Index, 0) == 0);
-        CHECK(FRDummy(y, B.Index, 0) == 0);
-        CHECK(FRDummy(y, C.Index, 0) == 0);
+        CHECK(dummy_score(FRDummy, y, A) == 0);
+        CHECK(dummy_score(FRDummy, y, B) == 0);
+        CHECK(dummy_score(FRDummy, y, C) == 0);
     }
 
     // 3) Expected FR with real-child contributions
     // B=[2,5]: no real children; only y=5 in domain
-    CHECK(FR(3,5,B.Index,0) == 1);
-    CHECK(FR(4,5,B.Index,0) == 1);
-    CHECK(FR(5,5,B.Index,0) == 1);
+    CHECK(forest_score(FR, 3, 5, B) == 1);
+    CHECK(forest_score(FR, 4, 5, B) == 1);
+    CHECK(forest_score(FR, 5, 5, B) == 1);
 
     // C=[1,4]: real child is B (2<4<5). Only x=2 and y=5 allow B; else 1.
-    CHECK(FR(2,4,C.Index,0) == 1);
-    CHECK(FR(2,5,C.Index,0) == 2); // 1 + FR_B(3,5)=2
-    CHECK(FR(3,4,C.Index,0) == 1);
-    CHECK(FR(3,5,C.Index,0) == 1);
-    CHECK(FR(4,4,C.Index,0) == 1);
-    CHECK(FR(4,5,C.Index,0) == 1);
+    CHECK(forest_score(FR, 2, 4, C) == 1);
+    CHECK(forest_score(FR, 2, 5, C) == 2); // 1 + FR_B(3,5)=2
+    CHECK(forest_score(FR, 3, 4, C) == 1);
+    CHECK(forest_score(FR, 3, 5, C) == 1);
+    CHECK(forest_score(FR, 4, 4, C) == 1);
+    CHECK(forest_score(FR, 4, 5, C) == 1);
 
     // A=[0,3]: real children are C and B.
-    CHECK(FR(1,3,A.Index,0) == 1);
-    CHECK(FR(1,4,A.Index,0) == 2); // via C: 1 + FR_C(2,4)=2
-    CHECK(FR(1,5,A.Index,0) == 3); // via max(C->2, B->1) + 1
-    CHECK(FR(2,3,A.Index,0) == 1);
-    CHECK(FR(2,4,A.Index,0) == 1);
-    CHECK(FR(2,5,A.Index,0) == 2); // via B: 1 + FR_B(3,5)=2
-    CHECK(FR(3,3,A.Index,0) == 1);
-    CHECK(FR(3,4,A.Index,0) == 1);
-    CHECK(FR(3,5,A.Index,0) == 1);
+    CHECK(forest_score(FR, 1, 3, A) == 1);
+    CHECK(forest_score(FR, 1, 4, A) == 2); // via C: 1 + FR_C(2,4)=2
+    CHECK(forest_score(FR, 1, 5, A) == 3); // via max(C->2, B->1) + 1
+    CHECK(forest_score(FR, 2, 3, A) == 1);
+    CHECK(forest_score(FR, 2, 4, A) == 1);
+    CHECK(forest_score(FR, 2, 5, A) == 2); // via B: 1 + FR_B(3,5)=2
+    CHECK(forest_score(FR, 3, 3, A) == 1);
+    CHECK(forest_score(FR, 3, 4, A) == 1);
+    CHECK(forest_score(FR, 3, 5, A) == 1);
 }
 
 TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, nested inside two outers") {
@@ -239,11 +279,12 @@ TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, nes
     CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
 
     // DP tables keyed by endpoint values; if m.end is "max endpoint", use m.end+1
-    cg::mif::array4<int> FR(m.end);
-    cg::mif::array3<int> FRDummy(m.end);
+    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);
+    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore);
+    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
 
     // Compute base case over A0
-    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy);
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
 
     auto in_domain = [](const Interval& w, int x, int y){
         return (w.Left < x) && (x <= w.Right) && (w.Right <= y);
@@ -253,7 +294,7 @@ TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, nes
     auto expect_zeros_outside = [&](const Interval& w){
         for (int x : A0_eps) for (int y : A0_eps) {
             if (!in_domain(w,x,y)) {
-                CHECK_MESSAGE(FR(x,y,w.Index,0) == 0,
+                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
                               "FR not zero outside domain for w=", w.Index,
                               " x=", x, " y=", y);
             }
@@ -265,39 +306,39 @@ TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, nes
 
     // --- 2) Dummy tables: none among A0 in this configuration ---
     for (int y : A0_eps) {
-        CHECK(FRDummy(y, A.Index, 0) == 0);
-        CHECK(FRDummy(y, B.Index, 0) == 0);
-        CHECK(FRDummy(y, C.Index, 0) == 0);
+        CHECK(dummy_score(FRDummy, y, A) == 0);
+        CHECK(dummy_score(FRDummy, y, B) == 0);
+        CHECK(dummy_score(FRDummy, y, C) == 0);
     }
 
     // --- 3) Expected FR with real-child contributions on endpoints {2,3,4,5,6,7} ---
 
     // B=[4,7]: no real children; only (x in {5,6,7}, y=7) are in-domain → value 1
-    CHECK(FR(5,7,B.Index,0) == 1);
-    CHECK(FR(6,7,B.Index,0) == 1);
-    CHECK(FR(7,7,B.Index,0) == 1);
+    CHECK(forest_score(FR, 5, 7, B) == 1);
+    CHECK(forest_score(FR, 6, 7, B) == 1);
+    CHECK(forest_score(FR, 7, 7, B) == 1);
 
     // C=[3,6]: real child is B (4<6<7). Only (x=4, y=7) allows B; else 1.
-    CHECK(FR(4,6,C.Index,0) == 1);
-    CHECK(FR(4,7,C.Index,0) == 2); // 1 + FR_B(l_B+1=5, 7)=2
-    CHECK(FR(5,6,C.Index,0) == 1);
-    CHECK(FR(5,7,C.Index,0) == 1);
-    CHECK(FR(6,6,C.Index,0) == 1);
-    CHECK(FR(6,7,C.Index,0) == 1);
+    CHECK(forest_score(FR, 4, 6, C) == 1);
+    CHECK(forest_score(FR, 4, 7, C) == 2); // 1 + FR_B(l_B+1=5, 7)=2
+    CHECK(forest_score(FR, 5, 6, C) == 1);
+    CHECK(forest_score(FR, 5, 7, C) == 1);
+    CHECK(forest_score(FR, 6, 6, C) == 1);
+    CHECK(forest_score(FR, 6, 7, C) == 1);
 
     // A=[2,5]: real children are C and B.
     // x=3: y=5 -> 1; y=6 -> 1 + FR_C(4,6)=2; y=7 -> 1 + max(FR_C(4,7)=2, FR_B(5,7)=1)=3
-    CHECK(FR(3,5,A.Index,0) == 1);
-    CHECK(FR(3,6,A.Index,0) == 2);
-    CHECK(FR(3,7,A.Index,0) == 3);
+    CHECK(forest_score(FR, 3, 5, A) == 1);
+    CHECK(forest_score(FR, 3, 6, A) == 2);
+    CHECK(forest_score(FR, 3, 7, A) == 3);
     // x=4: only B fits when y=7 (x>l_C excludes C); y=5,6 -> 1; y=7 -> 1 + FR_B(5,7)=2
-    CHECK(FR(4,5,A.Index,0) == 1);
-    CHECK(FR(4,6,A.Index,0) == 1);
-    CHECK(FR(4,7,A.Index,0) == 2);
+    CHECK(forest_score(FR, 4, 5, A) == 1);
+    CHECK(forest_score(FR, 4, 6, A) == 1);
+    CHECK(forest_score(FR, 4, 7, A) == 2);
     // x=5: no real child fits → always 1 on domain
-    CHECK(FR(5,5,A.Index,0) == 1);
-    CHECK(FR(5,6,A.Index,0) == 1);
-    CHECK(FR(5,7,A.Index,0) == 1);
+    CHECK(forest_score(FR, 5, 5, A) == 1);
+    CHECK(forest_score(FR, 5, 6, A) == 1);
+    CHECK(forest_score(FR, 5, 7, A) == 1);
 }
 
 TEST_CASE("Gavril::computeLeftForestBaseCase: 3 disjoint intervals (all ones in-domain, zeros elsewhere)") {
@@ -322,10 +363,11 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: 3 disjoint intervals (all ones in-
 
     // FL table keyed by endpoint values.
     // If m.end is "max endpoint" (e.g., 5), size as m.end+1 instead.
-    cg::mif::array4<int> FL(m.end);
+    cg::mif::array4<ForestScore> FL(m.end, kZeroForestScore);
+    cg::mif::array4<ChildChoice> FLChoices(m.end, kUnsetChildChoice);
 
     // Compute base case
-    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL);
+    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL, FLChoices);
 
     auto in_domain = [](const Interval& w, int z, int q){
         // FL base-case domain: z ≤ l_w ≤ q < r_w
@@ -337,10 +379,10 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: 3 disjoint intervals (all ones in-
             const bool dom = in_domain(w, z, q);
             if (dom) {
                 // Disjoint ⇒ no real left-children; no left dummies at i=0 ⇒ value must be 1
-                CHECK_MESSAGE(FL(z, q, w.Index, 0) == 1,
+                CHECK_MESSAGE(forest_score(FL, z, q, w) == 1,
                     "FL should be 1 in-domain for w=", w.Index, " z=", z, " q=", q);
             } else {
-                CHECK_MESSAGE(FL(z, q, w.Index, 0) == 0,
+                CHECK_MESSAGE(forest_score(FL, z, q, w) == 0,
                     "FL should be 0 outside domain for w=", w.Index, " z=", z, " q=", q);
             }
         }
@@ -374,10 +416,11 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions exist, only 
     CHECK(std::is_sorted(EP0.begin(), EP0.end()));
 
     // FL table (keyed by endpoint values). If m.end is "max endpoint", use m.end+1.
-    cg::mif::array4<int> FL(m.end);
+    cg::mif::array4<ForestScore> FL(m.end, kZeroForestScore);
+    cg::mif::array4<ChildChoice> FLChoices(m.end, kUnsetChildChoice);
 
     // Compute base case
-    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL);
+    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL, FLChoices);
 
     auto in_domain = [](const Interval& w, int z, int q){
         return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
@@ -387,7 +430,7 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions exist, only 
     auto expect_zeros_outside = [&](const Interval& w){
         for (int z : EP0) for (int q : EP0) {
             if (!in_domain(w,z,q)) {
-                CHECK_MESSAGE(FL(z,q,w.Index,0) == 0,
+                CHECK_MESSAGE(forest_score(FL, z, q, w) == 0,
                               "FL not zero outside domain for w=", w.Index,
                               " z=", z, " q=", q);
             }
@@ -400,33 +443,33 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions exist, only 
     // 2) Expected FL values (derived manually)
 
     // A=[0,3]: no real left children. Domain: z=0, q∈{0,1,2} → all 1.
-    CHECK(FL(0,0,A.Index,0) == 1);
-    CHECK(FL(0,1,A.Index,0) == 1);
-    CHECK(FL(0,2,A.Index,0) == 1);
+    CHECK(forest_score(FL, 0, 0, A) == 1);
+    CHECK(forest_score(FL, 0, 1, A) == 1);
+    CHECK(forest_score(FL, 0, 2, A) == 1);
 
     // C=[1,4]: real left child is A. Needs z<=0 and q>=3 to include A.
     // z=0: q=1→1, q=2→1, q=3→2 (via A with q' = min(3, 3-1=2) => FL_A(0,2)=1)
-    CHECK(FL(0,1,C.Index,0) == 1);
-    CHECK(FL(0,2,C.Index,0) == 1);
-    CHECK(FL(0,3,C.Index,0) == 2);
+    CHECK(forest_score(FL, 0, 1, C) == 1);
+    CHECK(forest_score(FL, 0, 2, C) == 1);
+    CHECK(forest_score(FL, 0, 3, C) == 2);
     // z=1: cannot include A → all 1
-    CHECK(FL(1,1,C.Index,0) == 1);
-    CHECK(FL(1,2,C.Index,0) == 1);
-    CHECK(FL(1,3,C.Index,0) == 1);
+    CHECK(forest_score(FL, 1, 1, C) == 1);
+    CHECK(forest_score(FL, 1, 2, C) == 1);
+    CHECK(forest_score(FL, 1, 3, C) == 1);
 
     // B=[2,5]: real left children are A and C.
     // z=0: q=2→1; q=3→2 (via A); q=4→3 (via C which gives 2)
-    CHECK(FL(0,2,B.Index,0) == 1);
-    CHECK(FL(0,3,B.Index,0) == 2);
-    CHECK(FL(0,4,B.Index,0) == 3);
+    CHECK(forest_score(FL, 0, 2, B) == 1);
+    CHECK(forest_score(FL, 0, 3, B) == 2);
+    CHECK(forest_score(FL, 0, 4, B) == 3);
     // z=1: q=2→1; q=3→1; q=4→2 (via C only; A excluded by z>0)
-    CHECK(FL(1,2,B.Index,0) == 1);
-    CHECK(FL(1,3,B.Index,0) == 1);
-    CHECK(FL(1,4,B.Index,0) == 2);
+    CHECK(forest_score(FL, 1, 2, B) == 1);
+    CHECK(forest_score(FL, 1, 3, B) == 1);
+    CHECK(forest_score(FL, 1, 4, B) == 2);
     // z=2: no v can satisfy z <= l_v (since l_v ∈ {0,1}) → always 1
-    CHECK(FL(2,2,B.Index,0) == 1);
-    CHECK(FL(2,3,B.Index,0) == 1);
-    CHECK(FL(2,4,B.Index,0) == 1);
+    CHECK(forest_score(FL, 2, 2, B) == 1);
+    CHECK(forest_score(FL, 2, 3, B) == 1);
+    CHECK(forest_score(FL, 2, 4, B) == 1);
 }
 
 TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions, nested inside two outers") {
@@ -455,9 +498,10 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions, nested insi
     CHECK(std::is_sorted(EP0.begin(), EP0.end()));
     // EP0 should be {2,3,4,5,6,7}
 
-    cg::mif::array4<int> FL(m.end); // if m.end is max endpoint, use m.end+1
+    cg::mif::array4<ForestScore> FL(m.end, kZeroForestScore); // if m.end is max endpoint, use m.end+1
+    cg::mif::array4<ChildChoice> FLChoices(m.end, kUnsetChildChoice);
 
-    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL);
+    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL, FLChoices);
 
     auto in_domain = [](const Interval& w, int z, int q){
         return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
@@ -466,7 +510,7 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions, nested insi
     auto expect_zeros_outside = [&](const Interval& w){
         for (int z : EP0) for (int q : EP0) {
             if (!in_domain(w,z,q)) {
-                CHECK_MESSAGE(FL(z,q,w.Index,0) == 0,
+                CHECK_MESSAGE(forest_score(FL, z, q, w) == 0,
                               "FL not zero outside domain for w=", w.Index,
                               " z=", z, " q=", q);
             }
@@ -477,31 +521,31 @@ TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions, nested insi
     expect_zeros_outside(C);
 
     // A'=[2,5]: no real left children. Domain: z=2, q∈{2,3,4} → all 1.
-    CHECK(FL(2,2,A.Index,0) == 1);
-    CHECK(FL(2,3,A.Index,0) == 1);
-    CHECK(FL(2,4,A.Index,0) == 1);
+    CHECK(forest_score(FL, 2, 2, A) == 1);
+    CHECK(forest_score(FL, 2, 3, A) == 1);
+    CHECK(forest_score(FL, 2, 4, A) == 1);
 
     // C'=[3,6]: left child is A' only; needs z<=2 and q>=5 → only (z=2,q=5) uses A' → value 2.
-    CHECK(FL(2,3,C.Index,0) == 1);
-    CHECK(FL(2,4,C.Index,0) == 1);
-    CHECK(FL(2,5,C.Index,0) == 2);
-    CHECK(FL(3,3,C.Index,0) == 1);
-    CHECK(FL(3,4,C.Index,0) == 1);
-    CHECK(FL(3,5,C.Index,0) == 1);
+    CHECK(forest_score(FL, 2, 3, C) == 1);
+    CHECK(forest_score(FL, 2, 4, C) == 1);
+    CHECK(forest_score(FL, 2, 5, C) == 2);
+    CHECK(forest_score(FL, 3, 3, C) == 1);
+    CHECK(forest_score(FL, 3, 4, C) == 1);
+    CHECK(forest_score(FL, 3, 5, C) == 1);
 
     // B'=[4,7]: left children are A' and C'.
     // z=2: q=4→1; q=5→2 (via A'); q=6→3 (via C' which yields 2)
-    CHECK(FL(2,4,B.Index,0) == 1);
-    CHECK(FL(2,5,B.Index,0) == 2);
-    CHECK(FL(2,6,B.Index,0) == 3);
+    CHECK(forest_score(FL, 2, 4, B) == 1);
+    CHECK(forest_score(FL, 2, 5, B) == 2);
+    CHECK(forest_score(FL, 2, 6, B) == 3);
     // z=3: q=4→1; q=5→1; q=6→2 (via C' only)
-    CHECK(FL(3,4,B.Index,0) == 1);
-    CHECK(FL(3,5,B.Index,0) == 1);
-    CHECK(FL(3,6,B.Index,0) == 2);
+    CHECK(forest_score(FL, 3, 4, B) == 1);
+    CHECK(forest_score(FL, 3, 5, B) == 1);
+    CHECK(forest_score(FL, 3, 6, B) == 2);
     // z=4: no v satisfies z <= l_v (l_v∈{2,3}) → always 1
-    CHECK(FL(4,4,B.Index,0) == 1);
-    CHECK(FL(4,5,B.Index,0) == 1);
-    CHECK(FL(4,6,B.Index,0) == 1);
+    CHECK(forest_score(FL, 4, 4, B) == 1);
+    CHECK(forest_score(FL, 4, 5, B) == 1);
+    CHECK(forest_score(FL, 4, 6, B) == 1);
 }
 
 
