@@ -1046,7 +1046,7 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
     }
 }
 
-    void Gavril::constructMif(const cg::data_structures::DistinctIntervalModel intervalModel, int numLayers, const Forests& forests, const ChildChoices& childChoices)
+    std::vector<int> Gavril::constructMif(const cg::data_structures::DistinctIntervalModel intervalModel, int numLayers, const Forests& forests, const ChildChoices& childChoices)
     {
         const auto &allIntervals = intervalModel.getAllIntervals();
 
@@ -1217,11 +1217,12 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 }
             }
         }
+        return mifIntervalIdxs;
     }
 
     // This is Gavril's algorithm for the maximum induced forest of a circle graph:
     // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
-    void Gavril::computeMif(std::span<const cg::data_structures::Interval> intervals)
+    std::vector<int> Gavril::computeMif(std::span<const cg::data_structures::Interval> intervals)
     {
         const cg::data_structures::DistinctIntervalModel intervalModel(intervals);
         const ForestScore emptyScore = {
@@ -1295,5 +1296,7 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
             // Compute ul_{w,i}(x, y):
             computeLeftChildChoices(forests, allIntervals, cumulativeIntervals, cumulativeIntervalsOneBehind, childChoices.leftChildChoices, layerIdx);
         }
+        auto mifIntervalIdxs = constructMif(intervalModel, intervalsAtLayer.size(), forests, childChoices);
+        return mifIntervalIdxs;
     }
 }
