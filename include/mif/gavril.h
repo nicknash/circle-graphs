@@ -11,6 +11,7 @@ namespace cg::data_structures
     class Interval;
 }
 
+
 namespace cg::mif
 {
 template <class T>
@@ -46,12 +47,6 @@ template <class T>
         }
     };
 
-    // This is Gavril's algorithm for the maximum induced forest of a circle graph:
-    // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
-    class Gavril
-    {
-    public:
-        static const int Invalid = -1;
         enum ChildType
         {
             Undefined,
@@ -59,6 +54,25 @@ template <class T>
             Real,
             Dummy
         };
+inline std::string_view to_string(ChildType t) {
+    switch (t) {
+        case ChildType::Undefined: return "Undefined";
+        case ChildType::None:      return "None";
+        case ChildType::Dummy:     return "Dummy";
+        case ChildType::Real:      return "Real";
+    }
+    return "???";
+}
+
+
+
+    // This is Gavril's algorithm for the maximum induced forest of a circle graph:
+    // "Minimum weight feedback vertex sets in circle graphs", Information Processing Letters 107 (2008),pp1-6
+    class Gavril
+    {
+    public:
+        static const int Invalid = -1;
+
         struct ForestScore
         {
             int score;
@@ -104,3 +118,15 @@ template <class T>
         static void computeMif(std::span<const cg::data_structures::Interval> intervals);
     };
 }
+
+template<>
+struct std::formatter<cg::mif::ChildType> : std::formatter<std::string_view> {
+    // no custom parse — we just reuse the base
+    template<class ParseContext>
+    constexpr auto parse(ParseContext& ctx) { return std::formatter<std::string_view>::parse(ctx); }
+
+    template<class FormatContext>
+    auto format(const cg::mif::ChildType& t, FormatContext& ctx) const {
+        return std::formatter<std::string_view>::format(cg::mif::to_string(t), ctx);
+    }
+};
