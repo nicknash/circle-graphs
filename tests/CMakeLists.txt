@@ -1,4 +1,4 @@
-# tests_main.cpp should live at tests/tests_main.cpp
+# test_main.cpp should live at tests/test_main.cpp
 #   with:
 #     #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #     #include <doctest/doctest.h>
@@ -10,7 +10,7 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_LIST_DIR}/*.cxx"
 )
 
-# Make sure tests_main is compiled exactly once
+# Make sure test_main is compiled exactly once
 set(TEST_MAIN "${CMAKE_CURRENT_LIST_DIR}/test_main.cpp")
 list(REMOVE_ITEM TEST_SOURCES "${TEST_MAIN}")
 
@@ -35,12 +35,12 @@ target_include_directories(unit_tests PRIVATE
 
 target_compile_features(unit_tests PRIVATE cxx_std_23)
 
-# Include doctest's CMake helpers explicitly (robust, no PATH surprises)
 include("${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake")
 
-# Register EACH TEST_CASE so VS Code can run/debug them individually
 doctest_discover_tests(unit_tests
-  TEST_PREFIX ""
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  DISCOVERY_MODE POST_BUILD   # discover immediately after the binary is built
+  TEST_PREFIX "ut."
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  DISCOVERY_MODE POST_BUILD
+  DISCOVERY_TIMEOUT 60
+  EXTRA_ARGS --order-by=file --no-intro
 )

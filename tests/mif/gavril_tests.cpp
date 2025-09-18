@@ -5,547 +5,235 @@
 #include "utils/interval_model_utils.h"
 
 #include <algorithm>
+#include <numeric>
+#include <random>
+#include <vector>
+#include <unordered_map>
+#include <functional>
+#include <set>
 
-#include <format>
-#include <map>
+namespace cgtd = cg::data_structures;
 
-namespace {
+// ---------- Minimal constructor helper (uses your Interval ctor) --------------
+static inline cgtd::Interval mk(int L, int R, int idx, int w = 1) {
+    if (L > R) std::swap(L, R);
+    return cgtd::Interval(L, R, idx, w);
+}
 
-using ForestScore      = cg::mif::Gavril::ForestScore;
-using DummyForestScore = cg::mif::Gavril::DummyForestScore;
-using ChildChoice      = cg::mif::Gavril::ChildChoice;
-
-constexpr ForestScore kZeroForestScore{0, cg::mif::Gavril::Invalid};
-constexpr DummyForestScore kZeroDummyForestScore{0, cg::mif::Gavril::Invalid};
-constexpr ChildChoice kUnsetChildChoice{
-    cg::mif::ChildType::Undefined,
-    0,
-    cg::mif::Gavril::Invalid,
-    cg::mif::Gavril::Invalid,
-    cg::mif::Gavril::Invalid
-};
-
-std::vector<int>
-collect_first_layer_endpoints(const std::vector<cg::data_structures::Interval>& firstLayer) {
+// ---------- Endpoint validation ----------------------------------------------
+static void validate_endpoints(const std::vector<cgtd::Interval>& ivs) {
+    const int n = static_cast<int>(ivs.size());
+    REQUIRE(n > 0);
     std::vector<int> eps;
-    eps.reserve(2 * firstLayer.size());
-    for (const auto& I : firstLayer) {
-        eps.push_back(I.Left);
-        eps.push_back(I.Right);
+    eps.reserve(2*n);
+    for (auto& v : ivs) {
+        eps.push_back(v.Left);
+        eps.push_back(v.Right);
     }
     std::sort(eps.begin(), eps.end());
-    return eps;
-}
-
-[[maybe_unused]] int expected_count_in_span(const std::vector<cg::data_structures::Interval>& firstLayer, int x, int y)
-{
-    if (x >= y) return 0;
-    int cnt = 0;
-    for (const auto& I : firstLayer) {
-        if (x <= I.Left && I.Right <= y) ++cnt;
+    // must be exactly {0,1,...,2n-1}
+    for (int i = 0; i < 2*n; ++i) {
+        REQUIRE(eps[i] == i);
     }
-    return cnt;
 }
 
-int forest_score(const cg::mif::array4<ForestScore>& table, int x, int y, int intervalIndex, int layer = 0)
-{
-    return table(x, y, intervalIndex, layer).score;
+// ---------- Graph helpers ----------------------------------------------------
+static bool overlaps_strict(const cgtd::Interval& a, const cgtd::Interval& b) {
+    // Edge iff proper intersection without containment.
+    return (a.Left < b.Left && b.Left < a.Right && a.Right < b.Right) ||
+           (b.Left < a.Left && a.Left < b.Right && b.Right < a.Right);
 }
 
-int forest_score(const cg::mif::array4<ForestScore>& table, int x, int y, const cg::data_structures::Interval& interval, int layer = 0)
-{
-    return forest_score(table, x, y, interval.Index, layer);
-}
-
-int dummy_score(const cg::mif::array3<DummyForestScore>& table, int y, int intervalIndex, int layer = 0)
-{
-    return table(y, intervalIndex, layer).score;
-}
-
-int dummy_score(const cg::mif::array3<DummyForestScore>& table, int y, const cg::data_structures::Interval& interval, int layer = 0)
-{
-    return dummy_score(table, y, interval.Index, layer);
-}
-
-} // namespace
-TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
-    using cg::data_structures::Interval;
-
-    // Intervals: [0,1], [2,3], [4,5] — all in A0, pairwise disjoint.
-    Interval a(0, 1, 0, 1);
-    Interval b(2, 3, 1, 1);
-    Interval c(4, 5, 2, 1);
-    std::vector<Interval> intervals = {a, b, c};
-    cg::data_structures::DistinctIntervalModel m(intervals);
-
-    // Build layers and take A0 (sorted by Right inside helper)
-    auto layers = cg::interval_model_utils::createLayers(m);
-    REQUIRE(layers.size() >= 1);
-    auto& A0 = layers[0];
-
-    // Endpoints for A0 (must be sorted, contains 0..5 here)
-    auto A0_eps = collect_first_layer_endpoints(A0);
-    REQUIRE(A0_eps.size() == 6);
-    CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
-
-    // Tables sized by endpoint universe (endpoint values used as indices)
-    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);       // FR[x,y,w,0]
-    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore);  // FRDummy[y,w,0]
-    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
-
-    // Call base case
-    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
-
-    const auto& W0 = A0[0]; // [0,1], index 0
-    const auto& W1 = A0[1]; // [2,3], index 1
-    const auto& W2 = A0[2]; // [4,5], index 2
-
-    // --- Zeros outside domain: l_w < x <= r_w <= y (i=0) ---
-    auto expect_zeros_outside_domain = [&](const Interval& w){
-        for (int x : A0_eps) for (int y : A0_eps) {
-            bool in_domain = (w.Left < x) && (x <= w.Right) && (w.Right <= y);
-            if (!in_domain) {
-                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
-                              "Expected FR to be 0 outside domain for w=", w.Index,
-                              " x=", x, " y=", y);
+static std::vector<std::vector<int>>
+build_adjacency(const std::vector<cgtd::Interval>& ivs) {
+    const int n = static_cast<int>(ivs.size());
+    std::vector<std::vector<int>> g(n);
+    for (int i = 0; i < n; ++i)
+        for (int j = i + 1; j < n; ++j)
+            if (overlaps_strict(ivs[i], ivs[j])) {
+                g[i].push_back(j);
+                g[j].push_back(i);
             }
-        }
-    };
-    expect_zeros_outside_domain(W0);
-    expect_zeros_outside_domain(W1);
-    expect_zeros_outside_domain(W2);
-
-    // --- Expected FR non-zeros (from the known recurrence on disjoint intervals) ---
-    // w=0: x=1; FR(1,y) for y=1..5: 1,1,2,2,3
-    {
-        std::map<int,int> y2v = {{1,1},{2,1},{3,2},{4,2},{5,3}};
-        for (int y : A0_eps) {
-            int expected = (y2v.count(y) ? y2v[y] : 0);
-            CHECK_MESSAGE(forest_score(FR, 1, y, 0) == expected, "FR(1,", y, ", w=0, i=0) mismatch");
-        }
-    }
-    // w=1: x=3; FR(3,y) for y=3..5: 1,1,2
-    {
-        std::map<int,int> y2v = {{3,1},{4,1},{5,2}};
-        for (int y : A0_eps) {
-            int expected = (y2v.count(y) ? y2v[y] : 0);
-            CHECK_MESSAGE(forest_score(FR, 3, y, 1) == expected, "FR(3,", y, ", w=1, i=0) mismatch");
-        }
-    }
-    // w=2: x=5; FR(5,5)=1
-    {
-        for (int y : A0_eps) {
-            int expected = (y == 5 ? 1 : 0);
-            CHECK_MESSAGE(forest_score(FR, 5, y, 2) == expected, "FR(5,", y, ", w=2, i=0) mismatch");
-        }
-    }
-
-    // --- Dummy table checks: FRDummy(y,w,0) = max FR_{v,0}[l_v+1, y] over v in (r_w,y] ---
-    // For w=0 (r_w=1): y=2->0, 3->1, 4->1, 5->2
-    {
-        std::map<int,int> y2d = {{1,0},{2,0},{3,1},{4,1},{5,2}};
-        for (int y : A0_eps) {
-            int expected = (y2d.count(y) ? y2d[y] : 0);
-            CHECK_MESSAGE(dummy_score(FRDummy, y, 0) == expected, "FRDummy(y=", y, ", w=0) mismatch");
-        }
-    }
-    // For w=1 (r_w=3): y=4->0, 5->1 (y<=3 -> 0)
-    {
-        std::map<int,int> y2d = {{3,0},{4,0},{5,1}};
-        for (int y : A0_eps) {
-            int expected = (y2d.count(y) ? y2d[y] : 0);
-            CHECK_MESSAGE(dummy_score(FRDummy, y, 1) == expected, "FRDummy(y=", y, ", w=1) mismatch");
-        }
-    }
-    // For w=2 (r_w=5): only boundary y=5 -> 0
-    {
-        for (int y : A0_eps) {
-            int expected = (y == 5 ? 0 : 0);
-            CHECK_MESSAGE(dummy_score(FRDummy, y, 2) == expected, "FRDummy(y=", y, ", w=2) mismatch");
-        }
-    }
+    return g;
 }
 
-TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, but only one layer") {
-    using cg::data_structures::Interval;
+static bool is_forest_induced(const std::vector<cgtd::Interval>& ivs,
+                              const std::vector<int>& pick) {
+    const auto g_all = build_adjacency(ivs);
+    std::unordered_map<int,int> pos_of;
+    pos_of.reserve(pick.size());
+    for (int p = 0; p < static_cast<int>(pick.size()); ++p) pos_of[pick[p]] = p;
 
-    // Intervals (endpoints 0..5):
-    // A=[0,3] (Index=0), B=[2,5] (Index=1), C=[1,4] (Index=2).
-    Interval A(0, 3, 0, 1);
-    Interval B(2, 5, 1, 1);
-    Interval C(1, 4, 2, 1);
-    std::vector<Interval> intervals = {A, B, C};
-    cg::data_structures::DistinctIntervalModel m(intervals);
-
-    // Build layers and take A0
-    auto layers = cg::interval_model_utils::createLayers(m);
-    REQUIRE(!layers.empty());
-    auto& A0 = layers[0];
-
-    // Sort by increasing Right (to match production)
-    std::sort(A0.begin(), A0.end(),
-              [](const Interval& a, const Interval& b){ return a.Right < b.Right; });
-
-    // Endpoints for A0 (use your helper; replace with local impl if needed)
-    auto A0_eps = collect_first_layer_endpoints(A0);
-    REQUIRE(A0_eps.size() == 6);
-    CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
-
-    // Tables sized by endpoint *count* (0..5 inclusive ⇒ m.end must be 6; if m.end is max endpoint, use m.end+1)
-    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);
-    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore);
-    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
-
-    // Compute base case
-    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
-
-  
-    auto in_domain = [](const Interval& w, int x, int y){
-        return (w.Left < x) && (x <= w.Right) && (w.Right <= y);
-    };
-
-    // 1) Zeros outside i=0 domain
-    auto expect_zeros_outside = [&](const Interval& w){
-        for (int x : A0_eps) for (int y : A0_eps)
-            if (!in_domain(w,x,y))
-                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
-                              "FR not zero outside domain for w=", w.Index, " x=", x, " y=", y);
-    };
-    expect_zeros_outside(A);
-    expect_zeros_outside(B);
-    expect_zeros_outside(C);
-
-    // 2) Dummy tables: none exist in this configuration
-    for (int y : A0_eps) {
-        CHECK(dummy_score(FRDummy, y, A) == 0);
-        CHECK(dummy_score(FRDummy, y, B) == 0);
-        CHECK(dummy_score(FRDummy, y, C) == 0);
+    const int k = static_cast<int>(pick.size());
+    std::vector<std::vector<int>> g(k);
+    for (int p = 0; p < k; ++p) {
+        int v_orig = pick[p];
+        for (int w_orig : g_all[v_orig]) {
+            auto it = pos_of.find(w_orig);
+            if (it != pos_of.end()) g[p].push_back(it->second);
+        }
     }
 
-    // 3) Expected FR with real-child contributions
-    // B=[2,5]: no real children; only y=5 in domain
-    CHECK(forest_score(FR, 3, 5, B) == 1);
-    CHECK(forest_score(FR, 4, 5, B) == 1);
-    CHECK(forest_score(FR, 5, 5, B) == 1);
-
-    // C=[1,4]: real child is B (2<4<5). Only x=2 and y=5 allow B; else 1.
-    CHECK(forest_score(FR, 2, 4, C) == 1);
-    CHECK(forest_score(FR, 2, 5, C) == 2); // 1 + FR_B(3,5)=2
-    CHECK(forest_score(FR, 3, 4, C) == 1);
-    CHECK(forest_score(FR, 3, 5, C) == 1);
-    CHECK(forest_score(FR, 4, 4, C) == 1);
-    CHECK(forest_score(FR, 4, 5, C) == 1);
-
-    // A=[0,3]: real children are C and B.
-    CHECK(forest_score(FR, 1, 3, A) == 1);
-    CHECK(forest_score(FR, 1, 4, A) == 2); // via C: 1 + FR_C(2,4)=2
-    CHECK(forest_score(FR, 1, 5, A) == 3); // via max(C->2, B->1) + 1
-    CHECK(forest_score(FR, 2, 3, A) == 1);
-    CHECK(forest_score(FR, 2, 4, A) == 1);
-    CHECK(forest_score(FR, 2, 5, A) == 2); // via B: 1 + FR_B(3,5)=2
-    CHECK(forest_score(FR, 3, 3, A) == 1);
-    CHECK(forest_score(FR, 3, 4, A) == 1);
-    CHECK(forest_score(FR, 3, 5, A) == 1);
+    std::vector<int> color(k, 0);
+    std::function<bool(int,int)> dfs = [&](int u, int parent) {
+        color[u] = 1;
+        for (int v : g[u]) {
+            if (v == parent) continue;
+            if (color[v] == 1) return false;      // back-edge => cycle
+            if (color[v] == 0 && !dfs(v, u)) return false;
+        }
+        color[u] = 2;
+        return true;
+    };
+    for (int i = 0; i < k; ++i)
+        if (color[i] == 0 && !dfs(i, -1)) return false;
+    return true;
 }
 
-TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, nested inside two outers") {
-    using cg::data_structures::Interval;
-
-    // Inner A0 intervals (endpoints 2..7):
-    // A=[2,5] (Index=0), B=[4,7] (Index=1), C=[3,6] (Index=2).
-    Interval A(2, 5, 0, 1);
-    Interval B(4, 7, 1, 1);
-    Interval C(3, 6, 2, 1);
-
-    // Two outers that contain all three inners (do not belong to A0):
-    Interval E(1, 8, 3, 1);
-    Interval D(0, 9, 4, 1);
-
-    std::vector<Interval> intervals = {A, B, C, E, D};
-    cg::data_structures::DistinctIntervalModel m(intervals);
-
-    // Build layers and take A0
-    auto layers = cg::interval_model_utils::createLayers(m);
-    REQUIRE(!layers.empty());
-    auto& A0 = layers[0];
-
-    // Sort by increasing Right to match production code
-    std::sort(A0.begin(), A0.end(),
-              [](const Interval& a, const Interval& b){ return a.Right < b.Right; });
-
-    // Endpoints for A0 only (expected {2,3,4,5,6,7})
-    auto A0_eps = collect_first_layer_endpoints(A0);
-    REQUIRE(A0_eps.size() == 6);
-    CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
-
-    // DP tables keyed by endpoint values; if m.end is "max endpoint", use m.end+1
-    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);
-    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore);
-    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
-
-    // Compute base case over A0
-    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
-
-    auto in_domain = [](const Interval& w, int x, int y){
-        return (w.Left < x) && (x <= w.Right) && (w.Right <= y);
-    };
-
-    // --- 1) Zeros outside i=0 domain ---
-    auto expect_zeros_outside = [&](const Interval& w){
-        for (int x : A0_eps) for (int y : A0_eps) {
-            if (!in_domain(w,x,y)) {
-                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
-                              "FR not zero outside domain for w=", w.Index,
-                              " x=", x, " y=", y);
-            }
-        }
-    };
-    expect_zeros_outside(A);
-    expect_zeros_outside(B);
-    expect_zeros_outside(C);
-
-    // --- 2) Dummy tables: none among A0 in this configuration ---
-    for (int y : A0_eps) {
-        CHECK(dummy_score(FRDummy, y, A) == 0);
-        CHECK(dummy_score(FRDummy, y, B) == 0);
-        CHECK(dummy_score(FRDummy, y, C) == 0);
+static int brute_force_mif_size(const std::vector<cgtd::Interval>& ivs) {
+    const int n = static_cast<int>(ivs.size());
+    REQUIRE(n <= 20); // safety; subsets are exponential
+    int best = 0;
+    std::vector<int> pick;
+    pick.reserve(n);
+    for (unsigned mask = 1; mask < (1u << n); ++mask) {
+        pick.clear();
+        for (int i = 0; i < n; ++i)
+            if (mask & (1u << i)) pick.push_back(i);
+        if (static_cast<int>(pick.size()) <= best) continue;
+        if (is_forest_induced(ivs, pick))
+            best = static_cast<int>(pick.size());
     }
-
-    // --- 3) Expected FR with real-child contributions on endpoints {2,3,4,5,6,7} ---
-
-    // B=[4,7]: no real children; only (x in {5,6,7}, y=7) are in-domain → value 1
-    CHECK(forest_score(FR, 5, 7, B) == 1);
-    CHECK(forest_score(FR, 6, 7, B) == 1);
-    CHECK(forest_score(FR, 7, 7, B) == 1);
-
-    // C=[3,6]: real child is B (4<6<7). Only (x=4, y=7) allows B; else 1.
-    CHECK(forest_score(FR, 4, 6, C) == 1);
-    CHECK(forest_score(FR, 4, 7, C) == 2); // 1 + FR_B(l_B+1=5, 7)=2
-    CHECK(forest_score(FR, 5, 6, C) == 1);
-    CHECK(forest_score(FR, 5, 7, C) == 1);
-    CHECK(forest_score(FR, 6, 6, C) == 1);
-    CHECK(forest_score(FR, 6, 7, C) == 1);
-
-    // A=[2,5]: real children are C and B.
-    // x=3: y=5 -> 1; y=6 -> 1 + FR_C(4,6)=2; y=7 -> 1 + max(FR_C(4,7)=2, FR_B(5,7)=1)=3
-    CHECK(forest_score(FR, 3, 5, A) == 1);
-    CHECK(forest_score(FR, 3, 6, A) == 2);
-    CHECK(forest_score(FR, 3, 7, A) == 3);
-    // x=4: only B fits when y=7 (x>l_C excludes C); y=5,6 -> 1; y=7 -> 1 + FR_B(5,7)=2
-    CHECK(forest_score(FR, 4, 5, A) == 1);
-    CHECK(forest_score(FR, 4, 6, A) == 1);
-    CHECK(forest_score(FR, 4, 7, A) == 2);
-    // x=5: no real child fits → always 1 on domain
-    CHECK(forest_score(FR, 5, 5, A) == 1);
-    CHECK(forest_score(FR, 5, 6, A) == 1);
-    CHECK(forest_score(FR, 5, 7, A) == 1);
+    return best;
 }
 
-TEST_CASE("Gavril::computeLeftForestBaseCase: 3 disjoint intervals (all ones in-domain, zeros elsewhere)") {
-    using cg::data_structures::Interval;
-
-    // Intervals: [0,1], [2,3], [4,5] — all in A0, pairwise disjoint.
-    Interval a(0, 1, 0, 1);
-    Interval b(2, 3, 1, 1);
-    Interval c(4, 5, 2, 1);
-    std::vector<Interval> intervals = {a, b, c};
-    cg::data_structures::DistinctIntervalModel m(intervals);
-
-    // Build layers and take A0
-    auto layers = cg::interval_model_utils::createLayers(m);
-    REQUIRE(!layers.empty());
-    auto& A0 = layers[0];
-
-    // Endpoints for A0 (expected {0,1,2,3,4,5})
-    auto EP0 = collect_first_layer_endpoints(A0);
-    REQUIRE(EP0.size() == 6);
-    CHECK(std::is_sorted(EP0.begin(), EP0.end()));
-
-    // FL table keyed by endpoint values.
-    // If m.end is "max endpoint" (e.g., 5), size as m.end+1 instead.
-    cg::mif::array4<ForestScore> FL(m.end, kZeroForestScore);
-    cg::mif::array4<ChildChoice> FLChoices(m.end, kUnsetChildChoice);
-
-    // Compute base case
-    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL, FLChoices);
-
-    auto in_domain = [](const Interval& w, int z, int q){
-        // FL base-case domain: z ≤ l_w ≤ q < r_w
-        return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
-    };
-
-    auto expect_all = [&](const Interval& w){
-        for (int z : EP0) for (int q : EP0) {
-            const bool dom = in_domain(w, z, q);
-            if (dom) {
-                // Disjoint ⇒ no real left-children; no left dummies at i=0 ⇒ value must be 1
-                CHECK_MESSAGE(forest_score(FL, z, q, w) == 1,
-                    "FL should be 1 in-domain for w=", w.Index, " z=", z, " q=", q);
-            } else {
-                CHECK_MESSAGE(forest_score(FL, z, q, w) == 0,
-                    "FL should be 0 outside domain for w=", w.Index, " z=", z, " q=", q);
-            }
-        }
-    };
-
-    expect_all(a); // w = [0,1]
-    expect_all(b); // w = [2,3]
-    expect_all(c); // w = [4,5]
+// Random permutation -> n intervals pairing (p[2i], p[2i+1]) (distinct endpoints, range 0..2n-1)
+static std::vector<cgtd::Interval>
+make_intervals_from_permutation(const std::vector<int>& perm) {
+    const int n = static_cast<int>(perm.size()) / 2;
+    std::vector<cgtd::Interval> ivs;
+    ivs.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        int a = perm[2*i], b = perm[2*i + 1];
+        ivs.push_back(mk(a, b, i));
+    }
+    validate_endpoints(ivs);
+    return ivs;
 }
 
-
-TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions exist, only one layer") {
-    using cg::data_structures::Interval;
-
-    // Intervals (endpoints 0..5):
-    // A=[0,3] (Index=0), B=[2,5] (Index=1), C=[1,4] (Index=2).
-    Interval A(0, 3, 0, 1);
-    Interval B(2, 5, 1, 1);
-    Interval C(1, 4, 2, 1);
-    std::vector<Interval> intervals = {A, B, C};
-    cg::data_structures::DistinctIntervalModel m(intervals);
-
-    // Build layers and take A0
-    auto layers = cg::interval_model_utils::createLayers(m);
-    REQUIRE(!layers.empty());
-    auto& A0 = layers[0];
-
-    // (Order doesn't matter for this test, but keep consistent)
-    auto EP0 = collect_first_layer_endpoints(A0);
-    REQUIRE(EP0.size() == 6);
-    CHECK(std::is_sorted(EP0.begin(), EP0.end()));
-
-    // FL table (keyed by endpoint values). If m.end is "max endpoint", use m.end+1.
-    cg::mif::array4<ForestScore> FL(m.end, kZeroForestScore);
-    cg::mif::array4<ChildChoice> FLChoices(m.end, kUnsetChildChoice);
-
-    // Compute base case
-    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL, FLChoices);
-
-    auto in_domain = [](const Interval& w, int z, int q){
-        return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
-    };
-
-    // 1) Zeros outside i=0 domain
-    auto expect_zeros_outside = [&](const Interval& w){
-        for (int z : EP0) for (int q : EP0) {
-            if (!in_domain(w,z,q)) {
-                CHECK_MESSAGE(forest_score(FL, z, q, w) == 0,
-                              "FL not zero outside domain for w=", w.Index,
-                              " z=", z, " q=", q);
-            }
-        }
-    };
-    expect_zeros_outside(A);
-    expect_zeros_outside(B);
-    expect_zeros_outside(C);
-
-    // 2) Expected FL values (derived manually)
-
-    // A=[0,3]: no real left children. Domain: z=0, q∈{0,1,2} → all 1.
-    CHECK(forest_score(FL, 0, 0, A) == 1);
-    CHECK(forest_score(FL, 0, 1, A) == 1);
-    CHECK(forest_score(FL, 0, 2, A) == 1);
-
-    // C=[1,4]: real left child is A. Needs z<=0 and q>=3 to include A.
-    // z=0: q=1→1, q=2→1, q=3→2 (via A with q' = min(3, 3-1=2) => FL_A(0,2)=1)
-    CHECK(forest_score(FL, 0, 1, C) == 1);
-    CHECK(forest_score(FL, 0, 2, C) == 1);
-    CHECK(forest_score(FL, 0, 3, C) == 2);
-    // z=1: cannot include A → all 1
-    CHECK(forest_score(FL, 1, 1, C) == 1);
-    CHECK(forest_score(FL, 1, 2, C) == 1);
-    CHECK(forest_score(FL, 1, 3, C) == 1);
-
-    // B=[2,5]: real left children are A and C.
-    // z=0: q=2→1; q=3→2 (via A); q=4→3 (via C which gives 2)
-    CHECK(forest_score(FL, 0, 2, B) == 1);
-    CHECK(forest_score(FL, 0, 3, B) == 2);
-    CHECK(forest_score(FL, 0, 4, B) == 3);
-    // z=1: q=2→1; q=3→1; q=4→2 (via C only; A excluded by z>0)
-    CHECK(forest_score(FL, 1, 2, B) == 1);
-    CHECK(forest_score(FL, 1, 3, B) == 1);
-    CHECK(forest_score(FL, 1, 4, B) == 2);
-    // z=2: no v can satisfy z <= l_v (since l_v ∈ {0,1}) → always 1
-    CHECK(forest_score(FL, 2, 2, B) == 1);
-    CHECK(forest_score(FL, 2, 3, B) == 1);
-    CHECK(forest_score(FL, 2, 4, B) == 1);
+static std::vector<int>
+gavril_indices(const std::vector<cgtd::Interval>& ivs) {
+    const auto chosen = cg::mif::Gavril::computeMif(ivs);
+    std::vector<int> out;
+    out.reserve(chosen.size());
+    for (const auto& iv : chosen) out.push_back(iv.Index);
+    std::sort(out.begin(), out.end());
+    out.erase(std::unique(out.begin(), out.end()), out.end());
+    return out;
 }
 
-TEST_CASE("Gavril::computeLeftForestBaseCase: real-left transitions, nested inside two outers") {
-    using cg::data_structures::Interval;
+// ---------- Hand-crafted small graphs (now endpoint-valid) -------------------
 
-    // Inner A0 intervals (endpoints 2..7):
-    // A'=[2,5] (Index=0), B'=[4,7] (Index=1), C'=[3,6] (Index=2).
-    Interval A(2, 5, 0, 1);
-    Interval B(4, 7, 1, 1);
-    Interval C(3, 6, 2, 1);
+// n=2, endpoints {0,1,2,3}
+TEST_CASE("[Gavril] Single edge is fully kept") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,2,0));
+    ivs.push_back(mk(1,3,1));
+    validate_endpoints(ivs);
 
-    // Two outer intervals (not in A0): E=[1,8], D=[0,9]
-    Interval E(1, 8, 3, 1);
-    Interval D(0, 9, 4, 1);
+    const int brute = brute_force_mif_size(ivs);
+    REQUIRE(brute == 2);
 
-    std::vector<Interval> intervals = {A, B, C, E, D};
-    cg::data_structures::DistinctIntervalModel m(intervals);
-
-    // Build layers; A0 should contain exactly A,B,C
-    auto layers = cg::interval_model_utils::createLayers(m);
-    REQUIRE(!layers.empty());
-    auto& A0 = layers[0];
-
-    auto EP0 = collect_first_layer_endpoints(A0);
-    REQUIRE(EP0.size() == 6);
-    CHECK(std::is_sorted(EP0.begin(), EP0.end()));
-    // EP0 should be {2,3,4,5,6,7}
-
-    cg::mif::array4<ForestScore> FL(m.end, kZeroForestScore); // if m.end is max endpoint, use m.end+1
-    cg::mif::array4<ChildChoice> FLChoices(m.end, kUnsetChildChoice);
-
-    cg::mif::Gavril::computeLeftForestBaseCase(A0, FL, FLChoices);
-
-    auto in_domain = [](const Interval& w, int z, int q){
-        return (z <= w.Left) && (w.Left <= q) && (q < w.Right);
-    };
-
-    auto expect_zeros_outside = [&](const Interval& w){
-        for (int z : EP0) for (int q : EP0) {
-            if (!in_domain(w,z,q)) {
-                CHECK_MESSAGE(forest_score(FL, z, q, w) == 0,
-                              "FL not zero outside domain for w=", w.Index,
-                              " z=", z, " q=", q);
-            }
-        }
-    };
-    expect_zeros_outside(A);
-    expect_zeros_outside(B);
-    expect_zeros_outside(C);
-
-    // A'=[2,5]: no real left children. Domain: z=2, q∈{2,3,4} → all 1.
-    CHECK(forest_score(FL, 2, 2, A) == 1);
-    CHECK(forest_score(FL, 2, 3, A) == 1);
-    CHECK(forest_score(FL, 2, 4, A) == 1);
-
-    // C'=[3,6]: left child is A' only; needs z<=2 and q>=5 → only (z=2,q=5) uses A' → value 2.
-    CHECK(forest_score(FL, 2, 3, C) == 1);
-    CHECK(forest_score(FL, 2, 4, C) == 1);
-    CHECK(forest_score(FL, 2, 5, C) == 2);
-    CHECK(forest_score(FL, 3, 3, C) == 1);
-    CHECK(forest_score(FL, 3, 4, C) == 1);
-    CHECK(forest_score(FL, 3, 5, C) == 1);
-
-    // B'=[4,7]: left children are A' and C'.
-    // z=2: q=4→1; q=5→2 (via A'); q=6→3 (via C' which yields 2)
-    CHECK(forest_score(FL, 2, 4, B) == 1);
-    CHECK(forest_score(FL, 2, 5, B) == 2);
-    CHECK(forest_score(FL, 2, 6, B) == 3);
-    // z=3: q=4→1; q=5→1; q=6→2 (via C' only)
-    CHECK(forest_score(FL, 3, 4, B) == 1);
-    CHECK(forest_score(FL, 3, 5, B) == 1);
-    CHECK(forest_score(FL, 3, 6, B) == 2);
-    // z=4: no v satisfies z <= l_v (l_v∈{2,3}) → always 1
-    CHECK(forest_score(FL, 4, 4, B) == 1);
-    CHECK(forest_score(FL, 4, 5, B) == 1);
-    CHECK(forest_score(FL, 4, 6, B) == 1);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
 }
 
+// n=3, endpoints {0..5}
+TEST_CASE("Gavril: Triangle reduces to 2") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,3,0));
+    ivs.push_back(mk(1,4,1));
+    ivs.push_back(mk(2,5,2));
+    validate_endpoints(ivs);
 
+    const int brute = brute_force_mif_size(ivs);
+    REQUIRE(brute == 2);
+
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+// n=4, endpoints {0..7}; two disjoint edges: [0,2]&[1,3], [4,6]&[5,7]
+TEST_CASE("[Gavril] Disconnected forest stays whole") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,2,0)); // edge 1
+    ivs.push_back(mk(1,3,1));
+    ivs.push_back(mk(4,6,2)); // edge 2
+    ivs.push_back(mk(5,7,3));
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    REQUIRE(brute == 4);
+
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+// n=5, endpoints {0..9}; triangle [0,3],[1,4],[2,5] + disjoint edge [6,8],[7,9]
+TEST_CASE("[Gavril] Triangle plus edge") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,3,0));
+    ivs.push_back(mk(1,4,1));
+    ivs.push_back(mk(2,5,2));
+    ivs.push_back(mk(6,8,3));
+    ivs.push_back(mk(7,9,4));
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    REQUIRE(brute == 4);
+
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+// n=4, endpoints {0..7}; nested [1,6] ⊃ [2,5] and overlap pair [0,4]–[3,7]
+TEST_CASE("[Gavril] Mixed nested + overlaps") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(1,6,0)); // nested chain
+    ivs.push_back(mk(2,5,1));
+    ivs.push_back(mk(0,4,2)); // overlap pair with next
+    ivs.push_back(mk(3,7,3));
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+// ---------- Randomized vs exhaustive (small n) --------------------------------
+TEST_CASE("[Gavril] Random small instances match brute force (n<=9)") {
+    std::mt19937 rng(1234567);
+    for (int trial = 0; trial < 25; ++trial) {
+        int n = 5 + (rng() % 5);           // n in [5..9]
+        std::vector<int> perm(2*n);
+        std::iota(perm.begin(), perm.end(), 0);
+        std::shuffle(perm.begin(), perm.end(), rng);
+
+        auto ivs = make_intervals_from_permutation(perm);
+        for (int i = 0; i < n; ++i) ivs[i].Index = i;
+        validate_endpoints(ivs);
+
+        int brute = brute_force_mif_size(ivs);
+
+        std::vector<int> idxs;
+        CHECK_NOTHROW( idxs = gavril_indices(ivs) );
+
+        CHECK(static_cast<int>(idxs.size()) == brute);
+        CHECK(is_forest_induced(ivs, idxs));
+    }
+}
