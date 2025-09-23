@@ -538,7 +538,7 @@ namespace cg::mif
                                     auto innerScore = rightChildChoices(innerLeft, innerRight, interval.Index, layerIdx - 1).innerScore; 
                                     int scoreHere = leftScore + rightScore + innerScore - 1; 
                                     
-                                    //std::cout << std::format("leftScore={},rightScore={},innerScore={}",leftScore,rightScore,innerScore) << std::endl;
+                                    std::cout << std::format("[rightChildChoices] leftScore={},rightScore={},innerScore={}",leftScore,rightScore,innerScore) << std::endl;
                                     if (scoreHere > bestChildScore)
                                     {
                                         bestChildScore = scoreHere;
@@ -559,10 +559,8 @@ namespace cg::mif
                         std::cout << "bestChildIntervalIdx= " << bestChildIntervalIndex << " layerIdx= " << layerIdx << " bestChildScore= " << bestChildScore << " dummyScore.childIntervalIdx= " << dummyScore.childIntervalIdx << " dummyScore=" << dummyScore.score << " rightScore.score=" << rightScore.score << " rightScore child interval idx=" << rightScore.childIntervalIdx << " " << std::endl;
                         throw std::runtime_error(std::format("Inconsistent right child choice: child type is {} and child interval index is {}", childType, bestChildIntervalIndex));
                     }
-                    if(expectedScore != bestChildScore)
+                    //if(expectedScore != bestChildScore)
                     {
-                        std::cout << std::format("[NOT EQUAL] FR({},{},{},{})={}", x, y, interval.Index, layerIdx, rightScore.score) << std::endl;
-                        std::cout << "[NOT EQUAL] bestChildIntervalIdx= " << bestChildIntervalIndex << " layerIdx= " << layerIdx << " bestChildScore= " << bestChildScore << " dummyScore.childIntervalIdx= " << dummyScore.childIntervalIdx << " dummyScore=" << dummyScore.score << " rightScore.score=" << rightScore.score << " rightScore child interval idx=" << rightScore.childIntervalIdx << " " << std::endl;
                         //throw std::runtime_error(std::format("Expected score was {} but newly computed score is {}", expectedScore, bestChildScore));
                     }
 
@@ -574,6 +572,10 @@ namespace cg::mif
                         .xPrime = bestInnerRight,
                         .childIntervalIdx = bestChildIntervalIndex,
                     };
+                    std::cout << std::format("rightChildChoices({},{},{},{})=childType={},innerScore={},qPrime={},xPrime={},childIntervalIdx={}", 
+                        x, y, interval.Index, layerIdx, 
+                    childType,bestChildScore,bestInnerLeft,bestInnerRight,bestChildIntervalIndex) << std::endl;
+               
                 }
             }
         }
@@ -1252,12 +1254,16 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 } 
                 else if(childChoice.childType != ChildType::None)
                 {
-                    throw std::runtime_error(std::format("Unexpected child type {}", childChoice.childType));
+                    throw std::runtime_error(std::format("Unexpected left child type {}", childChoice.childType));
                 }
             }
             else
             {
                 auto childChoice = childChoices.rightChildChoices(f.start, f.end, f.rootIdx, f.layerIdx);
+                      std::cout << std::format("rightChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},xPrime={},qPrime={}", 
+                            f.start, f.end, f.rootIdx, f.layerIdx,
+                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.xPrime, childChoice.qPrime) << std::endl;
+             
                 auto start = f.start;
                 auto end = f.end;
                 auto layerIdx = f.layerIdx;
@@ -1283,6 +1289,10 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                         end = childChoice.xPrime;
                         --layerIdx;
                         childChoice = childChoices.rightChildChoices(start, end, f.rootIdx, layerIdx);
+                           std::cout << std::format("rightChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},xPrime={},qPrime={}", 
+                            start, end, f.rootIdx, layerIdx,
+                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.xPrime, childChoice.qPrime) << std::endl;
+             
                     }
                     else
                     {
@@ -1307,7 +1317,7 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 }
                 else if(childChoice.childType != ChildType::None)
                 {
-                    throw std::runtime_error(std::format("Unexpected child type {}", childChoice.childType));
+                    //throw std::runtime_error(std::format("Unexpected right child type {}", childChoice.childType));
                 }
             }
         }
