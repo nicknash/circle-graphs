@@ -1,0 +1,32 @@
+// .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    // keep your app config if you want, but hide it
+    {
+      "name": "Debug circle-graphs (app)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": [],
+      "cwd": "${command:cmake.launchTargetDirectory}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "presentation": { "hidden": true },
+      "preLaunchTask": "build"
+    },
+
+    // the ONLY config CMake Tools should use for tests
+    {
+      "name": "Debug: Single CTest",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${command:cmake.testProgramPath}", // provided by CMake Tools
+      "args": ["${command:cmake.testArgs}"],         // includes the per-test filter
+      "cwd": "${command:cmake.testCwd}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "externalConsole": false
+    }
+  ]
+}

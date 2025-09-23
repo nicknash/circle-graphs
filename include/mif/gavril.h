@@ -86,7 +86,7 @@ inline std::string_view to_string(ChildType t) {
         struct ChildChoice
         {
             ChildType childType;
-            int score;
+            int innerScore;
             int qPrime;
             int xPrime;
             int childIntervalIdx;

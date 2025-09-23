@@ -9,8 +9,6 @@
 /Makefile
 /install_manifest.txt
 
-# Visual Studio Code settings
-/.vscode/
 
 # IDE files
 /.idea/

@@ -166,6 +166,133 @@ TEST_CASE("Gavril::computeRightForestBaseCase: 3 disjoint intervals") {
     }
 }
 
+TEST_CASE("Gavril::computeRightForestBaseCase: triangle (3 pairwise crossing intervals)") {
+    using cg::data_structures::Interval;
+
+    // Make a triangle: endpoints interleave
+    // A: [0,3], B: [1,4], C: [2,5]  (0 < 1 < 2 < 3 < 4 < 5)
+    // All pairs (A,B), (A,C), (B,C) cross ⇒ K3.
+    Interval A(0, 3, 0, 1);
+    Interval B(1, 4, 1, 1);
+    Interval C(2, 5, 2, 1);
+    std::vector<Interval> intervals = {A, B, C};
+    cg::data_structures::DistinctIntervalModel m(intervals);
+
+    // Build layers; in this configuration all three end up in A0.
+    auto layers = cg::interval_model_utils::createLayers(m);
+    REQUIRE(layers.size() >= 1);
+    auto& A0 = layers[0];
+    REQUIRE(A0.size() == 3);
+
+    // Collect & sort unique endpoints from A0
+    auto collect_eps = [](const std::vector<Interval>& L) {
+        std::vector<int> eps;
+        eps.reserve(2 * L.size());
+        for (const auto& it : L) { eps.push_back(it.Left); eps.push_back(it.Right); }
+        std::sort(eps.begin(), eps.end());
+        eps.erase(std::unique(eps.begin(), eps.end()), eps.end());
+        return eps;
+    };
+    auto A0_eps = collect_eps(A0);
+    REQUIRE(A0_eps.size() == 6);
+    CHECK(std::is_sorted(A0_eps.begin(), A0_eps.end()));
+
+    // DP tables indexed by endpoint universe
+    cg::mif::array4<ForestScore> FR(m.end, kZeroForestScore);              // FR[x,y,w,0]
+    cg::mif::array3<DummyForestScore> FRDummy(m.end, kZeroDummyForestScore); // FRDummy[y,w,0]
+    cg::mif::array4<ChildChoice> FRChoices(m.end, kUnsetChildChoice);
+
+    // Base case
+    cg::mif::Gavril::computeRightForestBaseCase(A0, FR, FRDummy, FRChoices);
+
+    // Alias in the A0 order returned by createLayers (we rely on endpoints to identify)
+    // Sort by Right to fix a deterministic order A(0,3), B(1,4), C(2,5)
+    std::sort(A0.begin(), A0.end(), [](const Interval& u, const Interval& v){
+        if (u.Right != v.Right) return u.Right < v.Right;
+        return u.Left < v.Left;
+    });
+    const auto& W0 = A0[0]; // expect [0,3]
+    const auto& W1 = A0[1]; // expect [1,4]
+    const auto& W2 = A0[2]; // expect [2,5]
+    // --- Zeros outside domain: l_w < x <= r_w <= y (i=0) ---
+    auto expect_zeros_outside_domain = [&](const Interval& w){
+        for (int x : A0_eps) for (int y : A0_eps) {
+            bool in_domain = (w.Left < x) && (x <= w.Right) && (w.Right <= y);
+            if (!in_domain) {
+                CHECK_MESSAGE(forest_score(FR, x, y, w) == 0,
+                              "Expected FR=0 outside domain for w=", w.Index,
+                              " x=", x, " y=", y);
+            }
+        }
+    };
+    expect_zeros_outside_domain(W0);
+    expect_zeros_outside_domain(W1);
+    expect_zeros_outside_domain(W2);
+
+    // --- Expected FR non-zeros for a triangle ---
+    // Intuition: with all three pairwise crossing, including w lets you add at most
+    // ONE more later-first-layer interval (to avoid creating a 3-cycle). So:
+    // W0 (r=3): FR(3,3)=1; FR(3,4)=2; FR(3,5)=2
+    {
+        const int x = W0.Right; // 3
+        for (int y : A0_eps) {
+            int expected = 0;
+            if (y == 3) expected = 1;
+            else if (y == 4 || y == 5) expected = 2;
+            CHECK_MESSAGE(forest_score(FR, x, y, W0) == expected,
+                          "FR(", x, ",", y, ", w=W0) mismatch");
+        }
+    }
+    // W1 (r=4): FR(4,4)=1; FR(4,5)=2
+    {
+        const int x = W1.Right; // 4
+        for (int y : A0_eps) {
+            int expected = 0;
+            if (y == 4) expected = 1;
+            else if (y == 5) expected = 2;
+            CHECK_MESSAGE(forest_score(FR, x, y, W1) == expected,
+                          "FR(", x, ",", y, ", w=W1) mismatch");
+        }
+    }
+    // W2 (r=5): FR(5,5)=1
+    {
+        const int x = W2.Right; // 5
+        for (int y : A0_eps) {
+            int expected = (y == 5 ? 1 : 0);
+            CHECK_MESSAGE(forest_score(FR, x, y, W2) == expected,
+                          "FR(", x, ",", y, ", w=W2) mismatch");
+        }
+    }
+
+    // --- Dummy table checks: FRDummy(y,w,0) = max_v FR_{v,0}[l_v+1, y] over v in (r_w, y] ---
+    // For W0 (r=3): y=3->0, y=4->1 (pick W1), y=5->2 (pick W1 best-to-5)
+    {
+        for (int y : A0_eps) {
+            int expected = 0;
+            if (y == 4) expected = 1;
+            else if (y == 5) expected = 2;
+            CHECK_MESSAGE(dummy_score(FRDummy, y, W0) == expected,
+                          "FRDummy(y=", y, ", w=W0) mismatch");
+        }
+    }
+    // For W1 (r=4): y=4->0, y=5->1 (pick W2)
+    {
+        for (int y : A0_eps) {
+            int expected = (y == 5 ? 1 : 0);
+            CHECK_MESSAGE(dummy_score(FRDummy, y, W1) == expected,
+                          "FRDummy(y=", y, ", w=W1) mismatch");
+        }
+    }
+    // For W2 (r=5): only boundary y=5 -> 0
+    {
+        for (int y : A0_eps) {
+            CHECK_MESSAGE(dummy_score(FRDummy, y, W2) == 0,
+                          "FRDummy(y=", y, ", w=W2) must be 0");
+        }
+    }
+}
+
+
 TEST_CASE("Gavril::computeRightForestBaseCase: real-child transitions exist, but only one layer") {
     using cg::data_structures::Interval;
 
