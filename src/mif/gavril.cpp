@@ -643,19 +643,23 @@ namespace cg::mif
                     // because a left dummy would be contained within 'interval'
                     auto childType = bestRealChildIntervalIndex == -1 ? ChildType::None : ChildType::Real;
 
-                    leftForestScores(z, q, interval.Index, 0) = ForestScore
-                    {
-                     .score = 1 + maxForestSizeFromRealChild,
-                     .childIntervalIdx = bestRealChildIntervalIndex
+                    ForestScore score{
+                        .score = 1 + maxForestSizeFromRealChild,
+                        .childIntervalIdx = bestRealChildIntervalIndex
                     };
 
-                    leftChildChoices(z, q, interval.Index, 0) = ChildChoice {
+                    leftForestScores(z, q, interval.Index, 0) = score;
+
+                    ChildChoice childChoice{
                         .childType = childType,
                         .innerScore = 0,//1 + maxForestSizeFromRealChild,
                         .qPrime = bestQPrime,
                         .xPrime = Invalid,
                         .childIntervalIdx = bestRealChildIntervalIndex
                     };
+
+                    leftChildChoices(z, q, interval.Index, 0) = childChoice;
+                    std::cout << std::format("FL({},{},{},0)={} with childType = {}", z, q, interval.Index, score.score, childType) << std::endl;
                 }
             }
         }
@@ -750,6 +754,11 @@ void Gavril::computeLeftForests(int layerIdx,
                 int bestChildIntervalIdx = Invalid;
 
                 auto dummyScore = forests.dummyLeftForestScores(q, interval.Index, layerIdx);
+                int bestQPrime = Invalid;
+                int bestXPrime = Invalid;
+                int bestLeftScore = Invalid;
+                int bestRightScore = Invalid;
+                int bestInnerScore = Invalid;
 
                 for (const auto& potentialLeftChild : intervalsByIncreasingLeft)
                 {
@@ -801,6 +810,11 @@ void Gavril::computeLeftForests(int layerIdx,
                             {
                                 maxRealChildForestSize = sizeHere;
                                 bestChildIntervalIdx = leftChild.Index;
+                                bestQPrime = qPrime;
+                                bestXPrime = xPrime;
+                                bestLeftScore = leftForestSize;
+                                bestRightScore = rightForestSize;
+                                bestInnerScore = innerSize;
                             }
                         }
                     }
@@ -822,6 +836,23 @@ void Gavril::computeLeftForests(int layerIdx,
                     };
                 }
                 forests.leftForestScores(z, q, interval.Index, layerIdx) = score;
+                std::cout << std::format(
+                    "[computeLeft] FL({},{},{},{})={} (bestDummy={},bestReal={},dummyChildIdx={},realChildIdx={},bestLeft={},bestRight={},bestInner={},bestQPrime={},bestXPrime={})",
+                    z,
+                    q,
+                    interval.Index,
+                    layerIdx,
+                    score.score,
+                    dummyScore.score,
+                    maxRealChildForestSize,
+                    dummyScore.childIntervalIdx,
+                    bestChildIntervalIdx,
+                    bestLeftScore,
+                    bestRightScore,
+                    bestInnerScore,
+                    bestQPrime,
+                    bestXPrime)
+                          << std::endl;
             }
         }
     }
@@ -991,6 +1022,13 @@ void Gavril::computeNewIntervalLeftForests(int layerIdx,
                 }
 
                 forests.leftForestScores(z, q, newInterval.Index, previousLayerIdx) = score;
+                std::cout << std::format("[newIntervalLeft] FL({},{},{},{})={}",
+                                         z,
+                                         q,
+                                         newInterval.Index,
+                                         previousLayerIdx,
+                                         score.score)
+                          << std::endl;
             }
         }
     }
@@ -1084,10 +1122,19 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
 
                                 if (!isValidInner) continue;
 
-                                const int scoreHere =
-                                    forests.leftForestScores(z, qPrime, child.Index, layerIdx).score +
-                                    forests.rightForestScores(xPrime, q, child.Index, layerIdx).score +
-                                    leftChildChoices(qPrime, xPrime, interval.Index, layerIdx - 1).innerScore - 1;
+                                const auto leftScoreHere =
+                                    forests.leftForestScores(z, qPrime, child.Index, layerIdx).score;
+                                const auto rightScoreHere =
+                                    forests.rightForestScores(xPrime, q, child.Index, layerIdx).score;
+                                const auto innerScore =
+                                    leftChildChoices(qPrime, xPrime, interval.Index, layerIdx - 1).innerScore;
+                                const int scoreHere = leftScoreHere + rightScoreHere + innerScore - 1;
+
+                                std::cout << std::format("[leftChildChoices] leftScore={},rightScore={},innerScore={}",
+                                                           leftScoreHere,
+                                                           rightScoreHere,
+                                                           innerScore)
+                                          << std::endl;
 
                                 if (scoreHere > bestChildScore)
                                 {
@@ -1105,6 +1152,13 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 auto childButInvalidIndex = (childType == ChildType::Dummy || childType == ChildType::Real) && bestChildIntervalIndex == Invalid;
                 if (noChildButHaveValidIndex || childButInvalidIndex)
                 {
+                    std::cout << std::format("FL({},{},{},{})={}", z, q, interval.Index, layerIdx, leftScore.score) << std::endl;
+                    std::cout << "bestChildIntervalIdx= " << bestChildIntervalIndex << " layerIdx= " << layerIdx
+                              << " bestChildScore= " << bestChildScore
+                              << " dummyScore.childIntervalIdx= " << dummyScore.childIntervalIdx
+                              << " dummyScore=" << dummyScore.score
+                              << " leftScore.score=" << leftScore.score
+                              << " leftScore child interval idx=" << leftScore.childIntervalIdx << " " << std::endl;
                     throw std::runtime_error(std::format("Inconsistent left child choice: child type is {} and child interval index is {}", childType, bestChildIntervalIndex));
                 }
 
@@ -1115,6 +1169,17 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                     .xPrime = bestInnerX,    // x'
                     .childIntervalIdx = bestChildIntervalIndex
                 };
+                std::cout << std::format("leftChildChoices({},{},{},{})=childType={},innerScore={},qPrime={},xPrime={},childIntervalIdx={}",
+                                         z,
+                                         q,
+                                         interval.Index,
+                                         layerIdx,
+                                         childType,
+                                         bestChildScore,
+                                         bestInnerQ,
+                                         bestInnerX,
+                                         bestChildIntervalIndex)
+                          << std::endl;
             }
         }
     }
