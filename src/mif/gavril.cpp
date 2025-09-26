@@ -89,9 +89,8 @@ namespace cg::mif
                         if (isWithinRange && isRealChild)
                         {
                             const auto &rightChild = potentialRightChild; // 'rightChild' is 'v' in Gavril's notation
-                            auto xPrime = interval.Right + 1;// + 1;
+                            auto xPrime = interval.Right + 1;
 
-                            // N.B. y ---> interval.Right think this through!
                             const auto forestSizeHere = rightForestScores(xPrime, y, rightChild.Index, 0).score;
                             if (forestSizeHere > maxForestSizeFromRealChild)
                             {
@@ -319,10 +318,17 @@ namespace cg::mif
             allEndpoints.push_back(interval.Left);
             allEndpoints.push_back(interval.Right);
         }
+        for(const auto& interval : newIntervalsAtThisLayer)
+        {
+            allEndpoints.push_back(interval.Left);
+            allEndpoints.push_back(interval.Right);
+        }
+ 
         std::sort(allEndpoints.begin(), allEndpoints.end());
         const auto previousLayerIdx = layerIdx - 1;
         for(const auto& newInterval : newIntervalsAtThisLayer) // This is w \in V_i - V_{i-1} in Gavril's notation
         {
+            std::cout << std::format("newIntervalRight {}", newInterval) << std::endl;
             // First fill in FR_{w, i-1}(r_w, y] for i = layerIdx
             for(auto y : allEndpoints)
             {
@@ -483,8 +489,6 @@ namespace cg::mif
                     auto dummyScore = forests.dummyRightForestScores(y, interval.Index, layerIdx);
                     auto rightScore = forests.rightForestScores(x, y, interval.Index, layerIdx);
 
-                    auto expectedScore = Invalid;
-
                     ChildType childType;
                     if(dummyScore.childIntervalIdx == Invalid && rightScore.childIntervalIdx == Invalid)
                     {
@@ -506,13 +510,11 @@ namespace cg::mif
                     // we do 1 + dummyScore for it)
                     if (childType == ChildType::Dummy)
                     {
-                        expectedScore = 0;//dummyScore.score;
-                        bestChildScore = 0;//dummyScore.score;
+                        bestChildScore = 0;
                         bestChildIntervalIndex = dummyScore.childIntervalIdx;
                     }
                     else if(childType == ChildType::Real)
                     {
-                        expectedScore = rightScore.score;
                         for (const auto &child : cumulativeIntervals)
                         {
                             for (auto innerLeft : endpointsOneBehind) // 'innerLeft' is z' in Gavril's notation on page 6
@@ -538,7 +540,8 @@ namespace cg::mif
                                     auto innerScore = rightChildChoices(innerLeft, innerRight, interval.Index, layerIdx - 1).innerScore; 
                                     int scoreHere = leftScore + rightScore + innerScore - 1; 
                                     
-                                    std::cout << std::format("[rightChildChoices] leftScore={},rightScore={},innerScore={}",leftScore,rightScore,innerScore) << std::endl;
+                                    std::cout << std::format("[rightChildChoices] innerLeft={}, innerRight={}, FL({},{},{},{})={},FR({},{},{},{})={},innerScore={}",
+                                        innerLeft,innerRight,x,innerLeft,child.Index,layerIdx,leftScore,innerRight,y,child.Index,layerIdx,rightScore,innerScore) << std::endl;
                                     if (scoreHere > bestChildScore)
                                     {
                                         bestChildScore = scoreHere;
@@ -559,15 +562,11 @@ namespace cg::mif
                         std::cout << "bestChildIntervalIdx= " << bestChildIntervalIndex << " layerIdx= " << layerIdx << " bestChildScore= " << bestChildScore << " dummyScore.childIntervalIdx= " << dummyScore.childIntervalIdx << " dummyScore=" << dummyScore.score << " rightScore.score=" << rightScore.score << " rightScore child interval idx=" << rightScore.childIntervalIdx << " " << std::endl;
                         throw std::runtime_error(std::format("Inconsistent right child choice: child type is {} and child interval index is {}", childType, bestChildIntervalIndex));
                     }
-                    //if(expectedScore != bestChildScore)
-                    {
-                        //throw std::runtime_error(std::format("Expected score was {} but newly computed score is {}", expectedScore, bestChildScore));
-                    }
-
+                    
                     rightChildChoices(x, y, interval.Index, layerIdx) = ChildChoice 
                     {
                         .childType = childType,
-                        .innerScore = bestChildScore, // is THIS counting w or not ?
+                        .innerScore = bestChildScore, 
                         .qPrime = bestInnerLeft,
                         .xPrime = bestInnerRight,
                         .childIntervalIdx = bestChildIntervalIndex,
@@ -652,7 +651,7 @@ namespace cg::mif
 
                     ChildChoice childChoice{
                         .childType = childType,
-                        .innerScore = 0,//1 + maxForestSizeFromRealChild,
+                        .innerScore = 0,
                         .qPrime = bestQPrime,
                         .xPrime = Invalid,
                         .childIntervalIdx = bestRealChildIntervalIndex
@@ -710,26 +709,28 @@ void Gavril::computeLeftForests(int layerIdx,
                 const bool isWithinRange = potentialDummyChild.Right <= q;
                 const bool isDummyChild  = potentialDummyChild.Left > interval.Left;
 
-                if (!(isWithinRange && isDummyChild))
+                if (isWithinRange && isDummyChild)
                 {
-                    continue;
-                }
-                const auto& dummyChild = potentialDummyChild;
-                // Symmetric to right: use FL_{v,i}[z', r_v - 1] with z' fixed at v.Left (independent of z of the parent).
-                const auto dummyForestSizeHere =
-                    forests.leftForestScores(dummyChild.Left, dummyChild.Right - 1, dummyChild.Index, layerIdx).score;
-
-                if (dummyForestSizeHere > maxDummyForestSize)
-                {
-                    maxDummyForestSize = dummyForestSizeHere;
-                    bestDummyIntervalIdx = dummyChild.Index;
+                    const auto &dummyChild = potentialDummyChild;
+                    // Symmetric to right: use FL_{v,i}[z', r_v - 1] with z' fixed at v.Left (independent of z of the parent).
+                    const auto dummyForestSizeHere =
+                        forests.leftForestScores(dummyChild.Left, q-1, dummyChild.Index, layerIdx-1).score;
+                    std::cout << std::format("computeDummyLeftQuery: FL({},{},{},{}) = {}", dummyChild.Left, q-1, dummyChild.Index, layerIdx-1, dummyForestSizeHere) << std::endl;
+                    if (dummyForestSizeHere > maxDummyForestSize)
+                    {
+                        maxDummyForestSize = dummyForestSizeHere;
+                        bestDummyIntervalIdx = dummyChild.Index;
+                    }
                 }
             }
             DummyForestScore dummyScore{
                 .score = maxDummyForestSize,
                 .childIntervalIdx = bestDummyIntervalIdx
             };
-            forests.dummyLeftForestScores(q, interval.Index, layerIdx) = dummyScore;
+            forests.dummyLeftForestScores(q, interval.Index, layerIdx-1) = dummyScore;
+            std::cout << std::format("computeDummyLeft({},{},{})=(score={},childIdx={})",
+            q, interval.Index, layerIdx-1, maxDummyForestSize, bestDummyIntervalIdx) << std::endl;
+
         }
 
         // Now compute FL_{w,i}[z, q] for all z <= l_w <= q < r_w
@@ -753,7 +754,7 @@ void Gavril::computeLeftForests(int layerIdx,
                 int maxRealChildForestSize = 0;
                 int bestChildIntervalIdx = Invalid;
 
-                auto dummyScore = forests.dummyLeftForestScores(q, interval.Index, layerIdx);
+                auto dummyScore = forests.dummyLeftForestScores(q, interval.Index, layerIdx-1);
                 int bestQPrime = Invalid;
                 int bestXPrime = Invalid;
                 int bestLeftScore = Invalid;
@@ -876,12 +877,18 @@ void Gavril::computeNewIntervalLeftForests(int layerIdx,
         allEndpoints.push_back(interval.Left);
         allEndpoints.push_back(interval.Right);
     }
+    for(const auto& interval : newIntervalsAtThisLayer)
+    {
+        allEndpoints.push_back(interval.Left);
+        allEndpoints.push_back(interval.Right);
+    }
     std::sort(allEndpoints.begin(), allEndpoints.end());
 
     const auto previousLayerIdx = layerIdx - 1;
 
     for (const auto& newInterval : newIntervalsAtThisLayer) // w ∈ V_i − V_{i−1}
     {
+        std::cout << std::format("newInterval: {}", newInterval) << std::endl;
         // 1) Fill FL_{w, i-1}(l_w, q] (dummy-left) for this w
         for (auto q : allEndpoints)
         {
@@ -904,7 +911,8 @@ void Gavril::computeNewIntervalLeftForests(int layerIdx,
                 const auto& dummyChild = potentialDummyChild;
                 // At level i-1 (since w is newly added at i), mirror of right-new:
                 const auto dummyForestSizeHere =
-                    forests.leftForestScores(dummyChild.Left, dummyChild.Right - 1, dummyChild.Index, previousLayerIdx).score;
+                    forests.leftForestScores(dummyChild.Left, q-1, dummyChild.Index, previousLayerIdx).score;
+                std::cout << std::format("newIntervalDummyLeftQuery: FL({},{},{},{}) = {}", dummyChild.Left, q-1, dummyChild.Index, previousLayerIdx, dummyForestSizeHere) << std::endl;
 
                 if (dummyForestSizeHere > maxDummyForestSize)
                 {
@@ -916,6 +924,8 @@ void Gavril::computeNewIntervalLeftForests(int layerIdx,
                 .score = maxDummyForestSize,
                 .childIntervalIdx = bestChildIntervalIdx
             };
+            std::cout << std::format("newIntervalDummyLeft({},{},{})=(score={},childIdx={})",
+            q, newInterval.Index, previousLayerIdx, maxDummyForestSize, bestChildIntervalIdx) << std::endl;
         }
 
         // 2) Compute FL_{w, i-1}[z, q] for all valid z, q
@@ -1073,7 +1083,7 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 int bestInnerQ = Invalid;  // this will be q' (< l_w)
                 int bestInnerX = Invalid;  // this will be x' (> l_w)
 
-                const auto dummyScore = forests.dummyLeftForestScores(q, interval.Index, layerIdx);
+                const auto dummyScore = forests.dummyLeftForestScores(q, interval.Index, layerIdx-1);
                 const auto leftScore  = forests.leftForestScores(z, q, interval.Index, layerIdx);
 
                 ChildType childType;
@@ -1097,7 +1107,7 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
 
                 if (childType == ChildType::Dummy)
                 {
-                    bestChildScore = 0;//dummyScore.score;
+                    bestChildScore = 0;
                     bestChildIntervalIndex = dummyScore.childIntervalIdx;
                 }
                 else if (childType == ChildType::Real)
@@ -1122,12 +1132,9 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
 
                                 if (!isValidInner) continue;
 
-                                const auto leftScoreHere =
-                                    forests.leftForestScores(z, qPrime, child.Index, layerIdx).score;
-                                const auto rightScoreHere =
-                                    forests.rightForestScores(xPrime, q, child.Index, layerIdx).score;
-                                const auto innerScore =
-                                    leftChildChoices(qPrime, xPrime, interval.Index, layerIdx - 1).innerScore;
+                                const auto leftScoreHere = forests.leftForestScores(z, qPrime, child.Index, layerIdx).score;
+                                const auto rightScoreHere = forests.rightForestScores(xPrime, q, child.Index, layerIdx).score;
+                                const auto innerScore = leftChildChoices(qPrime, xPrime, interval.Index, layerIdx - 1).innerScore;
                                 const int scoreHere = leftScoreHere + rightScoreHere + innerScore - 1;
 
                                 std::cout << std::format("[leftChildChoices] leftScore={},rightScore={},innerScore={}",
@@ -1224,7 +1231,8 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 }
             }
         }
-        std::cout << std::format("bestSplit={},bestScore={},bestIntervalIndex={},bestLeft={},bestRight={}",bestSplit,bestScore,bestIntervalIndex,bestLeft,bestRight) << std::endl;
+        std::cout << std::format("bestSplit={},bestScore={},bestIntervalIndex={},bestLeft={},bestRight={},topLayer={}",
+            bestSplit,bestScore,bestIntervalIndex,bestLeft,bestRight,topLayer) << std::endl;
 
         mifIntervalIdxs.push_back(bestIntervalIndex);
         struct ForestToBuild
@@ -1273,6 +1281,10 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
             if(f.isLeft)
             {
                 auto childChoice = childChoices.leftChildChoices(f.start, f.end, f.rootIdx, f.layerIdx);
+                             std::cout << std::format("leftChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},qPrime={},xPrime={}", 
+                            f.start, f.end, f.rootIdx, f.layerIdx,
+                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.qPrime, childChoice.xPrime) << std::endl;
+         
                 auto start = f.start;
                 auto end = f.end;
                 auto layerIdx = f.layerIdx;
@@ -1298,6 +1310,10 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                         end = childChoice.xPrime;
                         --layerIdx;
                         childChoice = childChoices.leftChildChoices(start, end, f.rootIdx, layerIdx);
+                                 std::cout << std::format("leftChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},qPrime={},xPrime={}", 
+                            start, end, f.rootIdx, layerIdx,
+                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.qPrime, childChoice.xPrime) << std::endl;
+             
                     }
                     else
                     {
@@ -1313,21 +1329,22 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                         .isLeft = true,
                         .rootIdx = childChoice.childIntervalIdx,
                         .layerIdx = layerIdx - 1,
-                        .start = start,
+                        .start = start + 1,
                         .end = dummyRoot.Right - 1
                     });
                 } 
                 else if(childChoice.childType != ChildType::None)
                 {
-                    throw std::runtime_error(std::format("Unexpected left child type {}", childChoice.childType));
+                    //throw std::runtime_error(std::format("Unexpected left child type {}", childChoice.childType));
+                    std::cout << std::format("Unexpected left child type {}", childChoice.childType) << std::endl;
                 }
             }
             else
             {
                 auto childChoice = childChoices.rightChildChoices(f.start, f.end, f.rootIdx, f.layerIdx);
-                      std::cout << std::format("rightChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},xPrime={},qPrime={}", 
+                      std::cout << std::format("rightChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},qPrime={},xPrime={}", 
                             f.start, f.end, f.rootIdx, f.layerIdx,
-                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.xPrime, childChoice.qPrime) << std::endl;
+                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.qPrime, childChoice.xPrime) << std::endl;
              
                 auto start = f.start;
                 auto end = f.end;
@@ -1354,9 +1371,9 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                         end = childChoice.xPrime;
                         --layerIdx;
                         childChoice = childChoices.rightChildChoices(start, end, f.rootIdx, layerIdx);
-                           std::cout << std::format("rightChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},xPrime={},qPrime={}", 
+                           std::cout << std::format("rightChildChoice(start={},end={},rootIdx={},layerIdx={}): intervalIdx={},childType={},innerScore={},qPrime={},xPrime={}", 
                             start, end, f.rootIdx, layerIdx,
-                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.xPrime, childChoice.qPrime) << std::endl;
+                            childChoice.childIntervalIdx, childChoice.childType, childChoice.innerScore, childChoice.qPrime, childChoice.xPrime) << std::endl;
              
                     }
                     else
@@ -1383,6 +1400,7 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 else if(childChoice.childType != ChildType::None)
                 {
                     //throw std::runtime_error(std::format("Unexpected right child type {}", childChoice.childType));
+                    std::cout << std::format("Unexpected left child type {}", childChoice.childType) << std::endl;
                 }
             }
         }
@@ -1451,23 +1469,21 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
             cumulativeIntervalsOneBehind.insert(cumulativeIntervalsOneBehind.begin(), intervalsAtLayer[layerIdx - 1].begin(), intervalsAtLayer[layerIdx - 1].end());
             cumulativeIntervals.insert(cumulativeIntervals.begin(), newLayerIntervals.begin(), newLayerIntervals.end());
 
-            // Now solve the right-side problems at this layer:
-
             // Evaluate FR for the intervals in newLayerIntervals, this is described in the paragaph on page 5, "When w \in V_i - V_{i - 1}..."
             computeNewIntervalRightForests(layerIdx, newLayerIntervals, cumulativeIntervalsOneBehind, forests, childChoices.rightChildChoices);
-            // Evaluate FR for all w in V_i
-            computeRightForests(layerIdx, cumulativeIntervals, forests, childChoices.rightChildChoices);
-            // Compute ur_{w, i}(x, y):
-            computeRightChildChoices(forests, allIntervals, cumulativeIntervals, cumulativeIntervalsOneBehind, childChoices.rightChildChoices, layerIdx); 
-            
-            // Now solve the left-side problems at this layer:
-
             // Evaluate FL for the intervals in newLayerIntervals, this is described in the paragaph on page 5, "When w \in V_i - V_{i - 1}..."
             computeNewIntervalLeftForests(layerIdx, newLayerIntervals, cumulativeIntervalsOneBehind, forests, childChoices.leftChildChoices);
+    
+            // Evaluate FR for all w in V_i
+            computeRightForests(layerIdx, cumulativeIntervals, forests, childChoices.rightChildChoices);
             // Evaluate FL for all w in V_i:
             computeLeftForests(layerIdx, cumulativeIntervals, forests, childChoices.leftChildChoices);
+  
+            // Compute ur_{w, i}(x, y):
+            computeRightChildChoices(forests, allIntervals, cumulativeIntervals, cumulativeIntervalsOneBehind, childChoices.rightChildChoices, layerIdx); 
             // Compute ul_{w,i}(x, y):
             computeLeftChildChoices(forests, allIntervals, cumulativeIntervals, cumulativeIntervalsOneBehind, childChoices.leftChildChoices, layerIdx);
+  
         }
         auto mifIntervalIdxs = constructMif(intervalModel, intervalsAtLayer.size(), forests, childChoices);
         std::vector<cg::data_structures::Interval> mifIntervals;
