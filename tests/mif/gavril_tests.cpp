@@ -231,12 +231,28 @@ TEST_CASE("[Gavril] Three disjoint intervals") {
 TEST_CASE("[Gavril] Single interval containing two disjoint") {
     std::vector<cgtd::Interval> ivs;
     ivs.push_back(mk(0,5,0));
-    ivs.push_back(mk(1,2,1)); // we currently get: best split = 2, with FL[0..2,rooted at 0]=2 and FR[3,..,rooted at 0]=1
-    ivs.push_back(mk(3,4,2)); // 
+    ivs.push_back(mk(1,2,1)); 
+    ivs.push_back(mk(3,4,2)); 
     validate_endpoints(ivs);
 
     const int brute = brute_force_mif_size(ivs);
     REQUIRE(brute == 3);
+
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+TEST_CASE("[Gavril] Single interval containing three disjoint") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,7,0));
+    ivs.push_back(mk(1,2,1)); 
+    ivs.push_back(mk(3,4,2)); 
+    ivs.push_back(mk(5,6,3)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    REQUIRE(brute == 4);
 
     const auto idxs = gavril_indices(ivs);
     CHECK(static_cast<int>(idxs.size()) == brute);

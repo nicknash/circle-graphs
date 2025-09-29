@@ -200,6 +200,7 @@ namespace cg::mif
                 }
                 DummyForestScore dummyScore {
                     .score = maxDummyForestSize,
+                    .split = Invalid,
                     .childIntervalIdx = bestDummyIntervalIdx
                 };
                 forests.dummyRightForestScores(y, interval.Index, layerIdx) = dummyScore;
@@ -351,6 +352,7 @@ namespace cg::mif
                 }
                 forests.dummyRightForestScores(y, newInterval.Index, previousLayerIdx) = DummyForestScore{
                     .score = maxDummyForestSize,
+                    .split = Invalid,
                     .childIntervalIdx = bestChildIntervalIdx};
 
                 for (auto x : allEndpoints)
@@ -688,6 +690,7 @@ namespace cg::mif
                     continue;
                 }
                 int maxDummyForestSize = 0;
+                int bestDummySplit = Invalid;
                 int bestDummyIntervalIdx = Invalid;
 
                 for (const auto &potentialDummyChild : intervalsByIncreasingLeft)
@@ -700,18 +703,24 @@ namespace cg::mif
                     {
                         const auto &dummyChild = potentialDummyChild;
                         // Symmetric to right: use FL_{v,i}[z', r_v - 1] with z' fixed at v.Left (independent of z of the parent).
-                        const auto dummyForestSizeHere =
-                            forests.leftForestScores(dummyChild.Left, q - 1, dummyChild.Index, layerIdx -1).score;
-                        std::cout << std::format("computeDummyLeftQuery: FL({},{},{},{}) = {}", dummyChild.Left, q - 1, dummyChild.Index, layerIdx - 1, dummyForestSizeHere) << std::endl;
-                        if (dummyForestSizeHere > maxDummyForestSize)
+                        for (auto s = dummyChild.Left; s < q; ++s)
                         {
-                            maxDummyForestSize = dummyForestSizeHere;
-                            bestDummyIntervalIdx = dummyChild.Index;
+                            const auto dummyForestSizeHere =
+                                forests.leftForestScores(dummyChild.Left, s, dummyChild.Index, layerIdx - 1).score +
+                                forests.rightForestScores(s + 1, q, dummyChild.Index, layerIdx - 1).score - 1;
+                            std::cout << std::format("computeDummyLeftQuery: FL({},{},{},{}) = {}", dummyChild.Left, q - 1, dummyChild.Index, layerIdx - 1, dummyForestSizeHere) << std::endl;
+                            if (dummyForestSizeHere > maxDummyForestSize)
+                            {
+                                maxDummyForestSize = dummyForestSizeHere;
+                                bestDummySplit = s;
+                                bestDummyIntervalIdx = dummyChild.Index;
+                            }
                         }
                     }
                 }
                 DummyForestScore dummyScore{
                     .score = maxDummyForestSize,
+                    .split = bestDummySplit,
                     .childIntervalIdx = bestDummyIntervalIdx};
                 forests.dummyLeftForestScores(q, interval.Index, layerIdx - 1) = dummyScore;
                 std::cout << std::format("computeDummyLeft({},{},{})=(score={},childIdx={})",
@@ -876,7 +885,7 @@ namespace cg::mif
                 }
                 int maxDummyForestSize = 0;
                 int bestChildIntervalIdx = Invalid;
-
+                int bestDummySplit = Invalid;
                 for (const auto &potentialDummyChild : allIntervalsBeforeThisLayer)
                 {
                     const bool isWithinRange = potentialDummyChild.Right <= q;
@@ -887,19 +896,29 @@ namespace cg::mif
                         continue;
                     }
                     const auto &dummyChild = potentialDummyChild;
-                    // At level i-1 (since w is newly added at i), mirror of right-new:
-                    const auto dummyForestSizeHere =
-                        forests.leftForestScores(dummyChild.Left, q - 1, dummyChild.Index, previousLayerIdx).score;
-                    std::cout << std::format("newIntervalDummyLeftQuery: FL({},{},{},{}) = {}", dummyChild.Left, q - 1, dummyChild.Index, previousLayerIdx, dummyForestSizeHere) << std::endl;
-
-                    if (dummyForestSizeHere > maxDummyForestSize)
+                    for (auto s = dummyChild.Left; s < q; ++s)
                     {
-                        maxDummyForestSize = dummyForestSizeHere;
-                        bestChildIntervalIdx = dummyChild.Index;
+                        // At level i-1 (since w is newly added at i), mirror of right-new:
+                        // const auto dummyForestSizeHere =
+                        //    forests.leftForestScores(dummyChild.Left, q - 1, dummyChild.Index, previousLayerIdx).score;
+                        const auto dummyForestSizeHere =
+                            forests.leftForestScores(dummyChild.Left, s, dummyChild.Index, previousLayerIdx).score +
+                            forests.rightForestScores(s + 1, q, dummyChild.Index, previousLayerIdx).score - 1;
+
+                        std::cout << std::format("newIntervalDummyLeftQuery: FL({},{},{},{}) = {}", dummyChild.Left, q - 1, dummyChild.Index, previousLayerIdx, dummyForestSizeHere) << std::endl;
+
+                        if (dummyForestSizeHere > maxDummyForestSize)
+                        {
+                            bestDummySplit = s;
+                            maxDummyForestSize = dummyForestSizeHere;
+                            bestChildIntervalIdx = dummyChild.Index;
+                        }
                     }
                 }
-                forests.dummyLeftForestScores(q, newInterval.Index, previousLayerIdx) = DummyForestScore{
+                forests.dummyLeftForestScores(q, newInterval.Index, previousLayerIdx) = 
+                DummyForestScore{
                     .score = maxDummyForestSize,
+                    .split = bestDummySplit,
                     .childIntervalIdx = bestChildIntervalIdx};
                 std::cout << std::format("newIntervalDummyLeft({},{},{})=(score={},childIdx={})",
                                          q, newInterval.Index, previousLayerIdx, maxDummyForestSize, bestChildIntervalIdx)
@@ -1009,7 +1028,8 @@ namespace cg::mif
         }
     }
 
-void Gavril::computeLeftChildChoices(const Forests& forests,
+void Gavril::computeLeftChildChoices(
+                                     const Forests& forests,
                                      const std::vector<cg::data_structures::Interval> allIntervals,
                                      const std::vector<cg::data_structures::Interval>& cumulativeIntervals,
                                      const std::vector<cg::data_structures::Interval>& cumulativeIntervalsOneBehind,
@@ -1073,6 +1093,8 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                 if (childType == ChildType::Dummy)
                 {
                     bestChildScore = 0;
+                    bestInnerQ = dummyScore.split,
+                    bestInnerX = dummyScore.split + 1,
                     bestChildIntervalIndex = dummyScore.childIntervalIdx;
                 }
                 else if (childType == ChildType::Real)
@@ -1294,8 +1316,15 @@ void Gavril::computeLeftChildChoices(const Forests& forests,
                         .isLeft = true,
                         .rootIdx = childChoice.childIntervalIdx,
                         .layerIdx = layerIdx - 1,
-                        .start = start + 1,
-                        .end = dummyRoot.Right - 1
+                        .start = dummyRoot.Left,
+                        .end = childChoice.qPrime
+                    });
+                    pending.push(ForestToBuild{
+                        .isLeft = false,
+                        .rootIdx = childChoice.childIntervalIdx,
+                        .layerIdx = layerIdx - 1,
+                        .start = childChoice.xPrime,
+                        .end = end
                     });
                 } 
                 else if(childChoice.childType != ChildType::None)

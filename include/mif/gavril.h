@@ -81,6 +81,7 @@ inline std::string_view to_string(ChildType t) {
         struct DummyForestScore
         {
             int score;
+            int split;
             int childIntervalIdx;
         };
         struct ChildChoice
