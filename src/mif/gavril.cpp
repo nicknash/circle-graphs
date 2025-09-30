@@ -534,9 +534,9 @@ namespace cg::mif
                     {
                         for (const auto &child : cumulativeIntervals)
                         {
-                            for (auto innerLeft : endpointsOneBehind) // 'innerLeft' is z' in Gavril's notation on page 6
+                            for (auto innerLeft : endpoints) // 'innerLeft' is z' in Gavril's notation on page 6
                             {
-                                for (auto innerRight : endpointsOneBehind) // 'innerRight' is q' in Gavril's notation on page 6
+                                for (auto innerRight : endpoints) // 'innerRight' is q' in Gavril's notation on page 6
                                 {
                                     auto isValidInner = interval.Left < x &&
                                                         x <= child.Left &&
@@ -1131,10 +1131,10 @@ void Gavril::computeLeftChildChoices(
                 {
                     for (const auto& child : cumulativeIntervals)
                     {
-                        for (auto qPrime : endpointsOneBehind) // q' (< l_w)
+                        for (auto qPrime : endpoints) // q' (< l_w)
                         {
                             if (qPrime >= interval.Left) break;
-                            for (auto xPrime : endpointsOneBehind) // x' (> l_w)
+                            for (auto xPrime : endpoints) // x' (> l_w)
                             {
                                 if (xPrime <= interval.Left) continue;
 

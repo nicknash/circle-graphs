@@ -124,8 +124,8 @@ make_intervals_from_permutation(const std::vector<int>& perm) {
 }
 
 static std::vector<int>
-gavril_indices(const std::vector<cgtd::Interval>& ivs) {
-    const auto chosen = cg::mif::Gavril::computeMif(ivs);
+gavril_indices(const std::vector<cgtd::Interval>& ivs, bool enableLogging = false) {
+    const auto chosen = cg::mif::Gavril::computeMif(ivs, enableLogging);
     std::vector<int> out;
     out.reserve(chosen.size());
     for (const auto& iv : chosen) out.push_back(iv.Index);
@@ -352,17 +352,73 @@ TEST_CASE("[Gavril] Left and right dummies left dummy first") {
     CHECK(is_forest_induced(ivs, idxs));
 }
 
+TEST_CASE("[Gavril] Left dummy right dummies left dummy first") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,3,0)); 
+    ivs.push_back(mk(1,2,1));
+    ivs.push_back(mk(4,5,2)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+
+TEST_CASE("[Gavril] Left dummy and real right child") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,4,0)); 
+    ivs.push_back(mk(3,5,1));
+    ivs.push_back(mk(1,2,2)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+
+TEST_CASE("[Gavril] Real left child and left dummy") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,2,0)); 
+    ivs.push_back(mk(1,5,1));
+    ivs.push_back(mk(3,4,2)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+TEST_CASE("[Gavril] Left dummy within right child") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,4,0)); 
+    ivs.push_back(mk(2,3,1));
+    ivs.push_back(mk(1,5,2)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs, true);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+
 
 // ---------- Randomized vs exhaustive (small n) --------------------------------
 TEST_CASE("[Gavril] Random small instances match brute force (n<=9)") {
     std::mt19937 rng(1234567);
-    for (int trial = 0; trial < 10; ++trial) {
+    for (int trial = 0; trial < 20; ++trial) {
         int n = 3;//5 + (rng() % 5);           // n in [5..9]
         std::vector<int> perm(2*n);
         std::iota(perm.begin(), perm.end(), 0);
         std::shuffle(perm.begin(), perm.end(), rng);
 
         auto ivs = make_intervals_from_permutation(perm);
+        std::cout << "****** Trial: **************** " << trial << std::endl;
         for(int i = 0; i < n; ++i)
         {
             std::cout << std::format("{}", ivs[i]) << std::endl;
