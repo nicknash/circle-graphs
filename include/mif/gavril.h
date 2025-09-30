@@ -116,7 +116,7 @@ inline std::string_view to_string(ChildType t) {
         static void computeLeftChildChoices(const Forests &forests, const std::vector<cg::data_structures::Interval> allIntervals, const std::vector<cg::data_structures::Interval> &cumulativeIntervals, const std::vector<cg::data_structures::Interval> &cumulativeIntervalsOneBehind, array4<ChildChoice> &leftChildChoices, int layerIdx);
       
         static std::vector<int> constructMif(const cg::data_structures::DistinctIntervalModel& intervalModel, int numLayers, const Forests& forests, const ChildChoices& innerChoices);
-        static std::vector<cg::data_structures::Interval> computeMif(std::span<const cg::data_structures::Interval> intervals);
+        static std::vector<cg::data_structures::Interval> computeMif(std::span<const cg::data_structures::Interval> intervals, bool enableLogging = false);
     };
 }
 
