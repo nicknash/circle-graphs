@@ -326,11 +326,38 @@ TEST_CASE("[Gavril] Mixed nested + overlaps") {
     CHECK(is_forest_induced(ivs, idxs));
 }
 
+TEST_CASE("[Gavril] Left and right dummies right dummy first") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,1,0)); 
+    ivs.push_back(mk(2,5,1));
+    ivs.push_back(mk(3,4,2)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+TEST_CASE("[Gavril] Left and right dummies left dummy first") {
+    std::vector<cgtd::Interval> ivs;
+    ivs.push_back(mk(0,3,0)); 
+    ivs.push_back(mk(1,2,1));
+    ivs.push_back(mk(4,5,2)); 
+    validate_endpoints(ivs);
+
+    const int brute = brute_force_mif_size(ivs);
+    const auto idxs = gavril_indices(ivs);
+    CHECK(static_cast<int>(idxs.size()) == brute);
+    CHECK(is_forest_induced(ivs, idxs));
+}
+
+
 // ---------- Randomized vs exhaustive (small n) --------------------------------
 TEST_CASE("[Gavril] Random small instances match brute force (n<=9)") {
     std::mt19937 rng(1234567);
-    for (int trial = 0; trial < 1; ++trial) {
-        int n = 6;//5 + (rng() % 5);           // n in [5..9]
+    for (int trial = 0; trial < 10; ++trial) {
+        int n = 3;//5 + (rng() % 5);           // n in [5..9]
         std::vector<int> perm(2*n);
         std::iota(perm.begin(), perm.end(), 0);
         std::shuffle(perm.begin(), perm.end(), rng);
