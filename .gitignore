@@ -28,6 +28,7 @@
 *.pdb
 *.exp
 circle-graphs
+unit_tests
 
 # Dependency management
 /conanbuildinfo.cmake
