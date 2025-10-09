@@ -4,6 +4,7 @@
 
 #include "data_structures/interval.h"
 #include "data_structures/distinct_interval_model.h"
+#include "utils/array_utils.h"
 
 namespace cg::data_structures
 {
@@ -14,38 +15,8 @@ namespace cg::data_structures
 
 namespace cg::mif
 {
-template <class T>
-    struct array4
-    {
-        std::size_t n;
-        std::vector<T> data;
-        array4() = default;
-        explicit array4(std::size_t n, const T& empty) : n(n), data(n * n * n * n, empty) {}
-        T &operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l)
-        {
-            return data[((i * n + j) * n + k) * n + l];
-        }
-        const T &operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l) const
-        {
-            return data[((i * n + j) * n + k) * n + l];
-        }
-    };
-
-    template <class T>
-    struct array3
-    {
-        std::size_t n;
-        std::vector<T> data;
-        explicit array3(std::size_t n, const T& empty) : n(n), data(n * n * n, empty) {}
-        T &operator()(std::size_t i, std::size_t j, std::size_t k)
-        {
-            return data[(i * n + j) * n + k];
-        }
-        const T &operator()(std::size_t i, std::size_t j, std::size_t k) const
-        {
-            return data[(i * n + j) * n + k];
-        }
-    };
+    using cg::utils::array3;
+    using cg::utils::array4;
 
         enum ChildType
         {
