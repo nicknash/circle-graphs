@@ -40,7 +40,7 @@ namespace
 
 namespace cg::mif
 {
-    void Gavril::computeRightForestBaseCase(const std::vector<cg::data_structures::Interval> &firstLayerIntervals, array4<ForestScore> &rightForestScores, array3<DummyForestScore> &dummyRightForestScores, array4<ChildChoice> &rightChildChoices)
+    void Gavril::computeRightForestBaseCase(const std::vector<cg::data_structures::Interval> &allIntervals, const std::vector<cg::data_structures::Interval> &firstLayerIntervals, array4<ForestScore> &rightForestScores, array3<DummyForestScore> &dummyRightForestScores, array4<ChildChoice> &rightChildChoices)
     {
         // Collect all end-points, in increasing order.
         std::vector<int> firstLayerEndpoints;
@@ -51,6 +51,13 @@ namespace cg::mif
         }
         std::sort(firstLayerEndpoints.begin(), firstLayerEndpoints.end());
         // Collect all intervals, ordered by decreasing right-endpoint.
+        std::vector<cg::data_structures::Interval> allIntervalsByDecreasingRight(allIntervals);
+        std::sort(allIntervalsByDecreasingRight.begin(), allIntervalsByDecreasingRight.end(),
+                  [](const cg::data_structures::Interval &a, const cg::data_structures::Interval &b)
+                  {
+                      return b.Right < a.Right;
+                  });
+
         std::vector<cg::data_structures::Interval> firstLayerIntervalsByDecreasingRight(firstLayerIntervals);
         std::sort(firstLayerIntervalsByDecreasingRight.begin(), firstLayerIntervalsByDecreasingRight.end(),
                   [](const cg::data_structures::Interval &a, const cg::data_structures::Interval &b)
@@ -222,7 +229,7 @@ namespace cg::mif
                                 bestDummyIntervalIdx = dummyChild.Index;
                                 bestSplit = s;
                             }
-                            logStream() << std::format("computeDummyRightQuery: FL({},{},{},{})={}+FR({},{},{},{}) = {}, scoreHere={}", dummyChild.Left, s, dummyChild.Index, layerIdx - 1, leftScore, s+1, y, dummyChild.Index, layerIdx, rightScore, dummyForestSizeHere) << std::endl;
+                            logStream() << std::format("computeDummyRightQuery: FL({},{},{},{})={}+FR({},{},{},{}) = {}, scoreHere={}", dummyChild.Left, s, dummyChild.Index, layerIdx, leftScore, s+1, y, dummyChild.Index, layerIdx, rightScore, dummyForestSizeHere) << std::endl;
                         }
                     }
                 }
@@ -597,7 +604,7 @@ namespace cg::mif
         }
     }
 
-    void Gavril::computeLeftForestBaseCase(const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<ForestScore>& leftForestScores, array4<ChildChoice>& leftChildChoices)
+    void Gavril::computeLeftForestBaseCase(const std::vector<cg::data_structures::Interval> &allIntervals, const std::vector<cg::data_structures::Interval>& firstLayerIntervals, array4<ForestScore>& leftForestScores, array4<ChildChoice>& leftChildChoices)
     {
         // Collect all end-points, in increasing order.
         std::vector<int> firstLayerEndpoints;
@@ -608,6 +615,11 @@ namespace cg::mif
         }
         std::sort(firstLayerEndpoints.begin(), firstLayerEndpoints.end());
         // Collect all intervals, ordered by increasing right-endpoint.
+        std::vector<cg::data_structures::Interval> allIntervalsByIncreasingLeft(allIntervals);
+        std::sort(allIntervalsByIncreasingLeft.begin(), allIntervalsByIncreasingLeft.end(),
+          [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
+              return a.Left < b.Left;
+          });
         std::vector<cg::data_structures::Interval> firstLayerIntervalsByIncreasingLeft(firstLayerIntervals);
         std::sort(firstLayerIntervalsByIncreasingLeft.begin(), firstLayerIntervalsByIncreasingLeft.end(),
           [](const cg::data_structures::Interval& a, const cg::data_structures::Interval& b) {
@@ -1481,17 +1493,17 @@ void Gavril::computeLeftChildChoices(
         };
         // The 'layers' are what Gavril calls A_0, ..., A_k at the start of page 5.
         auto intervalsAtLayer = cg::interval_model_utils::createLayers(intervalModel);
+         const auto& allIntervals = intervalModel.getAllIntervals();
 
         const auto& firstLayerIntervals = intervalsAtLayer[0];
-        computeRightForestBaseCase(firstLayerIntervals, forests.rightForestScores, forests.dummyRightForestScores, childChoices.rightChildChoices);
-        computeLeftForestBaseCase(firstLayerIntervals, forests.leftForestScores, childChoices.leftChildChoices);
+        computeRightForestBaseCase(allIntervals, firstLayerIntervals, forests.rightForestScores, forests.dummyRightForestScores, childChoices.rightChildChoices);
+        computeLeftForestBaseCase(allIntervals, firstLayerIntervals, forests.leftForestScores, childChoices.leftChildChoices);
 
         std::vector<cg::data_structures::Interval> cumulativeIntervals; // This is V_i in Gavril's notation. At a given iteration, we set V_i = A_0 U ... A_i
         cumulativeIntervals.insert(cumulativeIntervals.begin(), firstLayerIntervals.begin(), firstLayerIntervals.end());
 
         std::vector<cg::data_structures::Interval> cumulativeIntervalsOneBehind; // This is V_{i-1} in Gavril's notation.
 
-         const auto& allIntervals = intervalModel.getAllIntervals();
         // The 'layerIdx' is 'i' from Gavril's paper, that the induction of Theorem 5 is on,
         // and what FR_{w, i}, HR_{w, i}, etc are defined on.
         for (int layerIdx = 1; layerIdx < intervalsAtLayer.size(); ++layerIdx)
