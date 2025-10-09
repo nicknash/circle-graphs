@@ -356,9 +356,9 @@ TEST_CASE("[NickSimplerMif] Left and right dummies left dummy first")
 TEST_CASE("[NickSimplerMif] Random small instances match brute force (n<=9)")
 {
     std::mt19937 rng(1234567);
-    for (int trial = 0; trial < 10; ++trial)
+    for (int trial = 0; trial < 1000; ++trial)
     {
-        const int n = 5 + (rng() % 5);
+        const int n = 10 + (rng() % 5);
         std::vector<int> perm(2 * n);
         std::iota(perm.begin(), perm.end(), 0);
         std::shuffle(perm.begin(), perm.end(), rng);
