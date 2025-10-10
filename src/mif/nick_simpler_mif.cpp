@@ -2,388 +2,388 @@
 
 #include "data_structures/interval.h"
 #include "utils/array_utils.h"
-
 #include <algorithm>
 #include <vector>
 
 namespace
 {
-    using cg::utils::array3;
-    using cg::utils::array4;
+    using Interval = cg::data_structures::Interval;
 
-    class NickSimplerMifImpl
+    void buildChildren(const std::vector<Interval> &intervals,
+                       std::vector<std::vector<int>> &leftChildren,
+                       std::vector<std::vector<int>> &rightChildren)
     {
-    public:
-        explicit NickSimplerMifImpl(const cg::data_structures::DistinctIntervalModel &intervalModel)
-            : _intervals(intervalModel.getAllIntervals()),
-              _n(static_cast<int>(_intervals.size())),
-              _E(intervalModel.end > 0 ? intervalModel.end - 1 : 0),
-              _leftChildren(_n),
-              _rightChildren(_n)
+        const int numIntervals = static_cast<int>(intervals.size());
+        for (int intervalIndex = 0; intervalIndex < numIntervals; ++intervalIndex)
         {
-            buildChildren();
-            initializeTables();
-        }
-
-        [[nodiscard]] int run()
-        {
-            if (_n == 0)
+            const auto &outerInterval = intervals[intervalIndex];
+            for (int childIndex = 0; childIndex < numIntervals; ++childIndex)
             {
-                return 0;
+                if (childIndex == intervalIndex)
+                {
+                    continue;
+                }
+                const auto &innerInterval = intervals[childIndex];
+                if (innerInterval.Left < outerInterval.Left && outerInterval.Left < innerInterval.Right &&
+                    innerInterval.Right < outerInterval.Right)
+                {
+                    leftChildren[intervalIndex].push_back(childIndex);
+                }
+                if (outerInterval.Left < innerInterval.Left && innerInterval.Left < outerInterval.Right &&
+                    outerInterval.Right < innerInterval.Right)
+                {
+                    rightChildren[intervalIndex].push_back(childIndex);
+                }
             }
-            compute();
+
+            const auto compareByLeft = [&intervals](int lhs, int rhs) {
+                return intervals[lhs].Left < intervals[rhs].Left;
+            };
+            std::sort(leftChildren[intervalIndex].begin(), leftChildren[intervalIndex].end(), compareByLeft);
+            std::sort(rightChildren[intervalIndex].begin(), rightChildren[intervalIndex].end(), compareByLeft);
+        }
+    }
+
+    void computeLeftDummies(int offset,
+                            const std::vector<Interval> &intervals,
+                            int numIntervals,
+                            const cg::utils::array3<int> &leftForests,
+                            const cg::utils::array3<int> &rightForests,
+                            cg::utils::array2<int> &leftDummies)
+    {
+        for (int intervalIndex = 0; intervalIndex < numIntervals; ++intervalIndex)
+        {
+            const auto &interval = intervals[intervalIndex];
+            const int dummyPosition = interval.Left + offset;
+            if (interval.Left + 1 > dummyPosition || dummyPosition > interval.Right - 1)
+            {
+                continue;
+            }
+
             int best = 0;
-            for (int w = 0; w < _n; ++w)
+            for (int candidate = 0; candidate < numIntervals; ++candidate)
             {
-                const auto &interval = _intervals[w];
-                for (int s = interval.Left; s < interval.Right; ++s)
+                if (candidate == intervalIndex)
                 {
-                    const int leftScore = _LF_full(w, 0, 0, s);
-                    const int rightScore = _RF_full(w, 0, s + 1, _E);
-                    best = std::max(best, 1 + leftScore + rightScore);
+                    continue;
+                }
+                const auto &inner = intervals[candidate];
+                if (inner.Left > interval.Left && inner.Right <= dummyPosition)
+                {
+                    for (int split = inner.Left; split < dummyPosition; ++split)
+                    {
+                        const int leftScore = leftForests(candidate, inner.Left, split);
+                        const int rightScore = rightForests(candidate, split + 1, dummyPosition);
+                        best = std::max(best, 1 + leftScore + rightScore);
+                    }
                 }
             }
-            return best;
+            leftDummies(intervalIndex, dummyPosition) = best;
         }
+    }
 
-    private:
-        std::vector<cg::data_structures::Interval> _intervals;
-        int _n;
-        int _E;
-        int _dim = 1;
-        int _maxChildCount = 0;
-        std::vector<std::vector<int>> _leftChildren;
-        std::vector<std::vector<int>> _rightChildren;
-
-        array4<int> _LF_child;
-        array4<int> _RF_child;
-        array4<int> _LF_full;
-        array4<int> _RF_full;
-        array3<int> _LD;
-        array3<int> _RD;
-
-        void buildChildren()
+    void computeRightDummies(int offset,
+                             const std::vector<Interval> &intervals,
+                             int numIntervals,
+                             int maxEndpoint,
+                             const cg::utils::array3<int> &leftForests,
+                             const cg::utils::array3<int> &rightForests,
+                             cg::utils::array3<int> &rightDummies)
+    {
+        for (int intervalIndex = 0; intervalIndex < numIntervals; ++intervalIndex)
         {
-            _maxChildCount = 0;
-            for (int w = 0; w < _n; ++w)
+            const auto &interval = intervals[intervalIndex];
+            for (int leftBound = 0; leftBound <= maxEndpoint; ++leftBound)
             {
-                const auto &intervalW = _intervals[w];
-                for (int v = 0; v < _n; ++v)
+                const int tail = std::max(leftBound, interval.Right + 1);
+                const int rightBound = tail + offset;
+                if (rightBound < interval.Right || rightBound > maxEndpoint)
                 {
-                    if (v == w)
+                    continue;
+                }
+                if (tail > rightBound)
+                {
+                    rightDummies(intervalIndex, leftBound, rightBound) = 0;
+                    continue;
+                }
+
+                int best = 0;
+                for (int candidate = 0; candidate < numIntervals; ++candidate)
+                {
+                    if (candidate == intervalIndex)
                     {
                         continue;
                     }
-                    const auto &intervalV = _intervals[v];
-                    if (intervalV.Left < intervalW.Left && intervalW.Left < intervalV.Right && intervalV.Right < intervalW.Right)
+                    const auto &inner = intervals[candidate];
+                    if (inner.Left >= tail && inner.Right <= rightBound)
                     {
-                        _leftChildren[w].push_back(v);
-                    }
-                    if (intervalW.Left < intervalV.Left && intervalV.Left < intervalW.Right && intervalW.Right < intervalV.Right)
-                    {
-                        _rightChildren[w].push_back(v);
-                    }
-                }
-                auto byLeft = [this](int lhs, int rhs)
-                {
-                    return _intervals[lhs].Left < _intervals[rhs].Left;
-                };
-                std::sort(_leftChildren[w].begin(), _leftChildren[w].end(), byLeft);
-                std::sort(_rightChildren[w].begin(), _rightChildren[w].end(), byLeft);
-                _maxChildCount = std::max(_maxChildCount, static_cast<int>(_leftChildren[w].size()));
-                _maxChildCount = std::max(_maxChildCount, static_cast<int>(_rightChildren[w].size()));
-            }
-        }
-
-        void initializeTables()
-        {
-            _dim = std::max({1, _E + 1, _n + 1, _maxChildCount + 1});
-            _LF_child = array4<int>(_dim, 0);
-            _RF_child = array4<int>(_dim, 0);
-            _LF_full = array4<int>(_dim, 0);
-            _RF_full = array4<int>(_dim, 0);
-            _LD = array3<int>(_dim, 0);
-            _RD = array3<int>(_dim, 0);
-        }
-
-        void compute()
-        {
-            for (int d = 0; d <= _E; ++d)
-            {
-                phaseOne(d);
-                phaseTwo(d);
-                phaseThree(d);
-            }
-        }
-
-        void phaseOne(int d)
-        {
-            for (int L = 0; L <= _E; ++L)
-            {
-                const int R = L + d;
-                if (R > _E)
-                {
-                    break;
-                }
-                for (int w = 0; w < _n; ++w)
-                {
-                    const auto &intervalW = _intervals[w];
-                    computeRFChild(w, L, R, intervalW);
-                    computeLFChild(w, L, R, intervalW);
-                }
-            }
-        }
-
-        void computeRFChild(int w, int L, int R, const cg::data_structures::Interval &intervalW)
-        {
-            const auto &children = _rightChildren[w];
-            for (int k = static_cast<int>(children.size()); k >= 0; --k)
-            {
-                int bestK = 0;
-                for (int j = k; j < static_cast<int>(children.size()); ++j)
-                {
-                    const int v = children[j];
-                    const auto &intervalV = _intervals[v];
-                    if (!(L <= intervalV.Left && intervalV.Right <= R))
-                    {
-                        continue;
-                    }
-                    const int qlo = std::max(L, intervalV.Left);
-                    const int qhi = intervalW.Right - 1;
-                    const int xlo = intervalW.Right + 1;
-                    const int xhi = std::min(R, intervalV.Right);
-                    if (qlo > qhi || xlo > xhi)
-                    {
-                        continue;
-                    }
-                    for (int qp = qlo; qp <= qhi; ++qp)
-                    {
-                        for (int xp = xlo; xp <= xhi; ++xp)
+                        for (int split = inner.Left; split < rightBound; ++split)
                         {
-                            const int comp = 1 + _LF_full(v, 0, L, qp) + _RF_full(v, 0, xp, R);
-                            const int inner = _RF_child(w, j + 1, qp, xp);
-                            bestK = std::max(bestK, comp + inner);
+                            const int leftScore = leftForests(candidate, inner.Left, split);
+                            const int rightScore = rightForests(candidate, split + 1, rightBound);
+                            best = std::max(best, 1 + leftScore + rightScore);
                         }
                     }
                 }
-                _RF_child(w, k, L, R) = bestK;
+
+                rightDummies(intervalIndex, leftBound, rightBound) = best;
             }
         }
+    }
 
-        void computeLFChild(int w, int L, int R, const cg::data_structures::Interval &intervalW)
+    [[nodiscard]] int computeLeftChain(int intervalIndex,
+                                       int leftBound,
+                                       int rightBound,
+                                       const std::vector<Interval> &intervals,
+                                       const std::vector<std::vector<int>> &leftChildren,
+                                       const cg::utils::array3<int> &leftForests,
+                                       const cg::utils::array3<int> &rightForests,
+                                       const cg::utils::array2<int> &leftDummies)
+    {
+        const auto &interval = intervals[intervalIndex];
+        const auto &children = leftChildren[intervalIndex];
+
+        const int aMin = leftBound;
+        const int aMax = interval.Left;
+        const int bMin = interval.Left;
+        const int bMax = rightBound;
+
+        const int aSize = std::max(0, aMax - aMin + 1);
+        const int bSize = std::max(0, bMax - bMin + 1);
+        if (aSize == 0 || bSize == 0)
         {
-            const auto &children = _leftChildren[w];
-            for (int k = static_cast<int>(children.size()); k >= 0; --k)
+            return 0;
+        }
+
+        cg::utils::array2<int> nextValues(aSize, bSize, 0);
+        cg::utils::array2<int> currentValues(aSize, bSize, 0);
+
+        for (int a = aMin; a <= aMax; ++a)
+        {
+            for (int b = bMin; b <= bMax; ++b)
             {
-                int bestK = 0;
-                for (int j = k; j < static_cast<int>(children.size()); ++j)
+                int best = 0;
+                const int qLower = std::max(interval.Left + 1, a);
+                const int qUpper = std::min(b, interval.Right - 1);
+                if (qLower <= qUpper)
                 {
-                    const int u = children[j];
-                    const auto &intervalU = _intervals[u];
-                    if (!(L <= intervalU.Left && intervalU.Right <= R))
+                    for (int q = qLower; q <= qUpper; ++q)
                     {
-                        continue;
-                    }
-                    const int zlo = std::max(L, intervalU.Left);
-                    const int zhi = intervalW.Left - 1;
-                    const int ylo = intervalW.Left + 1;
-                    const int yhi = std::min(R, intervalU.Right);
-                    if (zlo > zhi || ylo > yhi)
-                    {
-                        continue;
-                    }
-                    for (int zp = zlo; zp <= zhi; ++zp)
-                    {
-                        for (int yp = ylo; yp <= yhi; ++yp)
-                        {
-                            const int comp = 1 + _LF_full(u, 0, L, zp) + _RF_full(u, 0, yp, R);
-                            const int inner = _LF_child(w, j + 1, zp, yp);
-                            bestK = std::max(bestK, comp + inner);
-                        }
+                        best = std::max(best, leftDummies(intervalIndex, q));
                     }
                 }
-                _LF_child(w, k, L, R) = bestK;
+                nextValues(a - aMin, b - bMin) = best;
             }
         }
 
-        void phaseTwo(int d)
+        for (int childPosition = static_cast<int>(children.size()) - 1; childPosition >= 0; --childPosition)
         {
-            for (int w = 0; w < _n; ++w)
+            const int childIndex = children[childPosition];
+            const auto &childInterval = intervals[childIndex];
+
+            for (int a = aMin; a <= aMax; ++a)
             {
-                const auto &intervalW = _intervals[w];
-                const int q = intervalW.Left + d;
-                if (intervalW.Left + 1 <= q && q <= intervalW.Right - 1)
+                for (int b = bMin; b <= bMax; ++b)
                 {
-                    int best = 0;
-                    for (int v = 0; v < _n; ++v)
+                    int best = nextValues(a - aMin, b - bMin);
+                    if (a <= childInterval.Left && childInterval.Right <= b)
                     {
-                        const auto &intervalV = _intervals[v];
-                        if (intervalV.Left > intervalW.Left && intervalV.Right <= q)
+                        const int zLower = std::max(a, childInterval.Left);
+                        const int zUpper = interval.Left - 1;
+                        const int yLower = interval.Left + 1;
+                        const int yUpper = std::min(b, childInterval.Right);
+                        if (zLower <= zUpper && yLower <= yUpper)
                         {
-                            for (int s = intervalV.Left; s < q; ++s)
+                            for (int z = zLower; z <= zUpper; ++z)
                             {
-                                const int left = _LF_full(v, 0, intervalV.Left, s);
-                                const int right = _RF_full(v, 0, s + 1, q);
-                                best = std::max(best, 1 + left + right);
+                                for (int y = yLower; y <= yUpper; ++y)
+                                {
+                                    const int component = 1 + leftForests(childIndex, a, z) +
+                                                          rightForests(childIndex, y, b);
+                                    const int suffix = nextValues(z - aMin, y - bMin);
+                                    best = std::max(best, component + suffix);
+                                }
                             }
                         }
                     }
-                    _LD(w, q, 0) = best;
+                    currentValues(a - aMin, b - bMin) = best;
                 }
             }
+            std::swap(nextValues.data, currentValues.data);
+        }
 
-            for (int w = 0; w < _n; ++w)
+        return nextValues(leftBound - aMin, rightBound - bMin);
+    }
+
+    [[nodiscard]] int computeRightChain(int intervalIndex,
+                                        int leftBound,
+                                        int rightBound,
+                                        const std::vector<Interval> &intervals,
+                                        const std::vector<std::vector<int>> &rightChildren,
+                                        const cg::utils::array3<int> &leftForests,
+                                        const cg::utils::array3<int> &rightForests,
+                                        const cg::utils::array3<int> &rightDummies)
+    {
+        const auto &interval = intervals[intervalIndex];
+        const auto &children = rightChildren[intervalIndex];
+
+        const int aMin = leftBound;
+        const int aMax = interval.Right;
+        const int bMin = interval.Right;
+        const int bMax = rightBound;
+
+        const int aSize = std::max(0, aMax - aMin + 1);
+        const int bSize = std::max(0, bMax - bMin + 1);
+        if (aSize == 0 || bSize == 0)
+        {
+            return 0;
+        }
+
+        cg::utils::array2<int> nextValues(aSize, bSize, 0);
+        cg::utils::array2<int> currentValues(aSize, bSize, 0);
+
+        for (int a = aMin; a <= aMax; ++a)
+        {
+            for (int b = bMin; b <= bMax; ++b)
             {
-                const auto &intervalW = _intervals[w];
-                for (int L = 0; L <= _E; ++L)
+                int best = 0;
+                const int yLower = std::max(a, interval.Right);
+                if (yLower <= b)
                 {
-                    const int tail = std::max(L, intervalW.Right + 1);
-                    const int y = tail + d;
-                    if (y < intervalW.Right || y > _E)
+                    for (int y = yLower; y <= b; ++y)
                     {
-                        continue;
+                        best = std::max(best, rightDummies(intervalIndex, a, y));
                     }
-                    if (tail > y)
+                }
+                nextValues(a - aMin, b - bMin) = best;
+            }
+        }
+
+        for (int childPosition = static_cast<int>(children.size()) - 1; childPosition >= 0; --childPosition)
+        {
+            const int childIndex = children[childPosition];
+            const auto &childInterval = intervals[childIndex];
+
+            for (int a = aMin; a <= aMax; ++a)
+            {
+                for (int b = bMin; b <= bMax; ++b)
+                {
+                    int best = nextValues(a - aMin, b - bMin);
+                    if (a <= childInterval.Left && childInterval.Right <= b)
                     {
-                        _RD(w, L, y) = 0;
-                        continue;
-                    }
-                    int best = 0;
-                    for (int v = 0; v < _n; ++v)
-                    {
-                        const auto &intervalV = _intervals[v];
-                        if (intervalV.Left >= tail && intervalV.Right <= y)
+                        const int qLower = std::max(a, childInterval.Left);
+                        const int qUpper = interval.Right - 1;
+                        const int xLower = interval.Right + 1;
+                        const int xUpper = std::min(b, childInterval.Right);
+                        if (qLower <= qUpper && xLower <= xUpper)
                         {
-                            for (int s = intervalV.Left; s < y; ++s)
+                            for (int q = qLower; q <= qUpper; ++q)
                             {
-                                const int left = _LF_full(v, 0, intervalV.Left, s);
-                                const int right = _RF_full(v, 0, s + 1, y);
-                                best = std::max(best, 1 + left + right);
+                                for (int x = xLower; x <= xUpper; ++x)
+                                {
+                                    const int component = 1 + leftForests(childIndex, a, q) +
+                                                          rightForests(childIndex, x, b);
+                                    const int suffix = nextValues(q - aMin, x - bMin);
+                                    best = std::max(best, component + suffix);
+                                }
                             }
                         }
                     }
-                    _RD(w, L, y) = best;
+                    currentValues(a - aMin, b - bMin) = best;
                 }
             }
+            std::swap(nextValues.data, currentValues.data);
         }
 
-        void phaseThree(int d)
-        {
-            for (int L = 0; L <= _E; ++L)
-            {
-                const int R = L + d;
-                if (R > _E)
-                {
-                    break;
-                }
-                for (int w = 0; w < _n; ++w)
-                {
-                    const auto &intervalW = _intervals[w];
-                    computeRFFull(w, L, R, intervalW);
-                    computeLFFull(w, L, R, intervalW);
-                }
-            }
-        }
+        return nextValues(leftBound - aMin, rightBound - bMin);
+    }
 
-        void computeRFFull(int w, int L, int R, const cg::data_structures::Interval &intervalW)
+    void computeFullChains(int offset,
+                           const std::vector<Interval> &intervals,
+                           const std::vector<std::vector<int>> &leftChildren,
+                           const std::vector<std::vector<int>> &rightChildren,
+                           int numIntervals,
+                           int maxEndpoint,
+                           cg::utils::array3<int> &leftForests,
+                           cg::utils::array3<int> &rightForests,
+                           const cg::utils::array2<int> &leftDummies,
+                           const cg::utils::array3<int> &rightDummies)
+    {
+        for (int leftBound = 0; leftBound <= maxEndpoint - offset; ++leftBound)
         {
-            const auto &children = _rightChildren[w];
-            for (int k = static_cast<int>(children.size()); k >= 0; --k)
+            const int rightBound = leftBound + offset;
+            for (int intervalIndex = 0; intervalIndex < numIntervals; ++intervalIndex)
             {
-                int bestK = 0;
-                if (R >= intervalW.Right && std::max(L, intervalW.Right) <= R)
+                const auto &interval = intervals[intervalIndex];
+                if (leftBound <= interval.Left && interval.Left <= rightBound)
                 {
-                    int localBest = 0;
-                    for (int y = std::max(L, intervalW.Right); y <= R; ++y)
-                    {
-                        localBest = std::max(localBest, _RD(w, L, y));
-                    }
-                    bestK = std::max(bestK, localBest);
+                    leftForests(intervalIndex, leftBound, rightBound) =
+                        computeLeftChain(intervalIndex, leftBound, rightBound, intervals, leftChildren, leftForests,
+                                         rightForests, leftDummies);
                 }
-                for (int j = k; j < static_cast<int>(children.size()); ++j)
+                else
                 {
-                    const int v = children[j];
-                    const auto &intervalV = _intervals[v];
-                    if (!(L <= intervalV.Left && intervalV.Right <= R))
-                    {
-                        continue;
-                    }
-                    const int qlo = std::max(L, intervalV.Left);
-                    const int qhi = intervalW.Right - 1;
-                    const int xlo = intervalW.Right + 1;
-                    const int xhi = std::min(R, intervalV.Right);
-                    if (qlo > qhi || xlo > xhi)
-                    {
-                        continue;
-                    }
-                    for (int qp = qlo; qp <= qhi; ++qp)
-                    {
-                        for (int xp = xlo; xp <= xhi; ++xp)
-                        {
-                            const int comp = 1 + _LF_full(v, 0, L, qp) + _RF_full(v, 0, xp, R);
-                            const int inner = _RF_full(w, j + 1, qp, xp);
-                            bestK = std::max(bestK, comp + inner);
-                        }
-                    }
+                    leftForests(intervalIndex, leftBound, rightBound) = 0;
                 }
-                _RF_full(w, k, L, R) = bestK;
-            }
-        }
 
-        void computeLFFull(int w, int L, int R, const cg::data_structures::Interval &intervalW)
-        {
-            const auto &children = _leftChildren[w];
-            for (int k = static_cast<int>(children.size()); k >= 0; --k)
-            {
-                int bestK = 0;
-                const int qmax = std::min(R, intervalW.Right - 1);
-                if (qmax >= intervalW.Left + 1)
+                if (leftBound <= interval.Right && interval.Right <= rightBound)
                 {
-                    int localBest = 0;
-                    for (int q = intervalW.Left + 1; q <= qmax; ++q)
-                    {
-                        localBest = std::max(localBest, _LD(w, q, 0));
-                    }
-                    bestK = std::max(bestK, localBest);
+                    rightForests(intervalIndex, leftBound, rightBound) =
+                        computeRightChain(intervalIndex, leftBound, rightBound, intervals, rightChildren, leftForests,
+                                          rightForests, rightDummies);
                 }
-                for (int j = k; j < static_cast<int>(children.size()); ++j)
+                else
                 {
-                    const int u = children[j];
-                    const auto &intervalU = _intervals[u];
-                    if (!(L <= intervalU.Left && intervalU.Right <= R))
-                    {
-                        continue;
-                    }
-                    const int zlo = std::max(L, intervalU.Left);
-                    const int zhi = intervalW.Left - 1;
-                    const int ylo = intervalW.Left + 1;
-                    const int yhi = std::min(R, intervalU.Right);
-                    if (zlo > zhi || ylo > yhi)
-                    {
-                        continue;
-                    }
-                    for (int zp = zlo; zp <= zhi; ++zp)
-                    {
-                        for (int yp = ylo; yp <= yhi; ++yp)
-                        {
-                            const int comp = 1 + _LF_full(u, 0, L, zp) + _RF_full(u, 0, yp, R);
-                            const int inner = _LF_full(w, j + 1, zp, yp);
-                            bestK = std::max(bestK, comp + inner);
-                        }
-                    }
+                    rightForests(intervalIndex, leftBound, rightBound) = 0;
                 }
-                _LF_full(w, k, L, R) = bestK;
             }
         }
-    };
+    }
 }
 
 namespace cg::mif
 {
     int NickSimplerMif::computeMifSize(const cg::data_structures::DistinctIntervalModel &intervalModel)
     {
-        NickSimplerMifImpl impl(intervalModel);
-        return impl.run();
+        const std::vector<Interval> intervals = intervalModel.getAllIntervals();
+        const int numIntervals = static_cast<int>(intervals.size());
+        if (numIntervals == 0)
+        {
+            return 0;
+        }
+
+        const int maxEndpoint = intervalModel.end > 0 ? intervalModel.end - 1 : 0;
+        const int endpointCount = std::max(1, maxEndpoint + 1);
+
+        std::vector<std::vector<int>> leftChildren(numIntervals);
+        std::vector<std::vector<int>> rightChildren(numIntervals);
+        buildChildren(intervals, leftChildren, rightChildren);
+
+        cg::utils::array3<int> leftForests(numIntervals, endpointCount, endpointCount, 0);
+        cg::utils::array3<int> rightForests(numIntervals, endpointCount, endpointCount, 0);
+        cg::utils::array2<int> leftDummies(numIntervals, endpointCount, 0);
+        cg::utils::array3<int> rightDummies(numIntervals, endpointCount, endpointCount, 0);
+
+        for (int offset = 0; offset <= maxEndpoint; ++offset)
+        {
+            computeLeftDummies(offset, intervals, numIntervals, leftForests, rightForests, leftDummies);
+            computeRightDummies(offset, intervals, numIntervals, maxEndpoint, leftForests, rightForests, rightDummies);
+            computeFullChains(offset, intervals, leftChildren, rightChildren, numIntervals, maxEndpoint, leftForests,
+                              rightForests, leftDummies, rightDummies);
+        }
+
+        int best = 0;
+        for (int intervalIndex = 0; intervalIndex < numIntervals; ++intervalIndex)
+        {
+            const auto &interval = intervals[intervalIndex];
+            for (int split = interval.Left; split < interval.Right; ++split)
+            {
+                const int leftScore = leftForests(intervalIndex, 0, split);
+                const int rightScore = rightForests(intervalIndex, split + 1, maxEndpoint);
+                best = std::max(best, 1 + leftScore + rightScore);
+            }
+        }
+        return best;
     }
 }
 
