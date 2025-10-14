@@ -9,6 +9,7 @@
 #include <numeric>
 #include <random>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace cgtd = cg::data_structures;
@@ -165,10 +166,27 @@ namespace
         return intervals;
     }
 
+    std::vector<int> extractIndices(const std::vector<cgtd::Interval> &intervals)
+    {
+        std::vector<int> result;
+        result.reserve(intervals.size());
+        for (const auto &interval : intervals)
+        {
+            result.push_back(interval.Index);
+        }
+        return result;
+    }
+
     int nickSimplerMifSize(const std::vector<cgtd::Interval> &intervals)
     {
         cgtd::DistinctIntervalModel model(intervals);
         return cg::mif::NickSimplerMif::computeMifSize(model);
+    }
+
+    std::pair<int, std::vector<cgtd::Interval>> nickSimplerMifSolution(const std::vector<cgtd::Interval> &intervals)
+    {
+        cgtd::DistinctIntervalModel model(intervals);
+        return cg::mif::NickSimplerMif::computeMif(model);
     }
 }
 
@@ -181,7 +199,11 @@ TEST_CASE("[NickSimplerMif] Single edge is fully kept")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 2);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Single dummy left child")
@@ -192,7 +214,11 @@ TEST_CASE("[NickSimplerMif] Single dummy left child")
     validateEndpoints(intervals);
 
     const int expected = bruteForceMifSize(intervals);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Three nested intervals")
@@ -205,7 +231,11 @@ TEST_CASE("[NickSimplerMif] Three nested intervals")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 3);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Four nested intervals")
@@ -219,7 +249,11 @@ TEST_CASE("[NickSimplerMif] Four nested intervals")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 4);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Two disjoint intervals")
@@ -231,7 +265,11 @@ TEST_CASE("[NickSimplerMif] Two disjoint intervals")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 2);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Three disjoint intervals")
@@ -244,7 +282,11 @@ TEST_CASE("[NickSimplerMif] Three disjoint intervals")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 3);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Single interval containing two disjoint")
@@ -257,7 +299,11 @@ TEST_CASE("[NickSimplerMif] Single interval containing two disjoint")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 3);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Single interval containing three disjoint")
@@ -271,7 +317,11 @@ TEST_CASE("[NickSimplerMif] Single interval containing three disjoint")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 4);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Triangle reduces to 2")
@@ -284,7 +334,11 @@ TEST_CASE("[NickSimplerMif] Triangle reduces to 2")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 2);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Disconnected forest stays whole")
@@ -298,7 +352,11 @@ TEST_CASE("[NickSimplerMif] Disconnected forest stays whole")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 4);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Triangle plus edge")
@@ -313,7 +371,11 @@ TEST_CASE("[NickSimplerMif] Triangle plus edge")
 
     const int expected = bruteForceMifSize(intervals);
     CHECK(expected == 4);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Mixed nested + overlaps")
@@ -326,7 +388,11 @@ TEST_CASE("[NickSimplerMif] Mixed nested + overlaps")
     validateEndpoints(intervals);
 
     const int expected = bruteForceMifSize(intervals);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Left and right dummies right dummy first")
@@ -338,7 +404,11 @@ TEST_CASE("[NickSimplerMif] Left and right dummies right dummy first")
     validateEndpoints(intervals);
 
     const int expected = bruteForceMifSize(intervals);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Left and right dummies left dummy first")
@@ -350,7 +420,11 @@ TEST_CASE("[NickSimplerMif] Left and right dummies left dummy first")
     validateEndpoints(intervals);
 
     const int expected = bruteForceMifSize(intervals);
-    CHECK(nickSimplerMifSize(intervals) == expected);
+    const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+    CHECK(size == expected);
+    CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+    CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+    CHECK(nickSimplerMifSize(intervals) == size);
 }
 
 TEST_CASE("[NickSimplerMif] Random small instances match brute force (n<=9)")
@@ -371,7 +445,11 @@ TEST_CASE("[NickSimplerMif] Random small instances match brute force (n<=9)")
         validateEndpoints(intervals);
 
         const int expected = bruteForceMifSize(intervals);
-        CHECK(nickSimplerMifSize(intervals) == expected);
+        const auto [size, pickedIntervals] = nickSimplerMifSolution(intervals);
+        CHECK(size == expected);
+        CHECK(static_cast<int>(pickedIntervals.size()) == expected);
+        CHECK(isForestInduced(intervals, extractIndices(pickedIntervals)));
+        CHECK(nickSimplerMifSize(intervals) == size);
     }
 }
 
