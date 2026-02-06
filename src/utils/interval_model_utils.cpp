@@ -250,6 +250,7 @@
         return intervals;
     }
 
+
     std::vector<cg::data_structures::Interval> generateLayeredHardCasePrime(int numLayers)
     {
         struct Endpoint

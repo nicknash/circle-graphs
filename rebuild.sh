@@ -9,7 +9,8 @@ echo ">>> Cleaning old build artifacts"
 rm -rf build/ CMakeCache.txt CMakeFiles/
 
 echo ">>> Configuring for ${BUILD_TYPE}"
-cmake -S . -B build -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+# Force a Makefile generator to avoid stale Ninja caches.
+cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
 
 echo ">>> Building (${BUILD_TYPE})"
 # --config is a no-op for single-config generators (Makefile/Ninja),
@@ -17,4 +18,3 @@ echo ">>> Building (${BUILD_TYPE})"
 cmake --build build --config ${BUILD_TYPE}
 
 echo ">>> Done."
-

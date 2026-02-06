@@ -28,7 +28,9 @@
 int main()
 {
     using namespace cg;
-    auto intervals = interval_model_utils::generateRandomIntervals(50, 42);
+
+    //auto intervals = interval_model_utils::generateRandomIntervals(3500, 42);
+    auto intervals = interval_model_utils::generateLayeredHardCaseNonPrime(150);
     data_structures::DistinctIntervalModel distinctModel(intervals);
     data_structures::SharedIntervalModel sharedModel(intervals);
 
@@ -39,11 +41,11 @@ int main()
     std::size_t expectedSize = misDistinctNaive.size();
     results.emplace_back("distinct naive", misDistinctNaive.size());
 
-    auto misDistinctValiente = mis::distinct::Valiente::computeMIS(distinctModel);
-    results.emplace_back("distinct valiente", misDistinctValiente.size());
+    //auto misDistinctValiente = mis::distinct::Valiente::computeMIS(distinctModel);
+    //results.emplace_back("distinct valiente", misDistinctValiente.size());
 
     const std::array<std::string_view,3> dsLabels{"StackOuter","StackInner","IntervalOuter"};
-
+/*
     {
         utils::Counters<mis::distinct::PureOutputSensitive::Counts> counts;
         auto mis = mis::distinct::PureOutputSensitive::tryComputeMIS(distinctModel, std::numeric_limits<int>::max(), counts).value();
@@ -56,25 +58,28 @@ int main()
         results.emplace_back("distinct combined_output_sensitive", mis.size());
         utils::report("distinct combined_output_sensitive", counts, dsLabels);
     }
-    {
-        utils::Counters<mis::distinct::SimpleImplicitOutputSensitive::Counts> counts;
-        auto mis = mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(distinctModel, std::numeric_limits<int>::max(), counts).value();
-        results.emplace_back("distinct simple_implicit_output_sensitive", mis.size());
-        utils::report("distinct simple_implicit_output_sensitive", counts, dsLabels);
-    }
-    {
-        utils::Counters<mis::distinct::ImplicitOutputSensitive::Counts> counts;
-        auto mis = mis::distinct::ImplicitOutputSensitive::tryComputeMIS(distinctModel, std::numeric_limits<int>::max(), counts).value();
-        results.emplace_back("distinct implicit_output_sensitive", mis.size());
-        utils::report("distinct implicit_output_sensitive", counts, dsLabels);
-    }
+   */
+  
     {
         utils::Counters<mis::distinct::LazyOutputSensitive::Counts> counts;
         auto mis = mis::distinct::LazyOutputSensitive::tryComputeMIS(distinctModel, std::numeric_limits<int>::max(), counts).value();
         results.emplace_back("distinct lazy_output_sensitive", mis.size());
-        utils::report("distinct lazy_output_sensitive", counts, dsLabels);
+        utils::report("distinct lazy_output_sensitive", counts, dsLabels, distinctModel.size);
     }
-
+    /*
+    {
+        utils::Counters<mis::distinct::SimpleImplicitOutputSensitive::Counts> counts;
+        auto mis = mis::distinct::SimpleImplicitOutputSensitive::tryComputeMIS(distinctModel, std::numeric_limits<int>::max(), counts).value();
+        results.emplace_back("distinct simple_implicit_output_sensitive", mis.size());
+        utils::report("distinct simple_implicit_output_sensitive", counts, dsLabels, distinctModel.size);
+    }
+      {
+        utils::Counters<mis::distinct::ImplicitOutputSensitive::Counts> counts;
+        auto mis = mis::distinct::ImplicitOutputSensitive::tryComputeMIS(distinctModel, std::numeric_limits<int>::max(), counts).value();
+        results.emplace_back("distinct implicit_output_sensitive", mis.size());
+        utils::report("distinct implicit_output_sensitive", counts, dsLabels, distinctModel.size);
+    }*/
+/*
     // Shared endpoint algorithms
     const std::array<std::string_view,2> sdLabels{"InnerLoop","InnerMaxLoop"};
     const std::array<std::string_view,3> ssLabels{"StackOuter","StackInner","IntervalOuter"};
@@ -101,7 +106,7 @@ int main()
         results.emplace_back("shared pruned_output_sensitive", mis.size());
         utils::report("shared pruned_output_sensitive", counts, ssLabels);
     }
-
+*/
     bool allMatch = true;
     for (const auto& [name, size] : results)
     {

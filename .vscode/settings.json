@@ -69,7 +69,11 @@
         "thread": "cpp"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc-13",
-  "cmake.debugConfig": "Debug: Single CTest",
-  "cmake.ctestArgs": ["-j1", "--output-on-failure"]
+    "cmake.generator": "Unix Makefiles",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureSettings": {
+        "BUILD_TESTING": "ON"
+    },
+    "cmake.debugConfig": "Debug: Single CTest",
+    "cmake.ctestArgs": ["-j1", "--output-on-failure"]
 }
-
