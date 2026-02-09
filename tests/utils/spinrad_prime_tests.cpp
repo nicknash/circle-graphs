@@ -141,9 +141,9 @@ TEST_CASE("SpinradPrime does find split on join of cycles")
     }
 }
 
-TEST_CASE("SpinradPrime finds laminar prime intervals are indeed prime")
+TEST_CASE("SpinradPrime finds nested prime intervals are indeed prime")
 {
-    auto intervals = cg::interval_model_utils::generatePrimeLaminarIntervals(50);
+    auto intervals = cg::interval_model_utils::generatePrimeNestedIntervals(50);
     cg::data_structures::Graph g(intervals.size());
 
     for (int r = 0; r < intervals.size(); ++r)
@@ -190,12 +190,76 @@ TEST_CASE("SpinradPrime expt")
     g.addEdge(6, 9);
 
     cg::utils::SpinradPrime sp;
-    auto res = sp.trySplit(g);
-        auto [v1, v2] = *res;
+    /*auto res = sp.trySplit(g);
+    auto [v1, v2] = *res;
     for(auto v : v1)
     {
         std::cout << v << std::endl;
-    }
+    }*/
     
-    //CHECK_FALSE(sp.trySplit(g).has_value());
+    CHECK_FALSE(sp.trySplit(g).has_value());
+}
+
+TEST_CASE("SpinradPrime expt2")
+{
+    cg::data_structures::Graph g(16);
+
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(0, 9);
+
+    g.addEdge(1, 9);
+    g.addEdge(1, 10);
+
+    g.addEdge(2, 9);
+
+    g.addEdge(3, 4);
+    g.addEdge(3, 5);
+    g.addEdge(3, 9);
+    g.addEdge(3, 11);
+
+    g.addEdge(4, 10);
+    g.addEdge(4, 11);
+    g.addEdge(4, 12);
+    g.addEdge(4, 9);
+
+    g.addEdge(5, 11);
+    //g.addEdge(5, 12);
+
+    g.addEdge(6, 7);
+    g.addEdge(6, 8);
+    g.addEdge(6, 9);
+    g.addEdge(6, 11);
+    g.addEdge(6, 13);
+
+    g.addEdge(7, 12);
+    g.addEdge(7, 13);
+    g.addEdge(7, 14);
+
+    g.addEdge(8, 13);
+
+    g.addEdge(9, 11);
+    g.addEdge(9, 13);
+    g.addEdge(9, 14);
+
+    g.addEdge(11, 13);
+    
+    
+    g.addEdge(15, 11);
+    g.addEdge(15, 13);
+    g.addEdge(15, 14);
+
+
+
+
+    cg::utils::SpinradPrime sp;
+    auto res = sp.trySplit(g);
+    CHECK_FALSE(res.has_value());
+
+    /*auto [v1, v2] = *res;
+    for(auto v : v1)
+    {
+        std::cout << v << std::endl;
+    }*/
+    CHECK_FALSE(sp.trySplit(g).has_value());
 }

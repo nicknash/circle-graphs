@@ -17,7 +17,7 @@ namespace cg::interval_model_utils
     void verifyNoOverlaps(std::span<const cg::data_structures::Interval> intervals);
     int computeDensity(const cg::data_structures::DistinctIntervalModel& intervals);
     std::vector<cg::data_structures::Interval> generateRandomIntervals(int numIntervals, int seed);
-    std::vector<cg::data_structures::Interval> generatePrimeLaminarIntervals(int numLaminar);
+    std::vector<cg::data_structures::Interval> generatePrimeNestedIntervals(int numNested);
     std::vector<cg::data_structures::Interval> generateLayeredHardCaseNonPrime(int numLayers);
     std::vector<cg::data_structures::Interval> generateLayeredHardCasePrime(int numLayers);
     std::vector<std::vector<int>> createContainmentDag(const cg::data_structures::DistinctIntervalModel& intervalModel);
